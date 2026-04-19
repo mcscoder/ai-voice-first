@@ -3,17 +3,21 @@ from __future__ import annotations
 import os
 import tempfile
 from contextlib import asynccontextmanager
-from enum import StrEnum
 from pathlib import Path
-from typing import Annotated
+from typing import Any
 
 import uvicorn
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
-from faster_whisper import WhisperModel
 from dotenv import load_dotenv
+from fastapi import FastAPI, File, HTTPException, UploadFile
 
 
 load_dotenv()
+
+PUBLIC_MODEL_NAME = "nvidia/parakeet-ctc-0.6b-Vietnamese"
+MODEL_LOAD_CANDIDATES = (
+    PUBLIC_MODEL_NAME,
+    "nvidia/parakeet-ctc-0.6b-vi",
+)
 
 
 def env_flag(name: str, default: bool) -> bool:
@@ -31,148 +35,83 @@ class BackendTranscriptionError(Exception):
     pass
 
 
-class LanguageOption(StrEnum):
-    AUTO = "auto"
-    AF = "af"
-    AM = "am"
-    AR = "ar"
-    AS = "as"
-    AZ = "az"
-    BA = "ba"
-    BE = "be"
-    BG = "bg"
-    BN = "bn"
-    BO = "bo"
-    BR = "br"
-    BS = "bs"
-    CA = "ca"
-    CS = "cs"
-    CY = "cy"
-    DA = "da"
-    DE = "de"
-    EL = "el"
-    EN = "en"
-    ES = "es"
-    ET = "et"
-    EU = "eu"
-    FA = "fa"
-    FI = "fi"
-    FO = "fo"
-    FR = "fr"
-    GL = "gl"
-    GU = "gu"
-    HA = "ha"
-    HAW = "haw"
-    HE = "he"
-    HI = "hi"
-    HR = "hr"
-    HT = "ht"
-    HU = "hu"
-    HY = "hy"
-    ID = "id"
-    IS = "is"
-    IT = "it"
-    JA = "ja"
-    JW = "jw"
-    KA = "ka"
-    KK = "kk"
-    KM = "km"
-    KN = "kn"
-    KO = "ko"
-    LA = "la"
-    LB = "lb"
-    LN = "ln"
-    LO = "lo"
-    LT = "lt"
-    LV = "lv"
-    MG = "mg"
-    MI = "mi"
-    MK = "mk"
-    ML = "ml"
-    MN = "mn"
-    MR = "mr"
-    MS = "ms"
-    MT = "mt"
-    MY = "my"
-    NE = "ne"
-    NL = "nl"
-    NN = "nn"
-    NO = "no"
-    OC = "oc"
-    PA = "pa"
-    PL = "pl"
-    PS = "ps"
-    PT = "pt"
-    RO = "ro"
-    RU = "ru"
-    SA = "sa"
-    SD = "sd"
-    SI = "si"
-    SK = "sk"
-    SL = "sl"
-    SN = "sn"
-    SO = "so"
-    SQ = "sq"
-    SR = "sr"
-    SU = "su"
-    SV = "sv"
-    SW = "sw"
-    TA = "ta"
-    TE = "te"
-    TG = "tg"
-    TH = "th"
-    TK = "tk"
-    TL = "tl"
-    TR = "tr"
-    TT = "tt"
-    UK = "uk"
-    UR = "ur"
-    UZ = "uz"
-    VI = "vi"
-    YI = "yi"
-    YO = "yo"
-    ZH = "zh"
+def load_asr_model_class() -> Any:
+    try:
+        import nemo.collections.asr as nemo_asr
+    except Exception as exc:
+        raise BackendTranscriptionError(
+            "Failed to import the NVIDIA NeMo ASR runtime. "
+            "Install a supported PyTorch + NeMo stack first: "
+            f"{type(exc).__name__}: {exc}"
+        ) from exc
+
+    return nemo_asr.models.ASRModel
 
 
-class TranscriptionService:
+def extract_transcript_text(transcriptions: Any) -> str:
+    if isinstance(transcriptions, tuple) and len(transcriptions) == 1:
+        transcriptions = transcriptions[0]
+
+    if not transcriptions:
+        return ""
+
+    first_result = transcriptions[0]
+    text = getattr(first_result, "text", first_result)
+    return str(text).strip()
+
+
+class ParakeetTranscriptionService:
     def __init__(self) -> None:
-        self.model_name = os.getenv("WHISPER_MODEL", "base")
-        self.device = os.getenv("WHISPER_DEVICE", "cpu")
-        self.compute_type = os.getenv("WHISPER_COMPUTE_TYPE", "int8")
-        self._model: WhisperModel | None = None
+        self.model_name = PUBLIC_MODEL_NAME
+        self.device = os.getenv("PARAKEET_DEVICE", "cuda")
+        self._model: Any | None = None
 
-    def load_model(self) -> WhisperModel:
-        try:
-            if self._model is None:
-                self._model = WhisperModel(
-                    self.model_name,
-                    device=self.device,
-                    compute_type=self.compute_type,
-                )
+    def load_model(self) -> Any:
+        if self._model is not None:
             return self._model
+
+        asr_model_class = load_asr_model_class()
+        load_errors: list[str] = []
+        model: Any | None = None
+
+        for candidate in MODEL_LOAD_CANDIDATES:
+            try:
+                model = asr_model_class.from_pretrained(model_name=candidate)
+                break
+            except Exception as exc:
+                load_errors.append(f"{candidate}: {type(exc).__name__}: {exc}")
+
+        if model is None:
+            raise BackendTranscriptionError(
+                "Failed to initialize the Parakeet transcription model: "
+                + " | ".join(load_errors)
+            )
+
+        try:
+            if hasattr(model, "to"):
+                model = model.to(self.device)
+            if hasattr(model, "eval"):
+                model.eval()
+            if hasattr(model, "freeze"):
+                model.freeze()
         except Exception as exc:
             raise BackendTranscriptionError(
-                "Failed to initialize the transcription model: "
-                f"{type(exc).__name__}: {exc}"
+                "Failed to prepare the Parakeet transcription model on "
+                f"device '{self.device}': {type(exc).__name__}: {exc}"
             ) from exc
 
-    def transcribe(
-        self,
-        file_path: str,
-        language: LanguageOption = LanguageOption.AUTO,
-    ) -> dict[str, object]:
+        self._model = model
+        return self._model
+
+    def transcribe(self, file_path: str) -> dict[str, object]:
         try:
             model = self.load_model()
         except BackendTranscriptionError:
             raise
 
         try:
-            transcribe_kwargs: dict[str, str] = {}
-            if language is not LanguageOption.AUTO:
-                transcribe_kwargs["language"] = language.value
-
-            segments, info = model.transcribe(file_path, **transcribe_kwargs)
-            text = " ".join(segment.text.strip() for segment in segments).strip()
+            transcriptions = model.transcribe([file_path])
+            text = extract_transcript_text(transcriptions)
         except RuntimeError as exc:
             raise BackendTranscriptionError(
                 "Transcription backend failed: "
@@ -186,32 +125,29 @@ class TranscriptionService:
 
         return {
             "text": text,
-            "requested_language": language.value,
             "model": self.model_name,
-            "language": info.language,
-            "language_probability": info.language_probability,
-            "duration_seconds": info.duration,
         }
 
 
-service = TranscriptionService()
+service = ParakeetTranscriptionService()
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    if env_flag("WHISPER_LOAD_ON_STARTUP", True):
+    if env_flag("PARAKEET_LOAD_ON_STARTUP", True):
         service.load_model()
     yield
 
 
-app = FastAPI(title="Voice to Text API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(
+    title="Parakeet Vietnamese Transcription API",
+    version="0.2.0",
+    lifespan=lifespan,
+)
 
 
 @app.post("/transcribe")
-async def transcribe_audio(
-    file: UploadFile = File(...),
-    language: Annotated[LanguageOption, Form()] = LanguageOption.AUTO,
-) -> dict[str, object]:
+async def transcribe_audio(file: UploadFile = File(...)) -> dict[str, object]:
     suffix = Path(file.filename or "").suffix or ".bin"
     bytes_written = 0
     temp_path: str | None = None
@@ -230,7 +166,7 @@ async def transcribe_audio(
         if bytes_written == 0:
             raise HTTPException(status_code=400, detail="Uploaded file is empty.")
 
-        result = service.transcribe(temp_path, language=language)
+        result = service.transcribe(temp_path)
         return {
             **result,
             "filename": file.filename,

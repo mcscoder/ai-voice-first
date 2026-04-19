@@ -1,13 +1,30 @@
-# Voice to Text Backend
+# Parakeet Vietnamese Backend
+
+FastAPI backend for `nvidia/parakeet-ctc-0.6b-Vietnamese`, implemented with NVIDIA NeMo.
 
 ## Docs
 
 - GPU setup guide: [docs/GPU_SETUP.md](docs/GPU_SETUP.md)
 
+## Runtime
+
+- Linux is the supported deployment OS.
+- NVIDIA GPU is the intended runtime target.
+- NeMo’s current speech installation guidance requires Python `3.12+` and PyTorch `2.7+`.
+- First model download may require accepting NVIDIA’s license on Hugging Face for `nvidia/parakeet-ctc-0.6b-Vietnamese`.
+
 ## Run
+
+1. Create a Python `3.12` environment.
+2. Install project dependencies:
 
 ```bash
 uv sync
+```
+
+3. Start the API:
+
+```bash
 uv run python main.py
 ```
 
@@ -20,11 +37,14 @@ Common settings in `.env`:
 ```env
 HOST=0.0.0.0
 PORT=8000
-WHISPER_MODEL=base
-WHISPER_DEVICE=cpu
-WHISPER_COMPUTE_TYPE=int8
-WHISPER_LOAD_ON_STARTUP=true
+PARAKEET_DEVICE=cuda
+PARAKEET_LOAD_ON_STARTUP=true
 ```
 
-- `WHISPER_DEVICE=cpu` is the safe default.
-- `WHISPER_DEVICE=cuda` requires the supported NVIDIA runtime described in `docs/GPU_SETUP.md`.
+## API
+
+- `POST /transcribe`
+- Request: `multipart/form-data` with `file`
+- Response: `text`, `model`, `filename`, `content_type`
+
+The backend is intentionally single-model and Vietnamese-focused. Whisper-specific language selection and metadata are removed.
