@@ -25,7 +25,7 @@ enum SessionEvent {
 /// injectable trying to inject the optional [Duration] typed param.
 class SessionManager {
   SessionManager({Duration? inactivityTimeout})
-      : _inactivityTimeout = inactivityTimeout ?? const Duration(minutes: 30);
+    : _inactivityTimeout = inactivityTimeout ?? const Duration(minutes: 30);
 
   final Duration _inactivityTimeout;
 

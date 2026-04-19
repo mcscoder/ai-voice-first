@@ -16,30 +16,27 @@ class AppShimmer extends StatelessWidget {
     required this.width,
     required this.height,
     this.borderRadius,
-  })  : _type = _ShimmerType.custom,
-        _itemCount = 6,
-        _itemHeight = 72;
+  }) : _type = _ShimmerType.custom,
+       _itemCount = 6,
+       _itemHeight = 72;
 
   /// Vertical list shimmer with [itemCount] rows of [itemHeight].
-  const AppShimmer.list({
-    super.key,
-    int itemCount = 6,
-    double itemHeight = 72,
-  })  : _type = _ShimmerType.list,
-        _itemCount = itemCount,
-        _itemHeight = itemHeight,
-        width = double.infinity,
-        height = double.infinity,
-        borderRadius = null;
+  const AppShimmer.list({super.key, int itemCount = 6, double itemHeight = 72})
+    : _type = _ShimmerType.list,
+      _itemCount = itemCount,
+      _itemHeight = itemHeight,
+      width = double.infinity,
+      height = double.infinity,
+      borderRadius = null;
 
   /// Card-shaped shimmer block (full-width, 120px tall).
   const AppShimmer.card({super.key})
-      : _type = _ShimmerType.card,
-        _itemCount = 1,
-        _itemHeight = 120,
-        width = double.infinity,
-        height = 120,
-        borderRadius = null;
+    : _type = _ShimmerType.card,
+      _itemCount = 1,
+      _itemHeight = 120,
+      width = double.infinity,
+      height = 120,
+      borderRadius = null;
 
   final _ShimmerType _type;
   final double width;
@@ -62,19 +59,19 @@ class AppShimmer extends StatelessWidget {
       highlightColor: highlightColor,
       child: switch (_type) {
         _ShimmerType.list => _ListShimmer(
-            itemCount: _itemCount,
-            itemHeight: _itemHeight,
-          ),
+          itemCount: _itemCount,
+          itemHeight: _itemHeight,
+        ),
         _ShimmerType.card => _BlockShimmer(
-            width: double.infinity,
-            height: _itemHeight,
-            borderRadius: BorderRadius.circular(AppRadius.md),
-          ),
+          width: double.infinity,
+          height: _itemHeight,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
         _ShimmerType.custom => _BlockShimmer(
-            width: width,
-            height: height,
-            borderRadius: borderRadius ?? BorderRadius.circular(AppRadius.sm),
-          ),
+          width: width,
+          height: height,
+          borderRadius: borderRadius ?? BorderRadius.circular(AppRadius.sm),
+        ),
       },
     );
   }

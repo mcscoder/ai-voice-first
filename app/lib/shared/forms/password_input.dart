@@ -1,6 +1,12 @@
 import 'package:formz/formz.dart';
 
-enum PasswordValidationError { empty, tooShort, noUppercase, noDigit, noSpecial }
+enum PasswordValidationError {
+  empty,
+  tooShort,
+  noUppercase,
+  noDigit,
+  noSpecial,
+}
 
 /// Formz input for passwords.
 ///
@@ -15,11 +21,21 @@ class PasswordInput extends FormzInput<String, PasswordValidationError> {
 
   @override
   PasswordValidationError? validator(String value) {
-    if (value.isEmpty) return PasswordValidationError.empty;
-    if (value.length < 8) return PasswordValidationError.tooShort;
-    if (!_uppercaseRegex.hasMatch(value)) return PasswordValidationError.noUppercase;
-    if (!_digitRegex.hasMatch(value)) return PasswordValidationError.noDigit;
-    if (!_specialRegex.hasMatch(value)) return PasswordValidationError.noSpecial;
+    if (value.isEmpty) {
+      return PasswordValidationError.empty;
+    }
+    if (value.length < 8) {
+      return PasswordValidationError.tooShort;
+    }
+    if (!_uppercaseRegex.hasMatch(value)) {
+      return PasswordValidationError.noUppercase;
+    }
+    if (!_digitRegex.hasMatch(value)) {
+      return PasswordValidationError.noDigit;
+    }
+    if (!_specialRegex.hasMatch(value)) {
+      return PasswordValidationError.noSpecial;
+    }
     return null;
   }
 }

@@ -4,8 +4,10 @@ import 'package:intl/intl.dart';
 extension NumExtensions on num {
   /// Formats the number as a currency string with the given [symbol].
   String toCurrency({String symbol = '\$', int decimalDigits = 2}) =>
-      NumberFormat.currency(symbol: symbol, decimalDigits: decimalDigits)
-          .format(this);
+      NumberFormat.currency(
+        symbol: symbol,
+        decimalDigits: decimalDigits,
+      ).format(this);
 
   /// Formats the number in compact notation (e.g. 1.2K, 3.4M).
   String toCompact() => NumberFormat.compact().format(this);

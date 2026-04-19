@@ -8,11 +8,7 @@ enum NumericValidationError { empty, invalid, belowMin, aboveMax }
 /// to [num] during validation. Pass [min] / [max] to enforce range.
 class NumericInput extends FormzInput<String, NumericValidationError> {
   const NumericInput.pure({this.min, this.max}) : super.pure('');
-  const NumericInput.dirty(
-    super.value, {
-    this.min,
-    this.max,
-  }) : super.dirty();
+  const NumericInput.dirty(super.value, {this.min, this.max}) : super.dirty();
 
   /// Optional lower bound (inclusive).
   final num? min;

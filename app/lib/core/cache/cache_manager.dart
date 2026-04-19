@@ -7,11 +7,9 @@ import 'memory_cache.dart';
 /// Registered via [RegisterModule] in get_it.dart (not annotated) to avoid
 /// injectable trying to inject optional [MemoryCache] / [DiskCache] params.
 class CacheManager {
-  CacheManager({
-    MemoryCache? memoryCache,
-    DiskCache? diskCache,
-  })  : _memory = memoryCache ?? MemoryCache(),
-        _disk = diskCache ?? DiskCache();
+  CacheManager({MemoryCache? memoryCache, DiskCache? diskCache})
+    : _memory = memoryCache ?? MemoryCache(),
+      _disk = diskCache ?? DiskCache();
 
   final MemoryCache _memory;
   final DiskCache _disk;

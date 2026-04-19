@@ -14,8 +14,9 @@ abstract final class AppRadius {
   static const BorderRadius borderMd = BorderRadius.all(Radius.circular(md));
   static const BorderRadius borderLg = BorderRadius.all(Radius.circular(lg));
   static const BorderRadius borderXl = BorderRadius.all(Radius.circular(xl));
-  static const BorderRadius borderFull =
-      BorderRadius.all(Radius.circular(full));
+  static const BorderRadius borderFull = BorderRadius.all(
+    Radius.circular(full),
+  );
 }
 
 /// ThemeExtension for border radius tokens.
@@ -53,15 +54,14 @@ class AppRadiusTheme extends ThemeExtension<AppRadiusTheme> {
     double? lg,
     double? xl,
     double? full,
-  }) =>
-      AppRadiusTheme(
-        xs: xs ?? this.xs,
-        sm: sm ?? this.sm,
-        md: md ?? this.md,
-        lg: lg ?? this.lg,
-        xl: xl ?? this.xl,
-        full: full ?? this.full,
-      );
+  }) => AppRadiusTheme(
+    xs: xs ?? this.xs,
+    sm: sm ?? this.sm,
+    md: md ?? this.md,
+    lg: lg ?? this.lg,
+    xl: xl ?? this.xl,
+    full: full ?? this.full,
+  );
 
   @override
   AppRadiusTheme lerp(AppRadiusTheme? other, double t) {

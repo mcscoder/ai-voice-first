@@ -42,16 +42,15 @@ class AppSpacingTheme extends ThemeExtension<AppSpacingTheme> {
     double? xl,
     double? xxl,
     double? xxxl,
-  }) =>
-      AppSpacingTheme(
-        xs: xs ?? this.xs,
-        sm: sm ?? this.sm,
-        md: md ?? this.md,
-        lg: lg ?? this.lg,
-        xl: xl ?? this.xl,
-        xxl: xxl ?? this.xxl,
-        xxxl: xxxl ?? this.xxxl,
-      );
+  }) => AppSpacingTheme(
+    xs: xs ?? this.xs,
+    sm: sm ?? this.sm,
+    md: md ?? this.md,
+    lg: lg ?? this.lg,
+    xl: xl ?? this.xl,
+    xxl: xxl ?? this.xxl,
+    xxxl: xxxl ?? this.xxxl,
+  );
 
   @override
   AppSpacingTheme lerp(AppSpacingTheme? other, double t) {

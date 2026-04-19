@@ -66,11 +66,7 @@ class AppImage extends StatelessWidget {
 
 /// Circular avatar variant of [AppImage].
 class AppAvatarImage extends StatelessWidget {
-  const AppAvatarImage({
-    super.key,
-    required this.url,
-    this.size = 40,
-  });
+  const AppAvatarImage({super.key, required this.url, this.size = 40});
 
   final String url;
   final double size;

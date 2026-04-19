@@ -46,30 +46,30 @@ class QueuedRequest {
   // ---- Hive serialization (manual, avoids code-gen dependency) --------------
 
   Map<String, dynamic> toMap() => {
-        'method': method,
-        'path': path,
-        'body': body,
-        'timestamp': timestamp.toIso8601String(),
-        'retryCount': retryCount,
-      };
+    'method': method,
+    'path': path,
+    'body': body,
+    'timestamp': timestamp.toIso8601String(),
+    'retryCount': retryCount,
+  };
 
   factory QueuedRequest.fromMap(Map<dynamic, dynamic> map) => QueuedRequest(
-        method: map['method'] as String,
-        path: map['path'] as String,
-        body: map['body'] != null
-            ? Map<String, dynamic>.from(map['body'] as Map)
-            : null,
-        timestamp: DateTime.parse(map['timestamp'] as String),
-        retryCount: (map['retryCount'] as int?) ?? 0,
-      );
+    method: map['method'] as String,
+    path: map['path'] as String,
+    body: map['body'] != null
+        ? Map<String, dynamic>.from(map['body'] as Map)
+        : null,
+    timestamp: DateTime.parse(map['timestamp'] as String),
+    retryCount: (map['retryCount'] as int?) ?? 0,
+  );
 
   QueuedRequest copyWith({int? retryCount}) => QueuedRequest(
-        method: method,
-        path: path,
-        body: body,
-        timestamp: timestamp,
-        retryCount: retryCount ?? this.retryCount,
-      );
+    method: method,
+    path: path,
+    body: body,
+    timestamp: timestamp,
+    retryCount: retryCount ?? this.retryCount,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -182,14 +182,18 @@ class OfflineQueueService {
           jsonDecode(raw) as Map<dynamic, dynamic>,
         );
       } on Exception catch (e) {
-        debugPrint('[OfflineQueue] Failed to parse entry $key: $e — discarding');
+        debugPrint(
+          '[OfflineQueue] Failed to parse entry $key: $e — discarding',
+        );
         await box.delete(key);
         continue;
       }
 
       try {
         final token = await _tokenManager.accessToken;
-        final headers = token != null ? {'Authorization': 'Bearer $token'} : <String, String>{};
+        final headers = token != null
+            ? {'Authorization': 'Bearer $token'}
+            : <String, String>{};
 
         await dio.request<dynamic>(
           request.path,
@@ -242,8 +246,10 @@ class OfflineQueueService {
   void _startConnectivityListener() {
     _connectivitySub = _connectivityCubit.stream.listen((state) {
       if (state is ConnectivityOnline) {
-        debugPrint('[OfflineQueue] Connectivity restored — skip auto-process '
-            '(caller must provide Dio instance).');
+        debugPrint(
+          '[OfflineQueue] Connectivity restored — skip auto-process '
+          '(caller must provide Dio instance).',
+        );
         // Auto-processing requires Dio; callers should call processQueueOnReconnect(dio)
         // from an app-level listener that has access to the Dio instance.
         //
@@ -266,9 +272,7 @@ class OfflineQueueService {
 
   Future<void> _pruneStaleEntries() async {
     final box = _requireBox();
-    final cutoff = DateTime.now().subtract(
-      const Duration(hours: _maxAgeHours),
-    );
+    final cutoff = DateTime.now().subtract(const Duration(hours: _maxAgeHours));
     final staleKeys = <dynamic>[];
 
     for (final key in box.keys) {

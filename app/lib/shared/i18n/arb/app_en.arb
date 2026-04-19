@@ -2,5 +2,22 @@
   "appTitle": "AI Voice First",
   "appHeadline": "Voice-first product shell",
   "appDescription": "This project is now a clean baseline for building AI Voice First without starter demo flows.",
-  "appNextStep": "Next step: replace this landing screen with your voice capture, transcript, and orchestration experience."
+  "appNextStep": "Next step: replace this landing screen with your voice capture, transcript, and orchestration experience.",
+  "voiceTranscriptPlaceholder": "Tap the microphone and start speaking.",
+  "voiceIdleStatus": "Ready",
+  "voiceListeningStatus": "Listening…",
+  "voiceTranscribingStatus": "Transcribing…",
+  "voiceSuccessStatus": "Transcript ready",
+  "voiceEmptyStatus": "No speech detected",
+  "voiceMicDeniedStatus": "Microphone access is required to record.",
+  "voiceMicPermanentlyDeniedStatus": "Microphone access is blocked. Open settings to enable it.",
+  "voiceNetworkErrorStatus": "Could not reach the transcription service.",
+  "voiceBadAudioStatus": "The recording could not be transcribed.",
+  "voiceBackendErrorStatus": "The transcription service failed.",
+  "voiceUnknownErrorStatus": "Something went wrong. Try again.",
+  "voiceOpenSettings": "Open settings",
+  "voiceLanguageLabel": "Language",
+  "voiceStartHint": "Tap to start",
+  "voiceStopHint": "Tap to stop",
+  "voiceEmptyTranscript": "No speech detected."
 }

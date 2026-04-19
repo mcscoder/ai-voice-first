@@ -1,7 +1,7 @@
 import 'package:go_router/go_router.dart';
 
 import '../error_screen.dart';
-import '../../features/home/home.dart';
+import '../../features/voice/voice.dart';
 
 abstract class AppRoutes {
   AppRoutes._();
@@ -15,7 +15,7 @@ abstract class AppRouter {
     debugLogDiagnostics: true,
     initialLocation: AppRoutes.home,
     routes: [
-      GoRoute(path: AppRoutes.home, builder: (_, _) => const HomeScreen()),
+      GoRoute(path: AppRoutes.home, builder: (_, _) => const VoiceScreen()),
     ],
     errorBuilder: (_, _) => const ErrorScreen(),
   );

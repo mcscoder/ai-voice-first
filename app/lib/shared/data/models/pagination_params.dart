@@ -17,10 +17,7 @@ final class OffsetPagination extends PaginationParams {
   final int page;
 
   @override
-  Map<String, dynamic> toQueryParams() => {
-        'page': page,
-        'limit': limit,
-      };
+  Map<String, dynamic> toQueryParams() => {'page': page, 'limit': limit};
 
   OffsetPagination nextPage() => OffsetPagination(page: page + 1, limit: limit);
 
@@ -36,9 +33,9 @@ final class CursorPagination extends PaginationParams {
 
   @override
   Map<String, dynamic> toQueryParams() => {
-        if (cursor != null) 'cursor': cursor,
-        'limit': limit,
-      };
+    if (cursor != null) 'cursor': cursor,
+    'limit': limit,
+  };
 
   CursorPagination withCursor(String nextCursor) =>
       CursorPagination(cursor: nextCursor, limit: limit);

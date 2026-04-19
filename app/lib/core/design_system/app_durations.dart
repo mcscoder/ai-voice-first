@@ -30,13 +30,12 @@ class AppDurationsTheme extends ThemeExtension<AppDurationsTheme> {
     Duration? normal,
     Duration? slow,
     Duration? xSlow,
-  }) =>
-      AppDurationsTheme(
-        fast: fast ?? this.fast,
-        normal: normal ?? this.normal,
-        slow: slow ?? this.slow,
-        xSlow: xSlow ?? this.xSlow,
-      );
+  }) => AppDurationsTheme(
+    fast: fast ?? this.fast,
+    normal: normal ?? this.normal,
+    slow: slow ?? this.slow,
+    xSlow: xSlow ?? this.xSlow,
+  );
 
   @override
   AppDurationsTheme lerp(AppDurationsTheme? other, double t) {

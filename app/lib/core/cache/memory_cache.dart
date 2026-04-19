@@ -3,7 +3,10 @@
 /// Evicts the least-recently-used entry when [maxSize] is exceeded.
 /// Expired entries are treated as misses on [get].
 class MemoryCache {
-  MemoryCache({this.maxSize = 100, this.defaultTtl = const Duration(minutes: 5)});
+  MemoryCache({
+    this.maxSize = 100,
+    this.defaultTtl = const Duration(minutes: 5),
+  });
 
   final int maxSize;
   final Duration defaultTtl;

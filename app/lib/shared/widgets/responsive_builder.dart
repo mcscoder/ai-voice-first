@@ -10,15 +10,11 @@ import '../../core/utils/responsive_utils.dart';
 ///
 /// Falls back to the nearest smaller breakpoint widget when a slot is null.
 class ResponsiveBuilder extends StatelessWidget {
-  const ResponsiveBuilder({
-    super.key,
-    this.mobile,
-    this.tablet,
-    this.desktop,
-  }) : assert(
-          mobile != null || tablet != null || desktop != null,
-          'At least one layout widget must be provided.',
-        );
+  const ResponsiveBuilder({super.key, this.mobile, this.tablet, this.desktop})
+    : assert(
+        mobile != null || tablet != null || desktop != null,
+        'At least one layout widget must be provided.',
+      );
 
   final Widget? mobile;
   final Widget? tablet;

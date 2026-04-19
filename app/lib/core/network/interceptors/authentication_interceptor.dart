@@ -29,10 +29,10 @@ class AuthenticationInterceptor extends Interceptor {
     required Dio refreshDio,
     required String refreshPath,
     OnRefreshFailed? onRefreshFailed,
-  })  : _tokenManager = tokenManager,
-        _refreshDio = refreshDio,
-        _refreshPath = refreshPath,
-        _onRefreshFailed = onRefreshFailed;
+  }) : _tokenManager = tokenManager,
+       _refreshDio = refreshDio,
+       _refreshPath = refreshPath,
+       _onRefreshFailed = onRefreshFailed;
 
   final TokenManager _tokenManager;
 

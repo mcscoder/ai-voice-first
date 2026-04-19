@@ -106,9 +106,7 @@ abstract class FirebaseInitializer {
 
   static Future<void> _initMessaging() async {
     try {
-      FirebaseMessaging.onBackgroundMessage(
-        firebaseMessagingBackgroundHandler,
-      );
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
       debugPrint('[Firebase] Messaging initialized');
     } on Exception catch (e) {
       debugPrint('[Firebase] Messaging init failed: $e');

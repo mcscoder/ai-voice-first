@@ -49,10 +49,7 @@ class AppUpdateChecker {
       final info = await PackageInfo.fromPlatform();
       final current = _parseVersion(info.version);
       final minimum = _parseVersion(
-        _remoteConfig.getString(
-          'minimum_app_version',
-          defaultValue: '1.0.0',
-        ),
+        _remoteConfig.getString('minimum_app_version', defaultValue: '1.0.0'),
       );
 
       if (current == null || minimum == null) return UpdateStatus.upToDate;

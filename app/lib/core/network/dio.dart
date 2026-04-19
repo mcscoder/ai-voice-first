@@ -73,7 +73,7 @@ class DioClient {
   BaseOptions createBaseOptions() {
     final config = ConfigurationProfile.current;
     return BaseOptions(
-      baseUrl: config.baseUrl,
+      baseUrl: ConfigurationProfile.baseUrl,
       connectTimeout: config.connectTimeout.milliseconds,
       receiveTimeout: config.receiveTimeout.milliseconds,
       sendTimeout: config.sendTimeout.milliseconds,

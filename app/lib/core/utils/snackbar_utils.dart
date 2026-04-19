@@ -19,9 +19,7 @@ void showSnackbar(
               child: SizedBox(
                 height: 20,
                 width: 20,
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                ),
+                child: CircularProgressIndicator(color: Colors.white),
               ),
             ),
           Text(message),

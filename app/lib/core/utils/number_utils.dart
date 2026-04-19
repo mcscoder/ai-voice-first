@@ -1,21 +1,10 @@
 import 'package:intl/intl.dart';
 
 /// Number formatting type.
-enum FormatType {
-  decimal,
-  percent,
-  scientific,
-  compact,
-  compactLong,
-  custom,
-}
+enum FormatType { decimal, percent, scientific, compact, compactLong, custom }
 
 /// Decimal separator style.
-enum DecimalType {
-  automatic,
-  periodDecimal,
-  commaDecimal,
-}
+enum DecimalType { automatic, periodDecimal, commaDecimal }
 
 /// Formats [value] according to [formatType] and optional parameters.
 String formatNumber(
@@ -62,8 +51,10 @@ String formatNumber(
       break;
     case FormatType.custom:
       final hasLocale = locale != null && locale.isNotEmpty;
-      formattedValue =
-          NumberFormat(format, hasLocale ? locale : null).format(value);
+      formattedValue = NumberFormat(
+        format,
+        hasLocale ? locale : null,
+      ).format(value);
   }
 
   if (formattedValue.isEmpty) {

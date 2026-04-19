@@ -13,8 +13,7 @@ import 'firebase_initializer.dart';
 class CrashlyticsService {
   FirebaseCrashlytics get _crashlytics => FirebaseCrashlytics.instance;
 
-  bool get _canReport =>
-      FirebaseInitializer.isInitialized && !kDebugMode;
+  bool get _canReport => FirebaseInitializer.isInitialized && !kDebugMode;
 
   /// Records a non-fatal error with optional stack trace.
   ///
@@ -30,12 +29,7 @@ class CrashlyticsService {
       debugPrint('[Crashlytics] logError (no-op): $error');
       return;
     }
-    _crashlytics.recordError(
-      error,
-      stack,
-      reason: reason,
-      fatal: fatal,
-    );
+    _crashlytics.recordError(error, stack, reason: reason, fatal: fatal);
   }
 
   /// Logs a breadcrumb message visible in the Crashlytics dashboard.
@@ -73,7 +67,9 @@ class CrashlyticsService {
   /// ```
   void recordFlutterError(FlutterErrorDetails details) {
     if (!_canReport) {
-      debugPrint('[Crashlytics] recordFlutterError (no-op): ${details.summary}');
+      debugPrint(
+        '[Crashlytics] recordFlutterError (no-op): ${details.summary}',
+      );
       FlutterError.presentError(details);
       return;
     }

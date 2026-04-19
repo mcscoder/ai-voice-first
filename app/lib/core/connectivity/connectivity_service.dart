@@ -12,7 +12,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 /// injectable trying to inject the optional [Connectivity] typed parameter.
 class ConnectivityService {
   ConnectivityService({Connectivity? connectivity})
-      : _connectivity = connectivity ?? Connectivity();
+    : _connectivity = connectivity ?? Connectivity();
 
   final Connectivity _connectivity;
   final _controller = StreamController<bool>.broadcast();

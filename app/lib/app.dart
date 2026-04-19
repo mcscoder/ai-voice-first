@@ -35,8 +35,9 @@ Future<void> initializeFlutterApp() async {
 
   // 4. HydratedBloc persistent storage.
   HydratedBloc.storage = await HydratedStorage.build(
-    storageDirectory:
-        HydratedStorageDirectory((await getApplicationSupportDirectory()).path),
+    storageDirectory: HydratedStorageDirectory(
+      (await getApplicationSupportDirectory()).path,
+    ),
   );
 
   // 5. Dependency injection — all @LazySingleton/@Injectable classes registered.

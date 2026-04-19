@@ -30,7 +30,10 @@ abstract class AnalyticsService {
   ///
   /// [screenName] should match a route name (snake_case).
   /// [properties] are optional additional context.
-  Future<void> trackScreen(String screenName, {Map<String, dynamic>? properties});
+  Future<void> trackScreen(
+    String screenName, {
+    Map<String, dynamic>? properties,
+  });
 
   /// Associates subsequent events with the given user ID.
   ///

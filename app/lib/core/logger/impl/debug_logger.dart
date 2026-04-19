@@ -10,9 +10,7 @@ import '../logger.dart';
 @Singleton(as: Logger)
 final class DebugLogger implements Logger {
   DebugLogger() {
-    _logger = l.Logger(
-      printer: l.PrettyPrinter(colors: !Platform.isIOS),
-    );
+    _logger = l.Logger(printer: l.PrettyPrinter(colors: !Platform.isIOS));
   }
 
   late final l.Logger _logger;

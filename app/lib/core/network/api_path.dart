@@ -1,3 +1,3 @@
 abstract class ApiPath {
-  static const cities = '/texts';
+  static const transcribe = '/transcribe';
 }

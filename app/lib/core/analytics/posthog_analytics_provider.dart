@@ -108,10 +108,7 @@ class PostHogAnalyticsProvider implements AnalyticsService {
       } else {
         // No identified user yet — capture as an event property instead so
         // the property is not lost and no phantom user is created.
-        await _posthog.capture(
-          eventName: r'$set',
-          properties: {key: value},
-        );
+        await _posthog.capture(eventName: r'$set', properties: {key: value});
       }
     } on Exception catch (e) {
       debugPrint('[PostHog] setUserProperty "$key" failed: $e');

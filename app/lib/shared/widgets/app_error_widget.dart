@@ -23,17 +23,13 @@ class AppErrorWidget extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 48,
-              color: Theme.of(context).colorScheme.error,
-            ),
+            Icon(icon, size: 48, color: Theme.of(context).colorScheme.error),
             const SizedBox(height: AppSpacing.md),
             Text(
               message,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textMuted,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
               textAlign: TextAlign.center,
             ),
             if (onRetry != null) ...[

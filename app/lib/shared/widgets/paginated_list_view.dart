@@ -85,8 +85,7 @@ class _PaginatedListViewState<T> extends State<PaginatedListView<T>> {
       newPageProgressIndicatorBuilder: (_) =>
           const Center(child: CircularProgressIndicator.adaptive()),
       noItemsFoundIndicatorBuilder: (_) =>
-          widget.emptyWidget ??
-          const AppEmptyWidget(message: 'No items found'),
+          widget.emptyWidget ?? const AppEmptyWidget(message: 'No items found'),
       firstPageErrorIndicatorBuilder: (ctx) =>
           widget.errorWidget ??
           AppErrorWidget(

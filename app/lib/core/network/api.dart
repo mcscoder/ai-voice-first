@@ -13,14 +13,16 @@ abstract base class Api {
   const Api(this.dio);
 
   Future<Either<NetworkError, T>> withTimeoutRequest<T>(
-      Future<T> Function() request) async {
+    Future<T> Function() request,
+  ) async {
     try {
-      final either = await TaskEither<Object, T>.tryCatch(
-        () => request(),
-        (err, _) => err,
-      ).run().timeout(
-        Duration(milliseconds: ConfigurationProfile.current.connectTimeout),
-      );
+      final either =
+          await TaskEither<Object, T>.tryCatch(
+            () => request(),
+            (err, _) => err,
+          ).run().timeout(
+            Duration(milliseconds: ConfigurationProfile.current.connectTimeout),
+          );
       return either.mapLeft((err) => mapErrorToNetworkError(err));
     } on TimeoutException catch (timeoutException) {
       return Either.left(Timeout(exception: timeoutException));
@@ -28,14 +30,16 @@ abstract base class Api {
   }
 
   Future<Option<T>> withTimeoutRequestOption<T>(
-      Future<T> Function() request) async {
+    Future<T> Function() request,
+  ) async {
     try {
-      final either = await TaskEither<Object, T>.tryCatch(
-        () => request(),
-        (err, _) => err,
-      ).run().timeout(
-        Duration(milliseconds: ConfigurationProfile.current.connectTimeout),
-      );
+      final either =
+          await TaskEither<Object, T>.tryCatch(
+            () => request(),
+            (err, _) => err,
+          ).run().timeout(
+            Duration(milliseconds: ConfigurationProfile.current.connectTimeout),
+          );
       return either.toOption();
     } on TimeoutException {
       return Option.none();

@@ -17,9 +17,7 @@ import 'get_it.config.dart';
 
 final getIt = GetIt.instance;
 
-@InjectableInit(
-  preferRelativeImports: true,
-)
+@InjectableInit(preferRelativeImports: true)
 void configureDependencies() =>
     getIt.init(environment: ConfigurationProfile.current.name);
 
@@ -35,10 +33,10 @@ abstract class RegisterModule {
   /// access — after all other deps are already registered by GetIt.init().
   @lazySingleton
   DioClient get dioClient => DioClient(
-        connectivityService: getIt(),
-        cacheManager: getIt(),
-        tokenManager: getIt(),
-      );
+    connectivityService: getIt(),
+    cacheManager: getIt(),
+    tokenManager: getIt(),
+  );
 
   @authDio
   Dio get dioAuth => dioClient.authDio;

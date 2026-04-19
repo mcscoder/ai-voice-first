@@ -28,10 +28,7 @@ class CompositeAnalyticsProvider implements AnalyticsService {
   Future<void> initialize() => _fanOut((p) => p.initialize(), 'initialize');
 
   @override
-  Future<void> trackEvent(
-    String name, {
-    Map<String, dynamic>? properties,
-  }) =>
+  Future<void> trackEvent(String name, {Map<String, dynamic>? properties}) =>
       _fanOut(
         (p) => p.trackEvent(name, properties: properties),
         'trackEvent($name)',
@@ -41,11 +38,10 @@ class CompositeAnalyticsProvider implements AnalyticsService {
   Future<void> trackScreen(
     String screenName, {
     Map<String, dynamic>? properties,
-  }) =>
-      _fanOut(
-        (p) => p.trackScreen(screenName, properties: properties),
-        'trackScreen($screenName)',
-      );
+  }) => _fanOut(
+    (p) => p.trackScreen(screenName, properties: properties),
+    'trackScreen($screenName)',
+  );
 
   @override
   Future<void> setUserId(String? userId) =>

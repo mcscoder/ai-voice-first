@@ -6,14 +6,14 @@ extension StringExtensions on String {
 
   /// Returns true if the string is a valid email address.
   bool get isEmail => RegExp(
-        r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$',
-      ).hasMatch(this);
+    r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$',
+  ).hasMatch(this);
 
   /// Returns true if the string is a valid HTTP/HTTPS URL.
   bool get isUrl => RegExp(
-        r'^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}'
-        r'\.[a-z]{2,10}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)$',
-      ).hasMatch(this);
+    r'^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}'
+    r'\.[a-z]{2,10}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)$',
+  ).hasMatch(this);
 
   /// Truncates to [maxLength] characters, appending [ellipsis] if trimmed.
   String truncate(int maxLength, {String ellipsis = '...'}) =>

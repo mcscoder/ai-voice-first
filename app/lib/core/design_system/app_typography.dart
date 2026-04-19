@@ -23,35 +23,65 @@ abstract final class AppTypography {
 class AppTypographyTheme extends ThemeExtension<AppTypographyTheme> {
   const AppTypographyTheme({
     this.displayLarge = const TextStyle(
-        fontSize: AppTypography.displayLargeSize, fontWeight: FontWeight.w400),
+      fontSize: AppTypography.displayLargeSize,
+      fontWeight: FontWeight.w400,
+    ),
     this.displayMedium = const TextStyle(
-        fontSize: AppTypography.displayMediumSize, fontWeight: FontWeight.w400),
+      fontSize: AppTypography.displayMediumSize,
+      fontWeight: FontWeight.w400,
+    ),
     this.displaySmall = const TextStyle(
-        fontSize: AppTypography.displaySmallSize, fontWeight: FontWeight.w400),
+      fontSize: AppTypography.displaySmallSize,
+      fontWeight: FontWeight.w400,
+    ),
     this.headlineLarge = const TextStyle(
-        fontSize: AppTypography.headlineLargeSize, fontWeight: FontWeight.w600),
+      fontSize: AppTypography.headlineLargeSize,
+      fontWeight: FontWeight.w600,
+    ),
     this.headlineMedium = const TextStyle(
-        fontSize: AppTypography.headlineMediumSize, fontWeight: FontWeight.w600),
+      fontSize: AppTypography.headlineMediumSize,
+      fontWeight: FontWeight.w600,
+    ),
     this.headlineSmall = const TextStyle(
-        fontSize: AppTypography.headlineSmallSize, fontWeight: FontWeight.w600),
+      fontSize: AppTypography.headlineSmallSize,
+      fontWeight: FontWeight.w600,
+    ),
     this.titleLarge = const TextStyle(
-        fontSize: AppTypography.titleLargeSize, fontWeight: FontWeight.w500),
+      fontSize: AppTypography.titleLargeSize,
+      fontWeight: FontWeight.w500,
+    ),
     this.titleMedium = const TextStyle(
-        fontSize: AppTypography.titleMediumSize, fontWeight: FontWeight.w500),
+      fontSize: AppTypography.titleMediumSize,
+      fontWeight: FontWeight.w500,
+    ),
     this.titleSmall = const TextStyle(
-        fontSize: AppTypography.titleSmallSize, fontWeight: FontWeight.w500),
+      fontSize: AppTypography.titleSmallSize,
+      fontWeight: FontWeight.w500,
+    ),
     this.bodyLarge = const TextStyle(
-        fontSize: AppTypography.bodyLargeSize, fontWeight: FontWeight.w400),
+      fontSize: AppTypography.bodyLargeSize,
+      fontWeight: FontWeight.w400,
+    ),
     this.bodyMedium = const TextStyle(
-        fontSize: AppTypography.bodyMediumSize, fontWeight: FontWeight.w400),
+      fontSize: AppTypography.bodyMediumSize,
+      fontWeight: FontWeight.w400,
+    ),
     this.bodySmall = const TextStyle(
-        fontSize: AppTypography.bodySmallSize, fontWeight: FontWeight.w400),
+      fontSize: AppTypography.bodySmallSize,
+      fontWeight: FontWeight.w400,
+    ),
     this.labelLarge = const TextStyle(
-        fontSize: AppTypography.labelLargeSize, fontWeight: FontWeight.w500),
+      fontSize: AppTypography.labelLargeSize,
+      fontWeight: FontWeight.w500,
+    ),
     this.labelMedium = const TextStyle(
-        fontSize: AppTypography.labelMediumSize, fontWeight: FontWeight.w500),
+      fontSize: AppTypography.labelMediumSize,
+      fontWeight: FontWeight.w500,
+    ),
     this.labelSmall = const TextStyle(
-        fontSize: AppTypography.labelSmallSize, fontWeight: FontWeight.w500),
+      fontSize: AppTypography.labelSmallSize,
+      fontWeight: FontWeight.w500,
+    ),
   });
 
   final TextStyle displayLarge;
@@ -89,24 +119,23 @@ class AppTypographyTheme extends ThemeExtension<AppTypographyTheme> {
     TextStyle? labelLarge,
     TextStyle? labelMedium,
     TextStyle? labelSmall,
-  }) =>
-      AppTypographyTheme(
-        displayLarge: displayLarge ?? this.displayLarge,
-        displayMedium: displayMedium ?? this.displayMedium,
-        displaySmall: displaySmall ?? this.displaySmall,
-        headlineLarge: headlineLarge ?? this.headlineLarge,
-        headlineMedium: headlineMedium ?? this.headlineMedium,
-        headlineSmall: headlineSmall ?? this.headlineSmall,
-        titleLarge: titleLarge ?? this.titleLarge,
-        titleMedium: titleMedium ?? this.titleMedium,
-        titleSmall: titleSmall ?? this.titleSmall,
-        bodyLarge: bodyLarge ?? this.bodyLarge,
-        bodyMedium: bodyMedium ?? this.bodyMedium,
-        bodySmall: bodySmall ?? this.bodySmall,
-        labelLarge: labelLarge ?? this.labelLarge,
-        labelMedium: labelMedium ?? this.labelMedium,
-        labelSmall: labelSmall ?? this.labelSmall,
-      );
+  }) => AppTypographyTheme(
+    displayLarge: displayLarge ?? this.displayLarge,
+    displayMedium: displayMedium ?? this.displayMedium,
+    displaySmall: displaySmall ?? this.displaySmall,
+    headlineLarge: headlineLarge ?? this.headlineLarge,
+    headlineMedium: headlineMedium ?? this.headlineMedium,
+    headlineSmall: headlineSmall ?? this.headlineSmall,
+    titleLarge: titleLarge ?? this.titleLarge,
+    titleMedium: titleMedium ?? this.titleMedium,
+    titleSmall: titleSmall ?? this.titleSmall,
+    bodyLarge: bodyLarge ?? this.bodyLarge,
+    bodyMedium: bodyMedium ?? this.bodyMedium,
+    bodySmall: bodySmall ?? this.bodySmall,
+    labelLarge: labelLarge ?? this.labelLarge,
+    labelMedium: labelMedium ?? this.labelMedium,
+    labelSmall: labelSmall ?? this.labelSmall,
+  );
 
   @override
   AppTypographyTheme lerp(AppTypographyTheme? other, double t) {

@@ -26,8 +26,8 @@ class RetryConfig {
 /// - Attach after [ConnectivityInterceptor] and before [LoggingInterceptor].
 class RetryInterceptor extends Interceptor {
   RetryInterceptor({RetryConfig? config, Dio? dio})
-      : _config = config ?? const RetryConfig(),
-        _dio = dio;
+    : _config = config ?? const RetryConfig(),
+      _dio = dio;
 
   final RetryConfig _config;
 
@@ -44,8 +44,7 @@ class RetryInterceptor extends Interceptor {
     DioException err,
     ErrorInterceptorHandler handler,
   ) async {
-    final currentAttempt =
-        (err.requestOptions.extra[_attemptKey] as int?) ?? 0;
+    final currentAttempt = (err.requestOptions.extra[_attemptKey] as int?) ?? 0;
 
     if (!_shouldRetry(err, currentAttempt)) {
       return handler.next(err);
@@ -79,13 +78,13 @@ class RetryInterceptor extends Interceptor {
     }
 
     // Only retry on explicitly configured 5xx codes; never on 4xx.
-    return statusCode >= 500 &&
-        _config.retryOnStatusCodes.contains(statusCode);
+    return statusCode >= 500 && _config.retryOnStatusCodes.contains(statusCode);
   }
 
   Duration _calculateDelay(int attempt) {
     final base =
-        _config.retryDelay.inMilliseconds * pow(_config.backoffMultiplier, attempt);
+        _config.retryDelay.inMilliseconds *
+        pow(_config.backoffMultiplier, attempt);
     // ±20 % jitter.
     final jitter = (_rng.nextDouble() * 0.4 - 0.2) * base;
     return Duration(milliseconds: (base + jitter).round().clamp(0, 30000));

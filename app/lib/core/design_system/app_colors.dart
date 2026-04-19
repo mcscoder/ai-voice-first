@@ -81,14 +81,13 @@ class AppColorsTheme extends ThemeExtension<AppColorsTheme> {
     Color? info,
     Color? textMuted,
     Color? surfaceVariant,
-  }) =>
-      AppColorsTheme(
-        success: success ?? this.success,
-        warning: warning ?? this.warning,
-        info: info ?? this.info,
-        textMuted: textMuted ?? this.textMuted,
-        surfaceVariant: surfaceVariant ?? this.surfaceVariant,
-      );
+  }) => AppColorsTheme(
+    success: success ?? this.success,
+    warning: warning ?? this.warning,
+    info: info ?? this.info,
+    textMuted: textMuted ?? this.textMuted,
+    surfaceVariant: surfaceVariant ?? this.surfaceVariant,
+  );
 
   @override
   AppColorsTheme lerp(AppColorsTheme? other, double t) {

@@ -15,9 +15,6 @@ class PullToRefreshWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator.adaptive(
-      onRefresh: onRefresh,
-      child: child,
-    );
+    return RefreshIndicator.adaptive(onRefresh: onRefresh, child: child);
   }
 }

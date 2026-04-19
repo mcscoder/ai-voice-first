@@ -8,12 +8,9 @@ extension WidgetExtensions on Widget {
 
   /// Wraps the widget in horizontal/vertical [Padding].
   Widget padSymmetric({double horizontal = 0, double vertical = 0}) => Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: horizontal,
-          vertical: vertical,
-        ),
-        child: this,
-      );
+    padding: EdgeInsets.symmetric(horizontal: horizontal, vertical: vertical),
+    child: this,
+  );
 
   /// Wraps the widget in a [Center].
   Widget get center => Center(child: this);
@@ -25,10 +22,8 @@ extension WidgetExtensions on Widget {
   Widget get sliver => SliverToBoxAdapter(child: this);
 
   /// Wraps the widget in [Opacity].
-  Widget withOpacity(double opacity) =>
-      Opacity(opacity: opacity, child: this);
+  Widget withOpacity(double opacity) => Opacity(opacity: opacity, child: this);
 
   /// Wraps the widget in a [Visibility] toggle.
-  Widget visible(bool isVisible) =>
-      Visibility(visible: isVisible, child: this);
+  Widget visible(bool isVisible) => Visibility(visible: isVisible, child: this);
 }

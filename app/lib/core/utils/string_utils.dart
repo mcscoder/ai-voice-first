@@ -21,8 +21,8 @@ const kTextValidatorWebsiteRegex =
 extension StringExt on String {
   String maybeHandleOverflow({int? maxChars, String replacement = ''}) =>
       maxChars != null && length > maxChars
-          ? replaceRange(maxChars, null, replacement)
-          : this;
+      ? replaceRange(maxChars, null, replacement)
+      : this;
 }
 
 /// Nullable [TextEditingController] extension for safe text access.

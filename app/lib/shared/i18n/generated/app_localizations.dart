@@ -117,6 +117,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Next step: replace this landing screen with your voice capture, transcript, and orchestration experience.'**
   String get appNextStep;
+
+  /// No description provided for @voiceTranscriptPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the microphone and start speaking.'**
+  String get voiceTranscriptPlaceholder;
+
+  /// No description provided for @voiceIdleStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready'**
+  String get voiceIdleStatus;
+
+  /// No description provided for @voiceListeningStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Listening…'**
+  String get voiceListeningStatus;
+
+  /// No description provided for @voiceTranscribingStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcribing…'**
+  String get voiceTranscribingStatus;
+
+  /// No description provided for @voiceSuccessStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcript ready'**
+  String get voiceSuccessStatus;
+
+  /// No description provided for @voiceEmptyStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'No speech detected'**
+  String get voiceEmptyStatus;
+
+  /// No description provided for @voiceMicDeniedStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone access is required to record.'**
+  String get voiceMicDeniedStatus;
+
+  /// No description provided for @voiceMicPermanentlyDeniedStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone access is blocked. Open settings to enable it.'**
+  String get voiceMicPermanentlyDeniedStatus;
+
+  /// No description provided for @voiceNetworkErrorStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not reach the transcription service.'**
+  String get voiceNetworkErrorStatus;
+
+  /// No description provided for @voiceBadAudioStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'The recording could not be transcribed.'**
+  String get voiceBadAudioStatus;
+
+  /// No description provided for @voiceBackendErrorStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'The transcription service failed.'**
+  String get voiceBackendErrorStatus;
+
+  /// No description provided for @voiceUnknownErrorStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Try again.'**
+  String get voiceUnknownErrorStatus;
+
+  /// No description provided for @voiceOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get voiceOpenSettings;
+
+  /// No description provided for @voiceLanguageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get voiceLanguageLabel;
+
+  /// No description provided for @voiceStartHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to start'**
+  String get voiceStartHint;
+
+  /// No description provided for @voiceStopHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to stop'**
+  String get voiceStopHint;
+
+  /// No description provided for @voiceEmptyTranscript.
+  ///
+  /// In en, this message translates to:
+  /// **'No speech detected.'**
+  String get voiceEmptyTranscript;
 }
 
 class _AppLocalizationsDelegate

@@ -43,11 +43,11 @@ final class ConnectivityOffline extends ConnectivityState {
 @lazySingleton
 class ConnectivityCubit extends Cubit<ConnectivityState> {
   ConnectivityCubit(this._service)
-      : super(
-          _service.isOnline
-              ? const ConnectivityOnline()
-              : const ConnectivityOffline(),
-        );
+    : super(
+        _service.isOnline
+            ? const ConnectivityOnline()
+            : const ConnectivityOffline(),
+      );
 
   final ConnectivityService _service;
   StreamSubscription<bool>? _subscription;

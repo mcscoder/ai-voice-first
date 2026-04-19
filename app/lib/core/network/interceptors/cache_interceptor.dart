@@ -54,9 +54,7 @@ class CacheInterceptor extends Interceptor {
 
         if (policy == CachePolicy.cacheOnly ||
             policy == CachePolicy.cacheFirst) {
-          return handler.resolve(
-            _buildResponseFromCache(cached, options),
-          );
+          return handler.resolve(_buildResponseFromCache(cached, options));
         }
         // staleWhileRevalidate: resolve immediately with stale data, then fire
         // a background network request to refresh the cache entry.
@@ -95,8 +93,7 @@ class CacheInterceptor extends Interceptor {
     }
 
     // Store successful GET responses.
-    if ((response.statusCode ?? 0) >= 200 &&
-        (response.statusCode ?? 0) < 300) {
+    if ((response.statusCode ?? 0) >= 200 && (response.statusCode ?? 0) < 300) {
       final key = _cacheKey(options);
       final ttl = options.extra['cacheTtl'] as Duration?;
       final etag = response.headers.value('etag');
@@ -156,17 +153,22 @@ class CacheInterceptor extends Interceptor {
     try {
       // Build a minimal Dio to execute the request without going through this
       // interceptor again (avoid infinite staleWhileRevalidate loops).
-      final dio = Dio(BaseOptions(
-        baseUrl: options.baseUrl,
-        connectTimeout: options.connectTimeout,
-        receiveTimeout: options.receiveTimeout,
-      ));
-      final response = await dio.fetch<dynamic>(options.copyWith(
-        extra: {
-          ...options.extra,
-          'noCache': true, // bypass CacheInterceptor on this Dio instance (none attached)
-        },
-      ));
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: options.baseUrl,
+          connectTimeout: options.connectTimeout,
+          receiveTimeout: options.receiveTimeout,
+        ),
+      );
+      final response = await dio.fetch<dynamic>(
+        options.copyWith(
+          extra: {
+            ...options.extra,
+            'noCache':
+                true, // bypass CacheInterceptor on this Dio instance (none attached)
+          },
+        ),
+      );
 
       if ((response.statusCode ?? 0) >= 200 &&
           (response.statusCode ?? 0) < 300) {

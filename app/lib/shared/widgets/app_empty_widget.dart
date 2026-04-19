@@ -29,26 +29,19 @@ class AppEmptyWidget extends StatelessWidget {
               illustration!,
               const SizedBox(height: AppSpacing.lg),
             ] else ...[
-              Icon(
-                Icons.inbox_outlined,
-                size: 64,
-                color: AppColors.textMuted,
-              ),
+              Icon(Icons.inbox_outlined, size: 64, color: AppColors.textMuted),
               const SizedBox(height: AppSpacing.md),
             ],
             Text(
               message,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textMuted,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
               textAlign: TextAlign.center,
             ),
             if (onAction != null && actionLabel != null) ...[
               const SizedBox(height: AppSpacing.lg),
-              FilledButton(
-                onPressed: onAction,
-                child: Text(actionLabel!),
-              ),
+              FilledButton(onPressed: onAction, child: Text(actionLabel!)),
             ],
           ],
         ),

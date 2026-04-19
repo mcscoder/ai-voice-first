@@ -9,7 +9,7 @@ import '../../flavor_configurations.dart';
 /// Production builds emit nothing from this interceptor.
 class LoggingInterceptor extends Interceptor {
   LoggingInterceptor({Logger? logger})
-      : _logger = logger ?? Logger(printer: PrettyPrinter(methodCount: 0));
+    : _logger = logger ?? Logger(printer: PrettyPrinter(methodCount: 0));
 
   final Logger _logger;
 

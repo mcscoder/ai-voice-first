@@ -37,9 +37,7 @@ class FirebaseAnalyticsProvider implements AnalyticsService {
     if (!_available) return;
     try {
       // Cast to Map<String, Object>? as required by Firebase Analytics.
-      final params = properties?.map(
-        (k, v) => MapEntry(k, v as Object),
-      );
+      final params = properties?.map((k, v) => MapEntry(k, v as Object));
       await _analytics.logEvent(name: name, parameters: params);
     } on Exception catch (e) {
       debugPrint('[FirebaseAnalytics] trackEvent "$name" failed: $e');

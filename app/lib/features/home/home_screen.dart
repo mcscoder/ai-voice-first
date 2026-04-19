@@ -9,9 +9,7 @@ final class HomeScreen extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.l10n.appTitle),
-      ),
+      appBar: AppBar(title: Text(context.l10n.appTitle)),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(

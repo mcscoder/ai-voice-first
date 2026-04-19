@@ -18,8 +18,9 @@ final class UnknownNetworkError extends NetworkError {
 
   static late final UnknownNetworkError? _instance;
 
-  factory UnknownNetworkError() =>
-      _instance ??= UnknownNetworkError._(exception: Exception('Unknown Network Error'));
+  factory UnknownNetworkError() => _instance ??= UnknownNetworkError._(
+    exception: Exception('Unknown Network Error'),
+  );
 }
 
 final class NotFound extends NetworkError {

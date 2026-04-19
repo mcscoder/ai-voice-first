@@ -13,6 +13,9 @@ import 'package:dio/dio.dart' as _i361;
 import 'package:get_it/get_it.dart' as _i174;
 import 'package:injectable/injectable.dart' as _i526;
 
+import '../../features/voice/data/audio_recorder_service.dart' as _i495;
+import '../../features/voice/data/transcription_api.dart' as _i763;
+import '../../features/voice/presentation/voice_capture_cubit.dart' as _i221;
 import '../analytics/firebase_analytics_provider.dart' as _i506;
 import '../analytics/posthog_analytics_provider.dart' as _i382;
 import '../app_bloc_observer.dart' as _i744;
@@ -81,6 +84,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i947.AppLifecycleObserver>(
       () => _i947.AppLifecycleObserver(),
     );
+    gh.lazySingleton<_i495.AudioRecorderService>(
+      () => _i495.AudioRecorderService(),
+    );
     gh.factory<_i361.Dio>(
       () => registerModule.dioAuth,
       instanceName: 'AuthDio',
@@ -109,8 +115,18 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i803.DebugLogger(),
       registerFor: {_development},
     );
+    gh.lazySingleton<_i763.TranscriptionApi>(
+      () => _i763.TranscriptionApi(gh<_i361.Dio>(instanceName: 'NonAuthDio')),
+    );
     gh.factory<_i835.PermissionCubit>(
       () => _i835.PermissionCubit(gh<_i271.PermissionService>()),
+    );
+    gh.factory<_i221.VoiceCaptureCubit>(
+      () => _i221.VoiceCaptureCubit(
+        gh<_i271.PermissionService>(),
+        gh<_i495.AudioRecorderService>(),
+        gh<_i763.TranscriptionApi>(),
+      ),
     );
     gh.lazySingleton<_i1052.OfflineQueueService>(
       () => _i1052.OfflineQueueService(

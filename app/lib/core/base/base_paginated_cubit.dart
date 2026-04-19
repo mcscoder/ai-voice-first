@@ -21,13 +21,12 @@ class PaginatedState<T> {
     int? page,
     bool? hasMore,
     DataState<List<T>>? dataState,
-  }) =>
-      PaginatedState<T>(
-        items: items ?? this.items,
-        page: page ?? this.page,
-        hasMore: hasMore ?? this.hasMore,
-        dataState: dataState ?? this.dataState,
-      );
+  }) => PaginatedState<T>(
+    items: items ?? this.items,
+    page: page ?? this.page,
+    hasMore: hasMore ?? this.hasMore,
+    dataState: dataState ?? this.dataState,
+  );
 }
 
 /// Abstract cubit for paginated data. Accepts a [fetchPage] callback
@@ -44,12 +43,14 @@ abstract class BasePaginatedCubit<T> extends Cubit<PaginatedState<T>> {
   /// Loads the first page, replacing any existing items.
   Future<void> refresh() async {
     if (isClosed) return;
-    emit(state.copyWith(
-      page: 1,
-      items: [],
-      hasMore: true,
-      dataState: const DataStateLoading(),
-    ));
+    emit(
+      state.copyWith(
+        page: 1,
+        items: [],
+        hasMore: true,
+        dataState: const DataStateLoading(),
+      ),
+    );
     await _loadPage(1, replace: true);
   }
 
@@ -63,16 +64,17 @@ abstract class BasePaginatedCubit<T> extends Cubit<PaginatedState<T>> {
   Future<void> _loadPage(int page, {bool replace = false}) async {
     try {
       final newItems = await fetchPage(page);
-      final allItems =
-          replace ? newItems : [...state.items, ...newItems];
+      final allItems = replace ? newItems : [...state.items, ...newItems];
       final hasMore = newItems.length >= pageSize;
       if (!isClosed) {
-        emit(state.copyWith(
-          items: allItems,
-          page: page + 1,
-          hasMore: hasMore,
-          dataState: DataStateLoaded(allItems),
-        ));
+        emit(
+          state.copyWith(
+            items: allItems,
+            page: page + 1,
+            hasMore: hasMore,
+            dataState: DataStateLoaded(allItems),
+          ),
+        );
       }
     } on Object catch (e, st) {
       if (!isClosed) {

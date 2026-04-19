@@ -20,8 +20,7 @@ extension GoRouterStateX on GoRouterState {
   bool boolQuery(String key) => uri.queryParameters[key] == 'true';
 
   /// Extracts a query parameter as [int], returns `null` if missing or invalid.
-  int? intQuery(String key) =>
-      int.tryParse(uri.queryParameters[key] ?? '');
+  int? intQuery(String key) => int.tryParse(uri.queryParameters[key] ?? '');
 
   /// Extracts a query parameter as [String], returns `null` if absent.
   String? stringQuery(String key) => uri.queryParameters[key];

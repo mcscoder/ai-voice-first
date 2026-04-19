@@ -1,18 +1,10 @@
-enum ConfigurationProfile {
-  development(
-    baseUrl: 'https://631eb73e58a1c0fe9f562cec.mockapi.io/',
-    name: 'development',
-  ),
-  staging(
-    baseUrl: 'https://631eb73e58a1c0fe9f562cec.mockapi.io/',
-    name: 'staging',
-  ),
-  production(
-    baseUrl: 'https://631eb73e58a1c0fe9f562cec.mockapi.io/',
-    name: 'production',
-  );
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-  final String baseUrl;
+enum ConfigurationProfile {
+  development(name: 'development'),
+  staging(name: 'staging'),
+  production(name: 'production');
+
   final int connectTimeout = _defaultConnectTimeout;
   final int receiveTimeout = _defaultReceiveTimeout;
   final int sendTimeout = _defaultSendTimeout;
@@ -20,7 +12,7 @@ enum ConfigurationProfile {
 
   // Flavor things...
 
-  const ConfigurationProfile({required this.baseUrl, required this.name});
+  const ConfigurationProfile({required this.name});
 
   static const _defaultConnectTimeout = 30000;
   static const _defaultReceiveTimeout = 30000;
@@ -34,5 +26,13 @@ enum ConfigurationProfile {
 
   static set current(ConfigurationProfile flavor) {
     _current = flavor;
+  }
+
+  static String get baseUrl {
+    final url = dotenv.maybeGet('API_BASE_URL')?.trim() ?? '';
+    if (url.isEmpty) {
+      throw StateError('API_BASE_URL is missing from .env');
+    }
+    return url;
   }
 }

@@ -14,9 +14,7 @@ final class ErrorScreen extends StatelessWidget {
         child: Center(
           child: Text(
             details?.stack.toString() ?? 'Error',
-            style: const TextStyle(
-              fontSize: 18,
-            ),
+            style: const TextStyle(fontSize: 18),
           ),
         ),
       ),

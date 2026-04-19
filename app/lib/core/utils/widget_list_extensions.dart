@@ -12,7 +12,7 @@ extension ListDivideExt<T extends Widget> on Iterable<T> {
   List<Widget> divide(Widget t) => isEmpty
       ? []
       : (enumerate.map((e) => [e.value, t]).expand((i) => i).toList()
-        ..removeLast());
+          ..removeLast());
 
   List<Widget> around(Widget t) => addToStart(t).addToEnd(t);
 
@@ -22,15 +22,19 @@ extension ListDivideExt<T extends Widget> on Iterable<T> {
   List<Widget> addToEnd(Widget t) =>
       enumerate.map((e) => e.value).toList()..add(t);
 
-  List<Padding> paddingTopEach(double val) =>
-      map((w) => Padding(padding: EdgeInsets.only(top: val), child: w))
-          .toList();
+  List<Padding> paddingTopEach(double val) => map(
+    (w) => Padding(
+      padding: EdgeInsets.only(top: val),
+      child: w,
+    ),
+  ).toList();
 }
 
 /// Extension for sorting iterables.
 extension IterableExt<T> on Iterable<T> {
-  List<T> sortedList<S extends Comparable>([S Function(T)? keyOf]) => toList()
-    ..sort(keyOf == null ? null : ((a, b) => keyOf(a).compareTo(keyOf(b))));
+  List<T> sortedList<S extends Comparable>([S Function(T)? keyOf]) =>
+      toList()
+        ..sort(keyOf == null ? null : ((a, b) => keyOf(a).compareTo(keyOf(b))));
 }
 
 /// Extension for getting the bounding box of a widget.

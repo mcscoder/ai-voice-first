@@ -9,13 +9,14 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// injectable trying to inject the optional [FlutterSecureStorage] typed param.
 class SecureStorageService {
   SecureStorageService({FlutterSecureStorage? storage})
-      : _storage = storage ??
-            const FlutterSecureStorage(
-              aOptions: AndroidOptions(encryptedSharedPreferences: true),
-              iOptions: IOSOptions(
-                accessibility: KeychainAccessibility.first_unlock_this_device,
-              ),
-            );
+    : _storage =
+          storage ??
+          const FlutterSecureStorage(
+            aOptions: AndroidOptions(encryptedSharedPreferences: true),
+            iOptions: IOSOptions(
+              accessibility: KeychainAccessibility.first_unlock_this_device,
+            ),
+          );
 
   final FlutterSecureStorage _storage;
 

@@ -10,12 +10,10 @@ import 'package:app_links/app_links.dart';
 /// Registered via [RegisterModule] in get_it.dart (not annotated) to avoid
 /// injectable trying to inject optional [List<String>] typed params.
 class DeepLinkHandler {
-  DeepLinkHandler({
-    List<String>? allowedHosts,
-    List<String>? allowedSchemes,
-  })  : _allowedHosts = allowedHosts ?? const ['app.example.com'],
-        _allowedSchemes = allowedSchemes ?? const ['https', 'myapp'],
-        _appLinks = AppLinks();
+  DeepLinkHandler({List<String>? allowedHosts, List<String>? allowedSchemes})
+    : _allowedHosts = allowedHosts ?? const ['app.example.com'],
+      _allowedSchemes = allowedSchemes ?? const ['https', 'myapp'],
+      _appLinks = AppLinks();
 
   final AppLinks _appLinks;
   final List<String> _allowedHosts;

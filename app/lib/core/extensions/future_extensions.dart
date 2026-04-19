@@ -3,7 +3,10 @@ extension FutureExtensions<T> on Future<T> {
   /// Ensures the future takes at least [minDuration] before completing.
   /// Useful for preventing UI flicker on fast operations.
   Future<T> withMinDuration(Duration minDuration) async {
-    final results = await Future.wait<dynamic>([this, Future<void>.delayed(minDuration)]);
+    final results = await Future.wait<dynamic>([
+      this,
+      Future<void>.delayed(minDuration),
+    ]);
     return results[0] as T;
   }
 
