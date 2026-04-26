@@ -5,9 +5,19 @@ description = "FastAPI voice-to-text backend"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "edge-tts>=7.2.8",
     "fastapi>=0.116.0",
     "faster-whisper>=1.2.0",
     "python-dotenv>=1.1.1",
     "python-multipart>=0.0.20",
     "uvicorn>=0.35.0",
 ]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.0.3",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
