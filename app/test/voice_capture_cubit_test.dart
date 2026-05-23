@@ -1,8 +1,9 @@
+import 'dart:typed_data';
+
 import 'package:ai_voice_first/core/error.dart' as app_error;
 import 'package:ai_voice_first/core/permissions/permission_service.dart';
 import 'package:ai_voice_first/features/voice/data/audio_recorder_service.dart';
 import 'package:ai_voice_first/features/voice/data/transcription_api.dart';
-import 'package:ai_voice_first/features/voice/data/transcription_response.dart';
 import 'package:ai_voice_first/features/voice/data/voice_language.dart';
 import 'package:ai_voice_first/features/voice/presentation/voice_capture_cubit.dart';
 import 'package:ai_voice_first/features/voice/presentation/voice_capture_state.dart';
@@ -12,16 +13,17 @@ import 'package:hydrated_bloc/hydrated_bloc.dart';
 
 void main() {
   group('VoiceCaptureCubit', () {
-    test('starts listening when microphone permission is granted', () async {
+    test('starts recording when microphone permission is granted', () async {
       final cubit = VoiceCaptureCubit(
         FakePermissionService(checkStatus: AppPermissionStatus.granted),
         FakeAudioRecorderService(),
-        FakeTranscriptionApi.success('ignored'),
+        FakeTranscriptionApi.success(const [1, 2, 3]),
+        playAssistantSpeech: _noopPlayback,
       );
 
       await cubit.startRecording();
 
-      expect(cubit.state.status, VoiceCaptureStatus.listening);
+      expect(cubit.state.status, VoiceCaptureStatus.recording);
       expect(cubit.state.failure, isNull);
       await cubit.close();
     });
@@ -33,7 +35,8 @@ void main() {
           requestStatus: AppPermissionStatus.denied,
         ),
         FakeAudioRecorderService(),
-        FakeTranscriptionApi.success('ignored'),
+        FakeTranscriptionApi.success(const [1, 2, 3]),
+        playAssistantSpeech: _noopPlayback,
       );
 
       await cubit.startRecording();
@@ -49,7 +52,8 @@ void main() {
           checkStatus: AppPermissionStatus.permanentlyDenied,
         ),
         FakeAudioRecorderService(),
-        FakeTranscriptionApi.success('ignored'),
+        FakeTranscriptionApi.success(const [1, 2, 3]),
+        playAssistantSpeech: _noopPlayback,
       );
 
       await cubit.startRecording();
@@ -62,11 +66,15 @@ void main() {
       await cubit.close();
     });
 
-    test('transcribes successfully after stop', () async {
+    test('plays assistant audio after stop', () async {
+      final playedAudio = <Uint8List>[];
       final cubit = VoiceCaptureCubit(
         FakePermissionService(checkStatus: AppPermissionStatus.granted),
         FakeAudioRecorderService(stopPath: '/tmp/audio.m4a'),
-        FakeTranscriptionApi.success('Hello from backend'),
+        FakeTranscriptionApi.success(const [9, 8, 7]),
+        playAssistantSpeech: (audioBytes) async {
+          playedAudio.add(audioBytes);
+        },
       );
 
       cubit.selectLanguage(VoiceLanguage.vietnamese);
@@ -74,8 +82,8 @@ void main() {
       await cubit.stopRecording();
 
       expect(cubit.state.status, VoiceCaptureStatus.success);
-      expect(cubit.state.transcript, 'Hello from backend');
       expect(cubit.state.selectedLanguage, VoiceLanguage.vietnamese);
+      expect(playedAudio.single, equals(Uint8List.fromList(const [9, 8, 7])));
       await cubit.close();
     });
 
@@ -83,7 +91,8 @@ void main() {
       final cubit = VoiceCaptureCubit(
         FakePermissionService(checkStatus: AppPermissionStatus.granted),
         FakeAudioRecorderService(stopPath: '/tmp/audio.m4a'),
-        FakeTranscriptionApi.success('Hello from backend'),
+        FakeTranscriptionApi.success(const [1, 2, 3]),
+        playAssistantSpeech: _noopPlayback,
       );
 
       cubit.selectLanguage(VoiceLanguage.vietnamese);
@@ -92,12 +101,13 @@ void main() {
       await cubit.close();
     });
 
-    test('uses selected language when transcribing', () async {
-      final api = FakeTranscriptionApi.success('Hello from backend');
+    test('uses selected language when responding', () async {
+      final api = FakeTranscriptionApi.success(const [4, 5, 6]);
       final cubit = VoiceCaptureCubit(
         FakePermissionService(checkStatus: AppPermissionStatus.granted),
         FakeAudioRecorderService(stopPath: '/tmp/audio.m4a'),
         api,
+        playAssistantSpeech: _noopPlayback,
       );
 
       cubit.selectLanguage(VoiceLanguage.vietnamese);
@@ -108,19 +118,20 @@ void main() {
       await cubit.close();
     });
 
-    test('shows empty state when backend returns blank transcript', () async {
+    test('maps empty audio responses to bad audio failure', () async {
       final cubit = VoiceCaptureCubit(
         FakePermissionService(checkStatus: AppPermissionStatus.granted),
         FakeAudioRecorderService(stopPath: '/tmp/audio.m4a'),
-        FakeTranscriptionApi.success('   '),
+        FakeTranscriptionApi.success(const []),
+        playAssistantSpeech: _noopPlayback,
       );
 
       cubit.selectLanguage(VoiceLanguage.vietnamese);
       await cubit.startRecording();
       await cubit.stopRecording();
 
-      expect(cubit.state.status, VoiceCaptureStatus.empty);
-      expect(cubit.state.transcript, isEmpty);
+      expect(cubit.state.status, VoiceCaptureStatus.failure);
+      expect(cubit.state.failure, VoiceCaptureFailure.badAudio);
       expect(cubit.state.selectedLanguage, VoiceLanguage.vietnamese);
       await cubit.close();
     });
@@ -132,6 +143,7 @@ void main() {
         FakeTranscriptionApi.error(
           app_error.Timeout(exception: Exception('timeout')),
         ),
+        playAssistantSpeech: _noopPlayback,
       );
 
       cubit.selectLanguage(VoiceLanguage.vietnamese);
@@ -151,6 +163,7 @@ void main() {
         FakeTranscriptionApi.error(
           app_error.BadRequest(exception: Exception('bad request')),
         ),
+        playAssistantSpeech: _noopPlayback,
       );
 
       cubit.selectLanguage(VoiceLanguage.vietnamese);
@@ -170,6 +183,7 @@ void main() {
         FakeTranscriptionApi.error(
           app_error.InternalServerError(exception: Exception('server')),
         ),
+        playAssistantSpeech: _noopPlayback,
       );
 
       cubit.selectLanguage(VoiceLanguage.vietnamese);
@@ -189,7 +203,8 @@ void main() {
           requestStatus: AppPermissionStatus.denied,
         ),
         FakeAudioRecorderService(),
-        FakeTranscriptionApi.success('ignored'),
+        FakeTranscriptionApi.success(const [1, 2, 3]),
+        playAssistantSpeech: _noopPlayback,
       );
 
       cubit.selectLanguage(VoiceLanguage.vietnamese);
@@ -206,7 +221,8 @@ void main() {
       final firstCubit = VoiceCaptureCubit(
         FakePermissionService(checkStatus: AppPermissionStatus.granted),
         FakeAudioRecorderService(stopPath: '/tmp/audio.m4a'),
-        FakeTranscriptionApi.success('ignored'),
+        FakeTranscriptionApi.success(const [1, 2, 3]),
+        playAssistantSpeech: _noopPlayback,
         storage: storage,
       );
 
@@ -216,12 +232,13 @@ void main() {
       final restoredCubit = VoiceCaptureCubit(
         FakePermissionService(checkStatus: AppPermissionStatus.granted),
         FakeAudioRecorderService(stopPath: '/tmp/audio.m4a'),
-        FakeTranscriptionApi.success('ignored'),
+        FakeTranscriptionApi.success(const [1, 2, 3]),
+        playAssistantSpeech: _noopPlayback,
         storage: storage,
       );
 
       expect(restoredCubit.state.status, VoiceCaptureStatus.idle);
-      expect(restoredCubit.state.transcript, isEmpty);
+      expect(restoredCubit.state.reply, isEmpty);
       expect(restoredCubit.state.failure, isNull);
       expect(restoredCubit.state.selectedLanguage, VoiceLanguage.vietnamese);
       await restoredCubit.close();
@@ -234,7 +251,8 @@ void main() {
       final cubit = VoiceCaptureCubit(
         FakePermissionService(checkStatus: AppPermissionStatus.granted),
         FakeAudioRecorderService(stopPath: '/tmp/audio.m4a'),
-        FakeTranscriptionApi.success('ignored'),
+        FakeTranscriptionApi.success(const [1, 2, 3]),
+        playAssistantSpeech: _noopPlayback,
         storage: storage,
       );
 
@@ -324,32 +342,26 @@ final class FakeAudioRecorderService extends AudioRecorderService {
 }
 
 final class FakeTranscriptionApi extends TranscriptionApi {
-  FakeTranscriptionApi.success(String text)
-    : _result = (
-        error: null,
-        response: TranscriptionResponse(
-          text: text,
-          language: 'en',
-          model: 'base',
-        ),
-      ),
+  FakeTranscriptionApi.success(List<int> audio)
+    : _result = (error: null, audio: Uint8List.fromList(audio)),
       super(Dio());
 
   FakeTranscriptionApi.error(app_error.NetworkError error)
-    : _result = (error: error, response: null),
+    : _result = (error: error, audio: null),
       super(Dio());
 
-  final ({app_error.NetworkError? error, TranscriptionResponse? response})
-  _result;
+  final ({app_error.NetworkError? error, Uint8List? audio}) _result;
   String? lastLanguageCode;
 
   @override
-  Future<({app_error.NetworkError? error, TranscriptionResponse? response})>
-  transcribe({
+  Future<({app_error.NetworkError? error, Uint8List? audio})> respond({
     required String filePath,
     required VoiceLanguage language,
+    ProgressCallback? onSendProgress,
   }) async {
     lastLanguageCode = language.code;
     return _result;
   }
 }
+
+Future<void> _noopPlayback(Uint8List audioBytes) async {}

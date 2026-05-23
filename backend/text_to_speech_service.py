@@ -8,6 +8,11 @@ from edge_tts.exceptions import NoAudioReceived
 
 
 SYNTHESIS_TIMEOUT_SECONDS = 30
+MAX_TEXT_LENGTH = 5000
+SUPPORTED_LANGUAGE_VOICES = {
+    "vi": ("vi-VN-HoaiMyNeural", "vi-VN-NamMinhNeural"),
+    "en": ("en-US-AriaNeural",),
+}
 
 
 class TextToSpeechNoAudioError(Exception):

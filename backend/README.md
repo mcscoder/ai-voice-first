@@ -28,6 +28,16 @@ WHISPER_COMPUTE_TYPE=int8
 WHISPER_LOAD_ON_STARTUP=true
 ```
 
+Assistant settings:
+
+```env
+ASSISTANT_API_BASE_URL=http://127.0.0.1:8317/v1
+ASSISTANT_API_KEY=replace-me
+ASSISTANT_MODEL=gemini-2.5-flash-lite
+ASSISTANT_PROVIDER_TIMEOUT_SECONDS=30
+ASSISTANT_SYSTEM_PROMPT=You are a helpful voice assistant. Reply in {language_name}. Keep answers concise, natural, and useful. Do not mention transcripts or internal processing.
+```
+
 - `WHISPER_DEVICE=cpu` is the safe default.
 - `WHISPER_DEVICE=cuda` requires the supported NVIDIA runtime described in `docs/GPU_SETUP.md`.
 
@@ -42,6 +52,35 @@ curl -X POST http://localhost:8000/transcribe \
 ```
 
 The backend uses local Faster Whisper for transcription.
+
+## Voice Assistant API
+
+`POST /v1/voice/assistant` accepts a multipart audio file and optional form `language`.
+The backend transcribes the audio, builds the assistant prompt, calls the local chat
+completions service, then synthesizes the reply with the backend TTS pipeline.
+
+```bash
+curl -X POST http://localhost:8000/v1/voice/assistant \
+  -F "file=@sample.wav" \
+  -F "language=vi" \
+  --output assistant-speech.mp3
+```
+
+The response is `audio/mpeg` bytes.
+
+Validation rules:
+
+- `file` must contain audio bytes.
+- `language` is optional and accepts `vi` or `en`.
+- Empty uploads are rejected with `400`.
+- Empty transcripts are rejected with `400`.
+- Assistant replies longer than the TTS limit are rejected with `502`.
+- Assistant timeouts return `504`.
+- Assistant provider failures return `502`.
+- TTS failures return `502`.
+
+The backend owns the assistant API key, base URL, system prompt, and TTS wiring. Flutter
+should only upload audio and play the returned speech.
 
 ## Text To Speech API
 

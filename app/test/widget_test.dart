@@ -1,8 +1,9 @@
+import 'dart:typed_data';
+
 import 'package:ai_voice_first/core/error.dart';
 import 'package:ai_voice_first/core/permissions/permission_service.dart';
 import 'package:ai_voice_first/features/voice/data/audio_recorder_service.dart';
 import 'package:ai_voice_first/features/voice/data/transcription_api.dart';
-import 'package:ai_voice_first/features/voice/data/transcription_response.dart';
 import 'package:ai_voice_first/features/voice/data/voice_language.dart';
 import 'package:ai_voice_first/features/voice/presentation/voice_capture_cubit.dart';
 import 'package:ai_voice_first/features/voice/presentation/voice_capture_state.dart';
@@ -18,6 +19,7 @@ void main() {
       _FakePermissionService(),
       _FakeAudioRecorderService(),
       _FakeTranscriptionApi(),
+      playAssistantSpeech: _noopPlayback,
     );
 
     await tester.pumpWidget(
@@ -28,11 +30,54 @@ void main() {
       ),
     );
 
-    expect(find.text('Tap the microphone and start speaking.'), findsOneWidget);
+    expect(find.text('Your assistant speech will play here.'), findsOneWidget);
     expect(find.text('Ready'), findsOneWidget);
     expect(find.byIcon(Icons.mic), findsOneWidget);
     expect(find.byKey(const Key('voice_language_dropdown')), findsOneWidget);
     expect(find.text('Language'), findsOneWidget);
+
+    await cubit.close();
+  });
+
+  testWidgets('voice screen renders speaking state', (
+    WidgetTester tester,
+  ) async {
+    final cubit = _TestVoiceCaptureCubit();
+    cubit.push(const VoiceCaptureState(status: VoiceCaptureStatus.speaking));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: VoiceScreen(cubit: cubit),
+      ),
+    );
+
+    await tester.pump();
+
+    expect(find.text('Speaking…'), findsOneWidget);
+
+    await cubit.close();
+  });
+
+  testWidgets('voice screen lets the user stop recording', (
+    WidgetTester tester,
+  ) async {
+    final cubit = _RecordingAwareTestCubit();
+    cubit.push(const VoiceCaptureState(status: VoiceCaptureStatus.recording));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: VoiceScreen(cubit: cubit),
+      ),
+    );
+
+    await tester.tap(find.byIcon(Icons.stop));
+    await tester.pump();
+
+    expect(cubit.toggleRecordingCalls, 1);
 
     await cubit.close();
   });
@@ -101,18 +146,12 @@ final class _FakeTranscriptionApi extends TranscriptionApi {
   _FakeTranscriptionApi() : super(Dio());
 
   @override
-  Future<({NetworkError? error, TranscriptionResponse? response})> transcribe({
+  Future<({NetworkError? error, Uint8List? audio})> respond({
     required String filePath,
     required VoiceLanguage language,
+    ProgressCallback? onSendProgress,
   }) async {
-    return (
-      error: null,
-      response: const TranscriptionResponse(
-        text: 'hello',
-        language: 'en',
-        model: 'base',
-      ),
-    );
+    return (error: null, audio: Uint8List.fromList(const [1, 2, 3]));
   }
 }
 
@@ -122,7 +161,19 @@ final class _TestVoiceCaptureCubit extends VoiceCaptureCubit {
         _FakePermissionService(),
         _FakeAudioRecorderService(),
         _FakeTranscriptionApi(),
+        playAssistantSpeech: _noopPlayback,
       );
 
   void push(VoiceCaptureState state) => emit(state);
 }
+
+final class _RecordingAwareTestCubit extends _TestVoiceCaptureCubit {
+  int toggleRecordingCalls = 0;
+
+  @override
+  Future<void> toggleRecording() async {
+    toggleRecordingCalls += 1;
+  }
+}
+
+Future<void> _noopPlayback(Uint8List audioBytes) async {}

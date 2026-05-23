@@ -19,7 +19,9 @@ AI Voice First uses a layered Flutter architecture with reusable infrastructure 
 
 ## Current Routing
 
-- A single root route renders the neutral home shell.
+- A single root route renders the voice assistant screen.
+- The voice feature records audio locally, uploads it to the backend, and plays the assistant speech response.
+- The backend owns transcription, assistant prompting, and TTS, then returns `audio/mpeg` bytes to Flutter.
 - Error navigation falls back to `lib/core/error_screen.dart`.
 
 ## Generated Artifacts

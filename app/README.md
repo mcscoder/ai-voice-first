@@ -14,7 +14,7 @@ flutter run -t lib/main.dart
 ## Current App Shell
 
 - Root route only: `/`
-- Neutral landing screen in `lib/features/home/home_screen.dart`
+- Voice assistant screen in `lib/features/voice/presentation/voice_screen.dart`
 - Multi-flavor entrypoints in `lib/main.dart`, `lib/main_staging.dart`, and `lib/main_production.dart`
 
 ## Project Structure
@@ -32,6 +32,7 @@ lib/
 - `lib/core/` keeps the reusable platform and app infrastructure.
 - Demo login, sample city data flow, and template branding have been removed.
 - Platform names now target `AI Voice First` with placeholder identifier `com.example.aivoicefirst`.
+- Voice assistant orchestration is backend-only; Flutter only records audio and plays the returned speech.
 
 ## Docs
 

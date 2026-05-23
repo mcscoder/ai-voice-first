@@ -115,13 +115,13 @@ abstract class AppLocalizations {
   /// No description provided for @appNextStep.
   ///
   /// In en, this message translates to:
-  /// **'Next step: replace this landing screen with your voice capture, transcript, and orchestration experience.'**
+  /// **'Next step: replace this landing screen with your voice capture, assistant speech, and orchestration experience.'**
   String get appNextStep;
 
   /// No description provided for @voiceTranscriptPlaceholder.
   ///
   /// In en, this message translates to:
-  /// **'Tap the microphone and start speaking.'**
+  /// **'Your assistant speech will play here.'**
   String get voiceTranscriptPlaceholder;
 
   /// No description provided for @voiceIdleStatus.
@@ -133,19 +133,43 @@ abstract class AppLocalizations {
   /// No description provided for @voiceListeningStatus.
   ///
   /// In en, this message translates to:
-  /// **'Listening…'**
+  /// **'Recording…'**
   String get voiceListeningStatus;
+
+  /// No description provided for @voiceRecordingStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording…'**
+  String get voiceRecordingStatus;
 
   /// No description provided for @voiceTranscribingStatus.
   ///
   /// In en, this message translates to:
-  /// **'Transcribing…'**
+  /// **'Uploading…'**
   String get voiceTranscribingStatus;
+
+  /// No description provided for @voiceUploadingStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading…'**
+  String get voiceUploadingStatus;
+
+  /// No description provided for @voiceProcessingStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing…'**
+  String get voiceProcessingStatus;
+
+  /// No description provided for @voiceSpeakingStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Speaking…'**
+  String get voiceSpeakingStatus;
 
   /// No description provided for @voiceSuccessStatus.
   ///
   /// In en, this message translates to:
-  /// **'Transcript ready'**
+  /// **'Speech played'**
   String get voiceSuccessStatus;
 
   /// No description provided for @voiceEmptyStatus.
@@ -169,19 +193,19 @@ abstract class AppLocalizations {
   /// No description provided for @voiceNetworkErrorStatus.
   ///
   /// In en, this message translates to:
-  /// **'Could not reach the transcription service.'**
+  /// **'Could not reach the assistant service.'**
   String get voiceNetworkErrorStatus;
 
   /// No description provided for @voiceBadAudioStatus.
   ///
   /// In en, this message translates to:
-  /// **'The recording could not be transcribed.'**
+  /// **'The recording could not be understood.'**
   String get voiceBadAudioStatus;
 
   /// No description provided for @voiceBackendErrorStatus.
   ///
   /// In en, this message translates to:
-  /// **'The transcription service failed.'**
+  /// **'The assistant service failed.'**
   String get voiceBackendErrorStatus;
 
   /// No description provided for @voiceUnknownErrorStatus.

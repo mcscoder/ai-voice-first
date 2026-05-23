@@ -20,23 +20,35 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get appNextStep =>
-      'Next step: replace this landing screen with your voice capture, transcript, and orchestration experience.';
+      'Next step: replace this landing screen with your voice capture, assistant speech, and orchestration experience.';
 
   @override
   String get voiceTranscriptPlaceholder =>
-      'Tap the microphone and start speaking.';
+      'Your assistant speech will play here.';
 
   @override
   String get voiceIdleStatus => 'Ready';
 
   @override
-  String get voiceListeningStatus => 'Listening…';
+  String get voiceListeningStatus => 'Recording…';
 
   @override
-  String get voiceTranscribingStatus => 'Transcribing…';
+  String get voiceRecordingStatus => 'Recording…';
 
   @override
-  String get voiceSuccessStatus => 'Transcript ready';
+  String get voiceTranscribingStatus => 'Uploading…';
+
+  @override
+  String get voiceUploadingStatus => 'Uploading…';
+
+  @override
+  String get voiceProcessingStatus => 'Processing…';
+
+  @override
+  String get voiceSpeakingStatus => 'Speaking…';
+
+  @override
+  String get voiceSuccessStatus => 'Speech played';
 
   @override
   String get voiceEmptyStatus => 'No speech detected';
@@ -50,13 +62,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get voiceNetworkErrorStatus =>
-      'Could not reach the transcription service.';
+      'Could not reach the assistant service.';
 
   @override
-  String get voiceBadAudioStatus => 'The recording could not be transcribed.';
+  String get voiceBadAudioStatus => 'The recording could not be understood.';
 
   @override
-  String get voiceBackendErrorStatus => 'The transcription service failed.';
+  String get voiceBackendErrorStatus => 'The assistant service failed.';
 
   @override
   String get voiceUnknownErrorStatus => 'Something went wrong. Try again.';

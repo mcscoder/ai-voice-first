@@ -14,9 +14,9 @@ enum ConfigurationProfile {
 
   const ConfigurationProfile({required this.name});
 
-  static const _defaultConnectTimeout = 30000;
-  static const _defaultReceiveTimeout = 30000;
-  static const _defaultSendTimeout = 30000;
+  static const _defaultConnectTimeout = 45000;
+  static const _defaultReceiveTimeout = 45000;
+  static const _defaultSendTimeout = 45000;
 
   static ConfigurationProfile _current = ConfigurationProfile.development;
 

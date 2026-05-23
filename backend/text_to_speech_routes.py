@@ -9,16 +9,12 @@ from pydantic import BaseModel, field_validator
 from edge_tts.exceptions import EdgeTTSException
 
 from text_to_speech_service import (
+    MAX_TEXT_LENGTH,
+    SUPPORTED_LANGUAGE_VOICES,
     TextToSpeechNoAudioError,
     synthesize_speech_with_fallback,
 )
 
-
-SUPPORTED_LANGUAGE_VOICES = {
-    "vi": ("vi-VN-HoaiMyNeural", "vi-VN-NamMinhNeural"),
-    "en": ("en-US-AriaNeural",),
-}
-MAX_TEXT_LENGTH = 5000
 
 router = APIRouter()
 

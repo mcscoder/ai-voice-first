@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'dart:io';
 
 import 'package:ai_voice_first/core/error.dart';
@@ -8,7 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('TranscriptionApi', () {
-    test('sends multipart audio to /transcribe', () async {
+    test('sends multipart audio to /v1/voice/assistant', () async {
       final tempDir = await Directory.systemTemp.createTemp('voice_api_test');
       final file = File('${tempDir.path}/sample.m4a');
       await file.writeAsString('audio');
@@ -23,13 +24,9 @@ void main() {
             capturedPath = options.path;
             capturedFormData = options.data as FormData;
             handler.resolve(
-              Response<Map<String, dynamic>>(
+              Response<List<int>>(
                 requestOptions: options,
-                data: const {
-                  'text': 'hello world',
-                  'language': 'en',
-                  'model': 'base',
-                },
+                data: const [1, 2, 3, 4],
               ),
             );
           },
@@ -37,14 +34,14 @@ void main() {
       );
 
       final api = TranscriptionApi(dio);
-      final result = await api.transcribe(
+      final result = await api.respond(
         filePath: file.path,
         language: VoiceLanguage.english,
       );
 
       expect(result.error, isNull);
-      expect(result.response?.text, 'hello world');
-      expect(capturedPath, '/transcribe');
+      expect(result.audio, equals(Uint8List.fromList(const [1, 2, 3, 4])));
+      expect(capturedPath, '/v1/voice/assistant');
       expect(capturedFormData, isNotNull);
       expect(capturedFormData!.fields.single.key, 'language');
       expect(capturedFormData!.fields.single.value, 'en');
@@ -73,12 +70,12 @@ void main() {
       );
 
       final api = TranscriptionApi(dio);
-      final result = await api.transcribe(
+      final result = await api.respond(
         filePath: file.path,
         language: VoiceLanguage.vietnamese,
       );
 
-      expect(result.response, isNull);
+      expect(result.audio, isNull);
       expect(result.error, isA<BadRequest>());
 
       await tempDir.delete(recursive: true);

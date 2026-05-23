@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 
@@ -5,16 +7,16 @@ import '../../../core/error.dart';
 import '../../../core/network/api.dart';
 import '../../../core/network/api_path.dart';
 import '../../../core/network/dio.dart';
-import 'transcription_response.dart';
 import 'voice_language.dart';
 
 @lazySingleton
 base class TranscriptionApi extends Api {
   TranscriptionApi(@nonAuthDio super.dio);
 
-  Future<({NetworkError? error, TranscriptionResponse? response})> transcribe({
+  Future<({NetworkError? error, Uint8List? audio})> respond({
     required String filePath,
     required VoiceLanguage language,
+    ProgressCallback? onSendProgress,
   }) async {
     final result = await withTimeoutRequest(() async {
       final formData = FormData.fromMap({
@@ -25,17 +27,20 @@ base class TranscriptionApi extends Api {
         ),
       });
 
-      final response = await dio.post<Map<String, dynamic>>(
-        ApiPath.transcribe,
+      final response = await dio.post<List<int>>(
+        ApiPath.voiceAssistant,
         data: formData,
+        options: Options(responseType: ResponseType.bytes),
+        onSendProgress: onSendProgress,
       );
 
-      return TranscriptionResponse.fromJson(response.data ?? const {});
+      final bytes = response.data;
+      return bytes == null ? Uint8List(0) : Uint8List.fromList(bytes);
     });
 
     return result.match(
-      (error) => (error: error, response: null),
-      (response) => (error: null, response: response),
+      (error) => (error: error, audio: null),
+      (audio) => (error: null, audio: audio),
     );
   }
 }

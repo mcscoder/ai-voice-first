@@ -198,6 +198,7 @@ dependencies = [
     { name = "edge-tts" },
     { name = "fastapi" },
     { name = "faster-whisper" },
+    { name = "httpx" },
     { name = "python-dotenv" },
     { name = "python-multipart" },
     { name = "uvicorn" },
@@ -205,7 +206,6 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "httpx" },
     { name = "pytest" },
 ]
 
@@ -214,16 +214,14 @@ requires-dist = [
     { name = "edge-tts", specifier = ">=7.2.8" },
     { name = "fastapi", specifier = ">=0.116.0" },
     { name = "faster-whisper", specifier = ">=1.2.0" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "python-dotenv", specifier = ">=1.1.1" },
     { name = "python-multipart", specifier = ">=0.0.20" },
     { name = "uvicorn", specifier = ">=0.35.0" },
 ]
 
 [package.metadata.requires-dev]
-dev = [
-    { name = "httpx", specifier = ">=0.28.1" },
-    { name = "pytest", specifier = ">=9.0.3" },
-]
+dev = [{ name = "pytest", specifier = ">=9.0.3" }]
 
 [[package]]
 name = "certifi"

@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+
+import 'package:audioplayers/audioplayers.dart';
 import 'package:hydrated_bloc/hydrated_bloc.dart';
 import 'package:injectable/injectable.dart';
 
@@ -14,17 +17,30 @@ class VoiceCaptureCubit extends HydratedCubit<VoiceCaptureState> {
     this._permissionService,
     this._audioRecorderService,
     this._transcriptionApi, {
+    Future<void> Function(Uint8List audioBytes)? playAssistantSpeech,
     Storage? storage,
-  }) : super(const VoiceCaptureState(), storage: _resolveStorage(storage));
+  }) : super(const VoiceCaptureState(), storage: _resolveStorage(storage)) {
+    if (playAssistantSpeech != null) {
+      _audioPlayer = null;
+      _playAssistantSpeech = playAssistantSpeech;
+      return;
+    }
+
+    final player = AudioPlayer();
+    _audioPlayer = player;
+    _playAssistantSpeech = (audioBytes) async {
+      await player.play(BytesSource(audioBytes, mimeType: 'audio/mpeg'));
+    };
+  }
 
   final PermissionService _permissionService;
   final AudioRecorderService _audioRecorderService;
   final TranscriptionApi _transcriptionApi;
+  late final AudioPlayer? _audioPlayer;
+  late final Future<void> Function(Uint8List audioBytes) _playAssistantSpeech;
 
   void selectLanguage(VoiceLanguage language) {
-    if (state.status == VoiceCaptureStatus.listening ||
-        state.status == VoiceCaptureStatus.transcribing ||
-        language.code == state.selectedLanguage.code) {
+    if (state.isBusy || language.code == state.selectedLanguage.code) {
       return;
     }
 
@@ -35,14 +51,15 @@ class VoiceCaptureCubit extends HydratedCubit<VoiceCaptureState> {
     switch (state.status) {
       case VoiceCaptureStatus.idle:
       case VoiceCaptureStatus.success:
-      case VoiceCaptureStatus.empty:
       case VoiceCaptureStatus.failure:
         await startRecording();
         return;
-      case VoiceCaptureStatus.listening:
+      case VoiceCaptureStatus.recording:
         await stopRecording();
         return;
-      case VoiceCaptureStatus.transcribing:
+      case VoiceCaptureStatus.uploading:
+      case VoiceCaptureStatus.processing:
+      case VoiceCaptureStatus.speaking:
         return;
     }
   }
@@ -81,8 +98,8 @@ class VoiceCaptureCubit extends HydratedCubit<VoiceCaptureState> {
       await _audioRecorderService.start();
       emit(
         state.copyWith(
-          status: VoiceCaptureStatus.listening,
-          transcript: '',
+          status: VoiceCaptureStatus.recording,
+          reply: '',
           clearFailure: true,
         ),
       );
@@ -105,10 +122,7 @@ class VoiceCaptureCubit extends HydratedCubit<VoiceCaptureState> {
 
   Future<void> stopRecording() async {
     emit(
-      state.copyWith(
-        status: VoiceCaptureStatus.transcribing,
-        clearFailure: true,
-      ),
+      state.copyWith(status: VoiceCaptureStatus.uploading, clearFailure: true),
     );
 
     String? filePath;
@@ -116,30 +130,42 @@ class VoiceCaptureCubit extends HydratedCubit<VoiceCaptureState> {
     try {
       filePath = await _audioRecorderService.stop();
 
-      final result = await _transcriptionApi.transcribe(
+      final result = await _transcriptionApi.respond(
         filePath: filePath,
         language: state.selectedLanguage,
+        onSendProgress: (sent, total) {
+          if (total > 0 &&
+              sent >= total &&
+              state.status == VoiceCaptureStatus.uploading) {
+            emit(
+              state.copyWith(
+                status: VoiceCaptureStatus.processing,
+                clearFailure: true,
+              ),
+            );
+          }
+        },
       );
       final error = result.error;
-      final response = result.response;
+      final audio = result.audio;
 
       if (error != null) {
         emit(
           state.copyWith(
             status: VoiceCaptureStatus.failure,
             failure: _mapNetworkError(error),
-            transcript: state.transcript,
+            reply: state.reply,
           ),
         );
         return;
       }
 
-      final transcript = response?.text.trim() ?? '';
-      if (transcript.isEmpty) {
+      final audioBytes = audio ?? Uint8List(0);
+      if (audioBytes.isEmpty) {
         emit(
           state.copyWith(
-            status: VoiceCaptureStatus.empty,
-            transcript: '',
+            status: VoiceCaptureStatus.failure,
+            failure: VoiceCaptureFailure.badAudio,
             clearFailure: true,
           ),
         );
@@ -147,11 +173,24 @@ class VoiceCaptureCubit extends HydratedCubit<VoiceCaptureState> {
       }
 
       emit(
-        state.copyWith(
-          status: VoiceCaptureStatus.success,
-          transcript: transcript,
-          clearFailure: true,
-        ),
+        state.copyWith(status: VoiceCaptureStatus.speaking, clearFailure: true),
+      );
+
+      try {
+        await _playAssistantSpeech(audioBytes);
+      } on Exception {
+        emit(
+          state.copyWith(
+            status: VoiceCaptureStatus.failure,
+            failure: VoiceCaptureFailure.unknown,
+            clearFailure: true,
+          ),
+        );
+        return;
+      }
+
+      emit(
+        state.copyWith(status: VoiceCaptureStatus.success, clearFailure: true),
       );
     } on AudioRecordingException {
       emit(
@@ -199,6 +238,7 @@ class VoiceCaptureCubit extends HydratedCubit<VoiceCaptureState> {
   @override
   Future<void> close() async {
     await _audioRecorderService.cancel();
+    await _audioPlayer?.dispose();
     return super.close();
   }
 

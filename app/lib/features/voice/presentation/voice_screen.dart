@@ -26,10 +26,12 @@ final class VoiceScreen extends StatelessWidget {
             child: BlocBuilder<VoiceCaptureCubit, VoiceCaptureState>(
               builder: (context, state) {
                 final cubit = context.read<VoiceCaptureCubit>();
-                final isListening =
-                    state.status == VoiceCaptureStatus.listening;
-                final isTranscribing =
-                    state.status == VoiceCaptureStatus.transcribing;
+                final isRecording =
+                    state.status == VoiceCaptureStatus.recording;
+                final isActionLocked =
+                    state.status == VoiceCaptureStatus.uploading ||
+                    state.status == VoiceCaptureStatus.processing ||
+                    state.status == VoiceCaptureStatus.speaking;
 
                 return Column(
                   children: [
@@ -61,7 +63,7 @@ final class VoiceScreen extends StatelessWidget {
                                     ),
                                   )
                                   .toList(),
-                              onChanged: isListening || isTranscribing
+                              onChanged: state.isBusy
                                   ? null
                                   : (value) {
                                       if (value == null) {
@@ -87,11 +89,11 @@ final class VoiceScreen extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                _transcriptText(context, state),
+                                _replyText(context, state),
                                 textAlign: TextAlign.center,
                                 style: theme.textTheme.headlineMedium?.copyWith(
                                   height: 1.35,
-                                  color: state.transcript.isEmpty
+                                  color: state.reply.isEmpty
                                       ? theme.colorScheme.onSurfaceVariant
                                       : theme.colorScheme.onSurface,
                                 ),
@@ -123,13 +125,13 @@ final class VoiceScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     _PulseMicButton(
-                      isListening: isListening,
-                      isDisabled: isTranscribing,
+                      isRecording: isRecording,
+                      isDisabled: isActionLocked,
                       onPressed: cubit.toggleRecording,
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      isListening
+                      isRecording
                           ? context.l10n.voiceStopHint
                           : context.l10n.voiceStartHint,
                       style: theme.textTheme.bodyMedium?.copyWith(
@@ -146,19 +148,19 @@ final class VoiceScreen extends StatelessWidget {
     );
   }
 
-  String _transcriptText(BuildContext context, VoiceCaptureState state) {
+  String _replyText(BuildContext context, VoiceCaptureState state) {
     switch (state.status) {
       case VoiceCaptureStatus.success:
-        return state.transcript;
-      case VoiceCaptureStatus.empty:
-        return context.l10n.voiceEmptyTranscript;
-      case VoiceCaptureStatus.failure:
+        return state.reply;
       case VoiceCaptureStatus.idle:
-      case VoiceCaptureStatus.listening:
-      case VoiceCaptureStatus.transcribing:
-        return state.transcript.isEmpty
+      case VoiceCaptureStatus.recording:
+      case VoiceCaptureStatus.uploading:
+      case VoiceCaptureStatus.processing:
+      case VoiceCaptureStatus.speaking:
+      case VoiceCaptureStatus.failure:
+        return state.reply.isEmpty
             ? context.l10n.voiceTranscriptPlaceholder
-            : state.transcript;
+            : state.reply;
     }
   }
 
@@ -166,14 +168,16 @@ final class VoiceScreen extends StatelessWidget {
     switch (state.status) {
       case VoiceCaptureStatus.idle:
         return context.l10n.voiceIdleStatus;
-      case VoiceCaptureStatus.listening:
-        return context.l10n.voiceListeningStatus;
-      case VoiceCaptureStatus.transcribing:
-        return context.l10n.voiceTranscribingStatus;
+      case VoiceCaptureStatus.recording:
+        return context.l10n.voiceRecordingStatus;
+      case VoiceCaptureStatus.uploading:
+        return context.l10n.voiceUploadingStatus;
+      case VoiceCaptureStatus.processing:
+        return context.l10n.voiceProcessingStatus;
+      case VoiceCaptureStatus.speaking:
+        return context.l10n.voiceSpeakingStatus;
       case VoiceCaptureStatus.success:
         return context.l10n.voiceSuccessStatus;
-      case VoiceCaptureStatus.empty:
-        return context.l10n.voiceEmptyStatus;
       case VoiceCaptureStatus.failure:
         switch (state.failure) {
           case VoiceCaptureFailure.microphoneDenied:
@@ -196,12 +200,12 @@ final class VoiceScreen extends StatelessWidget {
 
 final class _PulseMicButton extends StatefulWidget {
   const _PulseMicButton({
-    required this.isListening,
+    required this.isRecording,
     required this.isDisabled,
     required this.onPressed,
   });
 
-  final bool isListening;
+  final bool isRecording;
   final bool isDisabled;
   final VoidCallback onPressed;
 
@@ -219,7 +223,7 @@ final class _PulseMicButtonState extends State<_PulseMicButton>
   @override
   void initState() {
     super.initState();
-    if (widget.isListening) {
+    if (widget.isRecording) {
       _controller.repeat(reverse: true);
     }
   }
@@ -227,9 +231,9 @@ final class _PulseMicButtonState extends State<_PulseMicButton>
   @override
   void didUpdateWidget(covariant _PulseMicButton oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.isListening && !_controller.isAnimating) {
+    if (widget.isRecording && !_controller.isAnimating) {
       _controller.repeat(reverse: true);
-    } else if (!widget.isListening && _controller.isAnimating) {
+    } else if (!widget.isRecording && _controller.isAnimating) {
       _controller.stop();
       _controller.value = 0;
     }
@@ -245,15 +249,15 @@ final class _PulseMicButtonState extends State<_PulseMicButton>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDisabled = widget.isDisabled;
-    final baseColor = widget.isListening
+    final baseColor = widget.isRecording
         ? theme.colorScheme.error
         : theme.colorScheme.primary;
 
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        final scale = widget.isListening ? 1 + (_controller.value * 0.1) : 1.0;
-        final glowOpacity = widget.isListening
+        final scale = widget.isRecording ? 1 + (_controller.value * 0.1) : 1.0;
+        final glowOpacity = widget.isRecording
             ? 0.18 + (_controller.value * 0.12)
             : 0.0;
 
@@ -282,7 +286,11 @@ final class _PulseMicButtonState extends State<_PulseMicButton>
                 shape: const CircleBorder(),
               ),
               child: Icon(
-                widget.isDisabled ? Icons.hourglass_top : Icons.mic,
+                widget.isRecording
+                    ? Icons.stop
+                    : widget.isDisabled
+                    ? Icons.hourglass_top
+                    : Icons.mic,
                 size: 54,
               ),
             ),

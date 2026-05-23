@@ -27,7 +27,9 @@ flutter run -t lib/main.dart
 
 ## Current Product State
 
-- Single neutral landing route for `AI Voice First`
+- Root route renders the voice assistant response flow
+- Flutter records audio and displays assistant replies
+- Backend owns transcription, prompt assembly, and chat completions
 - No demo login flow
 - No sample city API or repository stack
 - Placeholder package and bundle identifier: `com.example.aivoicefirst`
