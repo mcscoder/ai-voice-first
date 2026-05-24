@@ -8,6 +8,7 @@ from fastapi import FastAPI
 
 from config import env_flag
 from assistant_routes import router as assistant_router
+from memory import MemoryService
 from text_to_speech_routes import router as text_to_speech_router
 from transcription_routes import router as transcription_router
 from transcription_routes import service as transcription_service
@@ -17,6 +18,7 @@ from transcription_routes import service as transcription_service
 async def lifespan(_: FastAPI):
     if env_flag("WHISPER_LOAD_ON_STARTUP", True):
         transcription_service.load_model()
+    MemoryService().bootstrap()
     yield
 
 

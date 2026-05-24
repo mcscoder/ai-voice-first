@@ -6,6 +6,8 @@ from typing import Literal
 
 import httpx
 
+from personality import PersonalityPromptBuilder
+
 
 AssistantLanguage = Literal["en", "vi"]
 
@@ -57,10 +59,27 @@ class VoiceAssistantService:
             os.getenv("ASSISTANT_PROVIDER_TIMEOUT_SECONDS", "30")
         )
         self._transport = transport
+        self._prompt_builder = PersonalityPromptBuilder()
 
-    def build_payload(self, transcript: str, language: AssistantLanguage) -> dict[str, object]:
+    def build_payload(
+        self,
+        transcript: str,
+        language: AssistantLanguage,
+        *,
+        memory_context: str | None = None,
+        personality: str | None = None,
+    ) -> dict[str, object]:
         language_name = ASSISTANT_LANGUAGE_NAMES[language]
         system_prompt = self.system_prompt.replace("{language_name}", language_name)
+        if personality:
+            personality_prompt = self._prompt_builder.build_system_prompt(
+                personality=personality,
+                language=language_name,
+                memory_context=memory_context,
+            )
+            system_prompt = f"{system_prompt}\n\n{personality_prompt}"
+        elif memory_context:
+            system_prompt = f"{system_prompt}\n\nRelevant memory context:\n{memory_context}"
 
         return {
             "model": self.model,
@@ -70,8 +89,20 @@ class VoiceAssistantService:
             ],
         }
 
-    async def complete(self, transcript: str, language: AssistantLanguage) -> str:
-        payload = self.build_payload(transcript, language)
+    async def complete(
+        self,
+        transcript: str,
+        language: AssistantLanguage,
+        *,
+        memory_context: str | None = None,
+        personality: str | None = None,
+    ) -> str:
+        payload = self.build_payload(
+            transcript,
+            language,
+            memory_context=memory_context,
+            personality=personality,
+        )
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"

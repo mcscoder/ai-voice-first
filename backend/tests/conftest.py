@@ -7,6 +7,8 @@ from httpx import ASGITransport, AsyncClient
 
 
 os.environ["WHISPER_LOAD_ON_STARTUP"] = "false"
+os.environ["ASSISTANT_STORE_MEMORIES"] = "false"
+os.environ["ASSISTANT_USE_MEMORY_CONTEXT"] = "false"
 
 from main import app  # noqa: E402
 

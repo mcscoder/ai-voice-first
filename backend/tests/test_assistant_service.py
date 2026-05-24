@@ -97,3 +97,40 @@ async def test_complete_raises_timeout_error():
 
     with pytest.raises(AssistantTimeoutError):
         await service.complete("xin chào", "vi")
+
+
+@pytest.mark.anyio
+async def test_complete_uses_explicit_memory_and_personality_kwargs():
+    requests = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        payload = json.loads(request.content.decode())
+        system_prompt = payload["messages"][0]["content"]
+        assert "Minh nợ tao 60k" in system_prompt
+        assert "Relevant memory context" in system_prompt
+        assert "relaxed" in system_prompt.lower()
+        return httpx.Response(
+            200,
+            json={
+                "choices": [
+                    {"message": {"role": "assistant", "content": "ok"}},
+                ]
+            },
+            request=request,
+        )
+
+    service = VoiceAssistantService(
+        base_url="http://assistant.local/v1",
+        transport=httpx.MockTransport(handler),
+    )
+
+    reply = await service.complete(
+        "xin chào",
+        "vi",
+        memory_context="Minh nợ tao 60k",
+        personality="chill",
+    )
+
+    assert reply == "ok"
+    assert len(requests) == 1

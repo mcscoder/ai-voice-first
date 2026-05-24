@@ -116,8 +116,8 @@ async def test_voice_assistant_returns_audio(monkeypatch, client):
             "duration_seconds": 1.2,
         }
 
-    async def fake_complete(transcript, language):
-        reply_calls.append((transcript, language))
+    async def fake_complete(transcript, language, **kwargs):
+        reply_calls.append((transcript, language, kwargs))
         return "Xin chào, tôi có thể giúp gì cho bạn?"
 
     monkeypatch.setattr("assistant_routes.transcription_service.transcribe", fake_transcribe)
@@ -142,7 +142,10 @@ async def test_voice_assistant_returns_audio(monkeypatch, client):
     assert len(transcribe_calls) == 1
     assert transcribe_calls[0][1] == "vi"
     assert transcribe_calls[0][0]
-    assert reply_calls == [("xin chào", "vi")]
+    assert reply_calls[0][0] == "xin chào"
+    assert reply_calls[0][1] == "vi"
+    assert reply_calls[0][2]["personality"] == "serious"
+    assert reply_calls[0][2]["memory_context"] is None
     assert synth_calls == [
         (
             "Xin chào, tôi có thể giúp gì cho bạn?",
@@ -202,7 +205,7 @@ async def test_voice_assistant_maps_assistant_timeout_to_gateway_timeout(
             "duration_seconds": 1.2,
         }
 
-    async def fake_complete(transcript, language):
+    async def fake_complete(transcript, language, **kwargs):
         raise assistant_routes.AssistantTimeoutError("Assistant request timed out.")
 
     monkeypatch.setattr("assistant_routes.transcription_service.transcribe", fake_transcribe)

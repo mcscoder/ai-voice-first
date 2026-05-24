@@ -22,9 +22,9 @@ Common settings in `.env`:
 ```env
 HOST=0.0.0.0
 PORT=8000
-WHISPER_MODEL=base
-WHISPER_DEVICE=cpu
-WHISPER_COMPUTE_TYPE=int8
+WHISPER_MODEL=large-v3
+WHISPER_DEVICE=cuda
+WHISPER_COMPUTE_TYPE=float16
 WHISPER_LOAD_ON_STARTUP=true
 ```
 
@@ -36,10 +36,13 @@ ASSISTANT_API_KEY=replace-me
 ASSISTANT_MODEL=gemini-2.5-flash-lite
 ASSISTANT_PROVIDER_TIMEOUT_SECONDS=30
 ASSISTANT_SYSTEM_PROMPT=You are a helpful voice assistant. Reply in {language_name}. Keep answers concise, natural, and useful. Do not mention transcripts or internal processing.
+ASSISTANT_STORE_MEMORIES=true
+ASSISTANT_USE_MEMORY_CONTEXT=true
 ```
 
-- `WHISPER_DEVICE=cpu` is the safe default.
 - `WHISPER_DEVICE=cuda` requires the supported NVIDIA runtime described in `docs/GPU_SETUP.md`.
+- `WHISPER_DEVICE=cpu` is still supported if you need a fallback on non-GPU hosts.
+- The assistant and memory extractor share the same OpenAI-compatible LLM server.
 
 ## Transcription API
 
@@ -129,3 +132,21 @@ before exposing this endpoint publicly.
 uv run python -m compileall .
 uv run pytest
 ```
+
+Live LLM smoke test:
+
+```bash
+RUN_LIVE_LLM_SMOKE=1 uv run pytest tests/test_live_llm_server.py -q
+```
+
+This test sends real requests to `ASSISTANT_API_BASE_URL` and requires the
+LLM server to be reachable from the machine running the test.
+
+Live voice endpoint test:
+
+```bash
+RUN_LIVE_VOICE_ENDPOINT=1 uv run pytest tests/test_live_voice_assistant_endpoint.py -q
+```
+
+This test generates a real audio sample, sends it through `/v1/voice/assistant`,
+and requires the backend plus the LLM and TTS services to be reachable.

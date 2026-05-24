@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import logging
 import asyncio
 import os
 import tempfile
+import threading
 from pathlib import Path
 from typing import Annotated, Literal
 
@@ -10,6 +12,7 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response
 from edge_tts.exceptions import EdgeTTSException
 
+from config import env_flag
 from assistant_service import (
     AssistantEmptyReplyError,
     AssistantServiceError,
@@ -29,6 +32,8 @@ from text_to_speech_service import (
     TextToSpeechNoAudioError,
     synthesize_speech_with_fallback,
 )
+from memory import MemoryService
+from personality import PersonalityService
 
 
 ASSISTANT_REQUEST_TIMEOUT_SECONDS = 45
@@ -36,6 +41,10 @@ ASSISTANT_REQUEST_TIMEOUT_SECONDS = 45
 router = APIRouter()
 transcription_service = TranscriptionService()
 assistant_service = VoiceAssistantService()
+personality_service = PersonalityService(default_personality=os.getenv("ASSISTANT_PERSONALITY", "serious"))
+logger = logging.getLogger(__name__)
+store_memories_after_response = env_flag("ASSISTANT_STORE_MEMORIES", True)
+use_memory_context = env_flag("ASSISTANT_USE_MEMORY_CONTEXT", True)
 
 
 @router.post(
@@ -73,28 +82,22 @@ async def _voice_assistant_impl(
     language: str | None,
 ) -> Response:
     suffix = Path(file.filename or "").suffix or ".bin"
-    bytes_written = 0
     temp_path: str | None = None
 
     try:
+        audio_bytes = await file.read()
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
             temp_path = temp_file.name
 
-            while True:
-                chunk = await file.read(1024 * 1024)
-                if not chunk:
-                    break
-                temp_file.write(chunk)
-                bytes_written += len(chunk)
+            temp_file.write(audio_bytes)
 
-        if bytes_written == 0:
+        if not audio_bytes:
             raise HTTPException(status_code=400, detail="Uploaded file is empty.")
 
         transcription_language = (
             LanguageOption(language) if language else LanguageOption.AUTO
         )
-        transcription = await asyncio.to_thread(
-            transcription_service.transcribe,
+        transcription = transcription_service.transcribe(
             temp_path,
             transcription_language,
         )
@@ -106,7 +109,15 @@ async def _voice_assistant_impl(
             requested_language=language,
             detected_language=transcription.get("language"),
         )
-        reply = await assistant_service.complete(transcript, assistant_language)
+        memory_context = ""
+        if use_memory_context:
+            memory_context = await MemoryService().build_context("local-user", transcript)
+        reply = await assistant_service.complete(
+            transcript,
+            assistant_language,
+            memory_context=memory_context or None,
+            personality=personality_service.resolve_personality(None),
+        )
         reply_text = reply.strip()
         if len(reply_text) > MAX_TEXT_LENGTH:
             raise HTTPException(
@@ -118,6 +129,12 @@ async def _voice_assistant_impl(
             reply_text,
             SUPPORTED_LANGUAGE_VOICES[assistant_language],
         )
+        if store_memories_after_response:
+            threading.Thread(
+                target=_store_memory_safely,
+                args=(transcript,),
+                daemon=True,
+            ).start()
         return Response(
             content=audio,
             media_type="audio/mpeg",
@@ -152,6 +169,13 @@ async def _voice_assistant_impl(
         await file.close()
         if temp_path and os.path.exists(temp_path):
             os.remove(temp_path)
+
+
+def _store_memory_safely(transcript: str) -> None:
+    try:
+        MemoryService().process_transcript_sync("local-user", transcript)
+    except Exception:
+        logger.exception("Failed to store transcript memory.")
 
 
 def _resolve_assistant_language(
