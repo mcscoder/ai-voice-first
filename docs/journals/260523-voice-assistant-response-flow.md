@@ -14,7 +14,7 @@ with the API key and model kept server-side.
 
 ## Technical Details
 
-- Added backend assistant orchestration around Whisper transcription and the local OpenAI-compatible chat completions endpoint.
+- Added backend assistant orchestration around ASR transcription and the local OpenAI-compatible chat completions endpoint.
 - Kept `/transcribe` and `/tts` stable for compatibility.
 - Added backend env config for assistant base URL, API key, model, provider timeout, and system prompt.
 - Refactored Flutter voice state from transcript text to assistant reply text with `idle`, `recording`, `uploading`, `processing`, `success`, and `failure` states.

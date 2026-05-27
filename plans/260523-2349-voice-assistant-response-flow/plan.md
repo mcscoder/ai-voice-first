@@ -5,7 +5,7 @@ status: complete
 priority: P1
 effort: 18h
 issue:
-branch: faster-whisper
+branch: asr-gipformer
 tags: [feature, flutter, backend, voice, assistant, api]
 blockedBy: []
 blocks: []
@@ -23,7 +23,7 @@ sensitive work: audio transcription, prompt construction, API key usage, the cha
 request to the local assistant service, and the text-to-speech synthesis step.
 
 The current app already has audio recording, permission handling, Dio, and a voice feature
-shell. The current backend already has Whisper transcription, a working OpenAI-compatible
+shell. The current backend already has ASR transcription, a working OpenAI-compatible
 chat completions endpoint, and a TTS pipeline. This plan connects those pieces without
 pushing LLM logic or speech synthesis into Flutter.
 

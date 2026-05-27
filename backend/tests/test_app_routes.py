@@ -68,13 +68,13 @@ async def test_transcribe_returns_service_result(monkeypatch, client):
 
 
 @pytest.mark.anyio
-async def test_lifespan_loads_whisper_when_enabled(monkeypatch):
+async def test_lifespan_loads_asr_when_enabled(monkeypatch):
     calls = []
 
     def fake_load_model():
         calls.append("load")
 
-    monkeypatch.setenv("WHISPER_LOAD_ON_STARTUP", "true")
+    monkeypatch.setenv("ASR_LOAD_ON_STARTUP", "true")
     monkeypatch.setattr(main.transcription_service, "load_model", fake_load_model)
 
     async with main.app.router.lifespan_context(main.app):
@@ -84,13 +84,13 @@ async def test_lifespan_loads_whisper_when_enabled(monkeypatch):
 
 
 @pytest.mark.anyio
-async def test_lifespan_skips_whisper_when_disabled(monkeypatch):
+async def test_lifespan_skips_asr_when_disabled(monkeypatch):
     calls = []
 
     def fake_load_model():
         calls.append("load")
 
-    monkeypatch.setenv("WHISPER_LOAD_ON_STARTUP", "false")
+    monkeypatch.setenv("ASR_LOAD_ON_STARTUP", "false")
     monkeypatch.setattr(main.transcription_service, "load_model", fake_load_model)
 
     async with main.app.router.lifespan_context(main.app):

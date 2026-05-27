@@ -1,6 +1,6 @@
 # GPU Setup Guide
 
-This project uses `faster-whisper` on top of `ctranslate2` for transcription.
+This project uses Gipformer (`g-group-ai-lab/gipformer-65M-rnnt`) through `sherpa-onnx`.
 
 This guide covers the official NVIDIA Linux installation path for enabling GPU execution on Ubuntu and Debian.
 
@@ -15,7 +15,7 @@ Before enabling GPU mode, the target system must provide:
 
 For this backend, install the CUDA 12 package line explicitly. Do not replace it with the unversioned `cuda-toolkit` meta-package.
 
-At the time of writing, the upstream backend documentation states that CTranslate2 Python wheels support GPU execution on Linux and Windows and require CUDA 12.x. For speech recognition workloads, the current faster-whisper and CTranslate2 documentation also require cuDNN with the CUDA 12 stack.
+At the time of writing, the backend ASR stack can run on CPU by default. If you need GPU acceleration, install CUDA 12.x and cuDNN 12.x, then use a GPU-capable ONNX Runtime stack on the host.
 
 ## Supported Linux Targets
 
@@ -108,10 +108,13 @@ After the system restarts, continue with the project configuration section below
 
 ## Project Configuration
 
-Set GPU mode in the project environment:
+Set ASR mode in the project environment:
 
 ```env
-WHISPER_DEVICE=cuda
+ASR_MODEL=g-group-ai-lab/gipformer-65M-rnnt
+ASR_PRECISION=int8
+ASR_NUM_THREADS=4
+ASR_DECODING_METHOD=modified_beam_search
 ```
 
 Install project dependencies and start the application:
@@ -123,18 +126,12 @@ uv run python main.py
 
 ## Backend Requirements
 
-The current upstream documentation says:
-
-- CTranslate2 Python wheels support GPU execution on Linux and Windows, and require CUDA 12.x.
-- For speech recognition models with convolutional layers, CTranslate2 documentation calls for cuDNN with the CUDA 12.x stack.
-- The faster-whisper README for recent versions says GPU execution requires `cuBLAS` for CUDA 12 and `cuDNN` for CUDA 12.
-
-Because this project uses `faster-whisper`, verify backend compatibility against the current faster-whisper README before changing CUDA, cuDNN, or backend package versions.
+The backend ASR stack uses Sherpa ONNX + Hugging Face model files. Validate GPU runtime compatibility (CUDA/cuDNN/ONNX Runtime) on your exact deployment image before rolling to production.
 
 ## Source Links
 
-- CTranslate2 installation docs: https://opennmt.net/CTranslate2/installation.html
-- CTranslate2 hardware support: https://opennmt.net/CTranslate2/hardware_support.html
-- faster-whisper README: https://github.com/SYSTRAN/faster-whisper
+- Gipformer model card: https://huggingface.co/g-group-ai-lab/gipformer-65M-rnnt
+- Gipformer repository: https://github.com/ggroup-ai-lab/gipformer
+- Sherpa ONNX: https://github.com/k2-fsa/sherpa-onnx
 - NVIDIA CUDA installation guide for Linux: https://docs.nvidia.com/cuda/archive/12.6.3/cuda-installation-guide-linux/index.html
 - NVIDIA cuDNN installation guide for Linux: https://docs.nvidia.com/deeplearning/cudnn/installation/latest/linux.html

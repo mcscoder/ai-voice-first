@@ -131,7 +131,7 @@ Output format: structured JSON that maps directly to database models.
 4. **Build the embedding service** (`backend/memory/embedding_service.py`):
    - Load `paraphrase-multilingual-MiniLM-L12-v2` model
    - Generate 384-dim embeddings from processed text
-   - Lazy model loading (like Whisper pattern)
+   - Lazy model loading (like ASR lazy-load pattern)
    - Store in `MemoryEmbedding` table
 
 5. **Build the orchestration service** (`backend/memory/memory_service.py`):

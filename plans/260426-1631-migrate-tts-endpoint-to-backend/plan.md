@@ -5,7 +5,7 @@ status: completed
 priority: P2
 effort: 6h
 issue:
-branch: faster-whisper
+branch: asr-gipformer
 tags: [feature, backend, api, tts]
 blockedBy: []
 blocks: []

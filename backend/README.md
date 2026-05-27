@@ -22,10 +22,9 @@ Common settings in `.env`:
 ```env
 HOST=0.0.0.0
 PORT=8000
-WHISPER_MODEL=large-v3
-WHISPER_DEVICE=cuda
-WHISPER_COMPUTE_TYPE=float16
-WHISPER_LOAD_ON_STARTUP=true
+ASR_PRECISION=fp32
+ASR_NUM_THREADS=4
+ASR_LOAD_ON_STARTUP=true
 ```
 
 Assistant settings:
@@ -40,8 +39,9 @@ ASSISTANT_STORE_MEMORIES=true
 ASSISTANT_USE_MEMORY_CONTEXT=true
 ```
 
-- `WHISPER_DEVICE=cuda` requires the supported NVIDIA runtime described in `docs/GPU_SETUP.md`.
-- `WHISPER_DEVICE=cpu` is still supported if you need a fallback on non-GPU hosts.
+- `ASR_PRECISION=int8` reduces memory usage and can improve latency.
+- `ASR_LOAD_ON_STARTUP=true` preloads ASR model files during app startup.
+- ASR model repo and decoding method are hardcoded in backend code to avoid config drift.
 - The assistant and memory extractor share the same OpenAI-compatible LLM server.
 
 ## Transcription API
@@ -54,7 +54,7 @@ curl -X POST http://localhost:8000/transcribe \
   -F "language=auto"
 ```
 
-The backend uses local Faster Whisper for transcription.
+The backend uses local Gipformer (`g-group-ai-lab/gipformer-65M-rnnt`) via ONNX for transcription.
 
 ## Voice Assistant API
 

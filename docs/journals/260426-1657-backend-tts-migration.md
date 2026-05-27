@@ -25,8 +25,8 @@ Moved `POST /tts` out of `TTS-test` and into the FastAPI backend. While doing th
 
 - Split `main.py` instead of adding more logic to the monolith.
 - Kept TTS timeout and upstream failures on default FastAPI error behavior for now.
-- Monkeypatched Edge TTS and Whisper in tests so local validation stayed deterministic.
-- Added `load_dotenv()` in `transcription_service.py` so direct imports still respect Whisper env settings.
+- Monkeypatched Edge TTS and ASR in tests so local validation stayed deterministic.
+- Added `load_dotenv()` in `transcription_service.py` so direct imports still respect ASR env settings.
 
 ## Root Cause Analysis
 

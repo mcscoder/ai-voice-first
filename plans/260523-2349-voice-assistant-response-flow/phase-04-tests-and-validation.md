@@ -23,7 +23,7 @@ the sensitive pieces stay server-side.
   - No test should hit the real assistant provider.
 - Non-functional:
   - Tests must be deterministic.
-  - Do not require a Whisper download in the test path.
+  - Do not require an ASR model download in the test path.
   - Keep test fixtures small and readable.
 
 ## Architecture
@@ -54,7 +54,7 @@ Recommended coverage:
 
 ## Implementation Steps
 
-1. Add backend unit tests for assistant orchestration with mocked HTTP client and Whisper service.
+1. Add backend unit tests for assistant orchestration with mocked HTTP client and ASR service.
 2. Add backend route tests for response schema and error mapping.
 3. Add Flutter widget and cubit tests for assistant replies.
 4. Validate that no test depends on live network or secrets.

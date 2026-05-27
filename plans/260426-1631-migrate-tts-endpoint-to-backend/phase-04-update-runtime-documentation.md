@@ -68,7 +68,7 @@ docs/development-roadmap.md        # create/update only if root docs adopted
 ## Success Criteria
 
 - A developer can run backend and call `/tts` from README alone.
-- Docs distinguish local Whisper transcription from remote Edge TTS synthesis.
+- Docs distinguish local ASR transcription from remote Edge TTS synthesis.
 - Docs include validation limits and expected output type.
 
 ## Risk Assessment

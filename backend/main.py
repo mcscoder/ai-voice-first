@@ -16,7 +16,7 @@ from transcription_routes import service as transcription_service
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    if env_flag("WHISPER_LOAD_ON_STARTUP", True):
+    if env_flag("ASR_LOAD_ON_STARTUP", True):
         transcription_service.load_model()
     MemoryService().bootstrap()
     yield

@@ -18,13 +18,13 @@ Add a backend test suite that verifies migrated TTS behavior without calling the
 - Source tests use `httpx.ASGITransport`.
 - Source tests stub `synthesize_speech`.
 - Backend has no tests currently.
-- Lifespan may load Whisper by default; tests should disable startup model loading.
+- Lifespan may load ASR model by default; tests should disable startup model loading.
 
 ## Requirements
 
 - Use real FastAPI app tests, not endpoint-only simulation.
 - Do not call remote Edge TTS in tests.
-- Do not load Whisper model in tests.
+- Do not load ASR model in tests.
 - Preserve source behavior assertions.
 - Include at least one regression check for `/transcribe` route registration.
 
@@ -40,7 +40,7 @@ backend/tests/
 └── test_app_routes.py
 ```
 
-Set `WHISPER_LOAD_ON_STARTUP=false` before importing app or create app with test-safe config if implementation supports it.
+Set `ASR_LOAD_ON_STARTUP=false` before importing app or create app with test-safe config if implementation supports it.
 
 ## Related Code Files
 
@@ -76,12 +76,12 @@ Set `WHISPER_LOAD_ON_STARTUP=false` before importing app or create app with test
 - `uv run python -m compileall .` passes from `backend`.
 - `uv run pytest` passes from `backend`.
 - Tests do not require network.
-- Tests do not require Whisper model download/load.
+- Tests do not require ASR model download/load.
 - Validation failures return expected 422 responses.
 
 ## Risk Assessment
 
-- Risk: importing `main.app` triggers model load. Mitigation: disable via environment before import or expose app factory.
+- Risk: importing `main.app` triggers ASR model load. Mitigation: disable via environment before import or expose app factory.
 - Risk: async test dependency mismatch. Mitigation: match source `pytest` + `httpx` pattern.
 
 ## Security Considerations

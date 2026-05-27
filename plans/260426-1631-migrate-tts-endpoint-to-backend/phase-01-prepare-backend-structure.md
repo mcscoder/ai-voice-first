@@ -23,7 +23,7 @@ Split the existing backend into importable modules before adding TTS. Current `b
 
 - Keep API behavior for `POST /transcribe`.
 - Keep `.env` loading.
-- Keep `WHISPER_LOAD_ON_STARTUP` behavior.
+- Keep `ASR_LOAD_ON_STARTUP` behavior.
 - Do not rename route paths.
 - Keep implementation simple; no framework rewrite.
 
@@ -35,7 +35,7 @@ Target shape:
 backend/
 ├── main.py                  # app factory/wiring + uvicorn entrypoint
 ├── config.py                # env helpers
-├── transcription_service.py # Whisper service + errors
+├── transcription_service.py # ASR service + errors
 └── transcription_routes.py  # /transcribe route
 ```
 
@@ -75,7 +75,7 @@ backend/
 
 ## Risk Assessment
 
-- Risk: duplicate service instances load Whisper twice. Mitigation: centralize one instance.
+- Risk: duplicate service instances load ASR model twice. Mitigation: centralize one instance.
 - Risk: route import cycles. Mitigation: route module imports service, main imports router only.
 
 ## Security Considerations

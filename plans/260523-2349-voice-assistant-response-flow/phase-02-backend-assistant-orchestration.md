@@ -19,7 +19,7 @@ privacy boundary: the backend owns all sensitive processing.
 
 - Functional:
   - Accept voice input from Flutter.
-  - Reuse the existing Whisper transcription service.
+  - Reuse the existing ASR transcription service.
   - Call the local assistant chat completions API with backend-managed credentials.
   - Return assistant reply text in a stable response schema.
   - Keep the existing `/transcribe` route intact for compatibility.
@@ -44,7 +44,7 @@ backend/
 Suggested flow:
 
 1. Route receives audio file and optional language hint.
-2. Service writes temp file and uses Whisper transcription.
+2. Service writes temp file and uses ASR transcription.
 3. Service builds a backend-only prompt using system prompt + transcript.
 4. Client calls the local OpenAI-compatible `/v1/chat/completions` endpoint.
 5. Route returns assistant reply text and minimal metadata.
@@ -66,7 +66,7 @@ The public backend route should be `POST /v1/voice/assistant`.
 ## Implementation Steps
 
 1. Add assistant env config names to backend docs and env examples.
-2. Reuse Whisper transcription to turn uploaded audio into text.
+2. Reuse ASR transcription to turn uploaded audio into text.
 3. Build the assistant prompt server-side only.
 4. Return a compact response model with reply text and language metadata.
 5. Map remote failures to explicit FastAPI errors.

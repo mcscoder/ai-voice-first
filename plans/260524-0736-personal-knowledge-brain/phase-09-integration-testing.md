@@ -199,4 +199,4 @@ End-to-end testing, performance optimization, security hardening, and documentat
 | Test DB setup complexity | Slow CI | Docker testcontainers, parallel test execution |
 | Auth adds friction to dev | Slow development | Skip auth in dev mode via env flag |
 | Performance regression | Bad UX | Benchmark baseline, alert on degradation |
-| Docker image size (Whisper + embeddings) | Slow deploy | Multi-stage builds, model caching |
+| Docker image size (ASR + embeddings) | Slow deploy | Multi-stage builds, model caching |

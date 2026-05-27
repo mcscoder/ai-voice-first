@@ -2,12 +2,31 @@ from __future__ import annotations
 
 import os
 from enum import StrEnum
+from typing import Any
 
 from dotenv import load_dotenv
-from faster_whisper import WhisperModel
+import soundfile as sf
+import sherpa_onnx
+from huggingface_hub import hf_hub_download
 
 
 load_dotenv()
+
+REPO_ID = "g-group-ai-lab/gipformer-65M-rnnt"
+SAMPLE_RATE = 16000
+FEATURE_DIM = 80
+ONNX_FILES = {
+    "fp32": {
+        "encoder": "encoder-epoch-35-avg-6.onnx",
+        "decoder": "decoder-epoch-35-avg-6.onnx",
+        "joiner": "joiner-epoch-35-avg-6.onnx",
+    },
+    "int8": {
+        "encoder": "encoder-epoch-35-avg-6.int8.onnx",
+        "decoder": "decoder-epoch-35-avg-6.int8.onnx",
+        "joiner": "joiner-epoch-35-avg-6.int8.onnx",
+    },
+}
 
 
 class AudioTranscriptionError(Exception):
@@ -123,18 +142,35 @@ class LanguageOption(StrEnum):
 
 class TranscriptionService:
     def __init__(self) -> None:
-        self.model_name = os.getenv("WHISPER_MODEL", "base")
-        self.device = os.getenv("WHISPER_DEVICE", "cpu")
-        self.compute_type = os.getenv("WHISPER_COMPUTE_TYPE", "int8")
-        self._model: WhisperModel | None = None
+        self.model_name = REPO_ID
+        self.precision = os.getenv("ASR_PRECISION", "fp32") .lower()
+        self.num_threads = int(os.getenv("ASR_NUM_THREADS", "4"))
+        self.decoding_method = "modified_beam_search"
+        self._model: Any | None = None
 
-    def load_model(self) -> WhisperModel:
+    def _download_model_paths(self) -> dict[str, str]:
+        precision = "int8" if self.precision == "int8" else "fp32"
+        file_map = ONNX_FILES[precision]
+
+        paths: dict[str, str] = {}
+        for key, filename in file_map.items():
+            paths[key] = hf_hub_download(repo_id=self.model_name, filename=filename)
+        paths["tokens"] = hf_hub_download(repo_id=self.model_name, filename="tokens.txt")
+        return paths
+
+    def load_model(self) -> Any:
         try:
             if self._model is None:
-                self._model = WhisperModel(
-                    self.model_name,
-                    device=self.device,
-                    compute_type=self.compute_type,
+                model_paths = self._download_model_paths()
+                self._model = sherpa_onnx.OfflineRecognizer.from_transducer(
+                    encoder=model_paths["encoder"],
+                    decoder=model_paths["decoder"],
+                    joiner=model_paths["joiner"],
+                    tokens=model_paths["tokens"],
+                    num_threads=self.num_threads,
+                    sample_rate=SAMPLE_RATE,
+                    feature_dim=FEATURE_DIM,
+                    decoding_method=self.decoding_method,
                 )
             return self._model
         except Exception as exc:
@@ -154,12 +190,15 @@ class TranscriptionService:
             raise
 
         try:
-            transcribe_kwargs: dict[str, str] = {}
-            if language is not LanguageOption.AUTO:
-                transcribe_kwargs["language"] = language.value
+            samples, sample_rate = sf.read(file_path, dtype="float32")
+            if samples.ndim > 1:
+                samples = samples.mean(axis=1)
 
-            segments, info = model.transcribe(file_path, **transcribe_kwargs)
-            text = " ".join(segment.text.strip() for segment in segments).strip()
+            stream = model.create_stream()
+            stream.accept_waveform(sample_rate, samples)
+            model.decode_streams([stream])
+            text = stream.result.text.strip()
+            duration_seconds = float(sf.info(file_path).duration)
         except RuntimeError as exc:
             raise BackendTranscriptionError(
                 "Transcription backend failed: "
@@ -175,7 +214,7 @@ class TranscriptionService:
             "text": text,
             "requested_language": language.value,
             "model": self.model_name,
-            "language": info.language,
-            "language_probability": info.language_probability,
-            "duration_seconds": info.duration,
+            "language": "vi",
+            "language_probability": None,
+            "duration_seconds": duration_seconds,
         }
