@@ -5,6 +5,7 @@ import asyncio
 import os
 import tempfile
 import threading
+import time
 from pathlib import Path
 from typing import Annotated, Literal
 
@@ -24,7 +25,7 @@ from transcription_service import (
     AudioTranscriptionError,
     BackendTranscriptionError,
     LanguageOption,
-    TranscriptionService,
+    transcription_service,
 )
 from text_to_speech_service import (
     MAX_TEXT_LENGTH,
@@ -39,10 +40,9 @@ from personality import PersonalityService
 ASSISTANT_REQUEST_TIMEOUT_SECONDS = 45
 
 router = APIRouter()
-transcription_service = TranscriptionService()
 assistant_service = VoiceAssistantService()
 personality_service = PersonalityService(default_personality=os.getenv("ASSISTANT_PERSONALITY", "serious"))
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("uvicorn.error")
 store_memories_after_response = env_flag("ASSISTANT_STORE_MEMORIES", True)
 use_memory_context = env_flag("ASSISTANT_USE_MEMORY_CONTEXT", True)
 
@@ -97,10 +97,12 @@ async def _voice_assistant_impl(
         transcription_language = (
             LanguageOption(language) if language else LanguageOption.AUTO
         )
+        transcription_started_at = time.perf_counter()
         transcription = transcription_service.transcribe(
             temp_path,
             transcription_language,
         )
+        transcription_duration = time.perf_counter() - transcription_started_at
         transcript = str(transcription.get("text", "")).strip()
         if not transcript:
             raise HTTPException(status_code=400, detail="No speech detected.")
@@ -112,12 +114,14 @@ async def _voice_assistant_impl(
         memory_context = ""
         if use_memory_context:
             memory_context = await MemoryService().build_context("local-user", transcript)
+        assistant_started_at = time.perf_counter()
         reply = await assistant_service.complete(
             transcript,
             assistant_language,
             memory_context=memory_context or None,
             personality=personality_service.resolve_personality(None),
         )
+        assistant_duration = time.perf_counter() - assistant_started_at
         reply_text = reply.strip()
         if len(reply_text) > MAX_TEXT_LENGTH:
             raise HTTPException(
@@ -125,9 +129,17 @@ async def _voice_assistant_impl(
                 detail="Assistant reply is too long for speech synthesis.",
             )
 
+        tts_started_at = time.perf_counter()
         audio = await synthesize_speech_with_fallback(
             reply_text,
             SUPPORTED_LANGUAGE_VOICES[assistant_language],
+        )
+        tts_duration = time.perf_counter() - tts_started_at
+        logger.info(
+            "voice_assistant_step_durations transcription=%.3fs assistant=%.3fs tts=%.3fs",
+            transcription_duration,
+            assistant_duration,
+            tts_duration,
         )
         if store_memories_after_response:
             threading.Thread(

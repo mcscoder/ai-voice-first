@@ -11,12 +11,11 @@ from transcription_service import (
     AudioTranscriptionError,
     BackendTranscriptionError,
     LanguageOption,
-    TranscriptionService,
+    transcription_service,
 )
 
 
 router = APIRouter()
-service = TranscriptionService()
 
 
 @router.post("/transcribe")
@@ -42,7 +41,7 @@ async def transcribe_audio(
         if bytes_written == 0:
             raise HTTPException(status_code=400, detail="Uploaded file is empty.")
 
-        result = service.transcribe(temp_path, language=language)
+        result = transcription_service.transcribe(temp_path, language=language)
         return {
             **result,
             "filename": file.filename,

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+import json
+from datetime import datetime, timezone
 from collections.abc import Mapping
 from typing import Literal
 
@@ -103,6 +105,7 @@ class VoiceAssistantService:
             memory_context=memory_context,
             personality=personality,
         )
+        _append_prompt_log("assistant", payload)
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
@@ -144,3 +147,21 @@ class VoiceAssistantService:
             return ""
 
         return content.strip()
+
+
+def _append_prompt_log(source: str, payload: Mapping[str, object]) -> None:
+    path = os.getenv("ASSISTANT_PROMPT_LOG_FILE", "assistant_prompt.log").strip()
+    if not path:
+        return
+
+    record = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "source": source,
+        "payload": payload,
+    }
+    try:
+        with open(path, "a", encoding="utf-8") as file:
+            file.write(json.dumps(record, ensure_ascii=False))
+            file.write("\n")
+    except OSError:
+        return

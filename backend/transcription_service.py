@@ -220,3 +220,6 @@ class TranscriptionService:
             "language_probability": None,
             "duration_seconds": duration_seconds,
         }
+
+
+transcription_service = TranscriptionService()

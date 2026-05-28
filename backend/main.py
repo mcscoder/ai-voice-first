@@ -11,7 +11,7 @@ from assistant_routes import router as assistant_router
 from memory import MemoryService
 from text_to_speech_routes import router as text_to_speech_router
 from transcription_routes import router as transcription_router
-from transcription_routes import service as transcription_service
+from transcription_service import transcription_service
 
 
 @asynccontextmanager
