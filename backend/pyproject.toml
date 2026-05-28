@@ -9,12 +9,11 @@ dependencies = [
     "fastapi>=0.116.0",
     "huggingface-hub>=0.36.0",
     "httpx>=0.28.1",
-    "onnxruntime==1.24.4",
     "python-dotenv>=1.1.1",
     "python-multipart>=0.0.20",
-    "sherpa-onnx>=1.12.10",
     "soundfile>=0.13.1",
     "uvicorn>=0.35.0",
+    "sherpa-onnx==1.13.2+cuda12.cudnn9",
 ]
 
 [dependency-groups]

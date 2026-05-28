@@ -145,6 +145,7 @@ class TranscriptionService:
         self.model_name = REPO_ID
         self.precision = os.getenv("ASR_PRECISION", "fp32") .lower()
         self.num_threads = int(os.getenv("ASR_NUM_THREADS", "4"))
+        self.provider = os.getenv("ASR_PROVIDER", "cpu").strip().lower()
         self.decoding_method = "modified_beam_search"
         self._model: Any | None = None
 
@@ -171,6 +172,7 @@ class TranscriptionService:
                     sample_rate=SAMPLE_RATE,
                     feature_dim=FEATURE_DIM,
                     decoding_method=self.decoding_method,
+                    provider=self.provider,
                 )
             return self._model
         except Exception as exc:

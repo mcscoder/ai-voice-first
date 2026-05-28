@@ -7,6 +7,951 @@
 - Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
 - If it was not requested, it is forbidden. Full stop.
 
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
+## Zero-Scope-Creep Rules (Read This Or Get Out)
+
+- Do exactly what the user asked. Nothing extra. Not one line.
+- If user asks for one fix, do one fix. No “bonus” cleanup. No side quests.
+- Stop acting smart by adding unrequested validation, refactor, tests, docs, “improvements,” or “safety.”
+- If it was not requested, it is forbidden. Full stop.
+
 ## Hard Fail Rules
 
 - Scope creep is failure.
