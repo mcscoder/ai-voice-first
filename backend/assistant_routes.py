@@ -11,7 +11,6 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response
-from edge_tts.exceptions import EdgeTTSException
 
 from config import env_flag
 from assistant_service import (
@@ -29,9 +28,8 @@ from transcription_service import (
 )
 from text_to_speech_service import (
     MAX_TEXT_LENGTH,
-    SUPPORTED_LANGUAGE_VOICES,
     TextToSpeechNoAudioError,
-    synthesize_speech_with_fallback,
+    synthesize_speech,
 )
 from memory import MemoryService
 from personality import PersonalityService
@@ -77,10 +75,7 @@ async def voice_assistant(
         ) from exc
 
 
-async def _voice_assistant_impl(
-    file: UploadFile,
-    language: str | None,
-) -> Response:
+async def _voice_assistant_impl(file: UploadFile, language: str | None) -> Response:
     suffix = Path(file.filename or "").suffix or ".bin"
     temp_path: str | None = None
 
@@ -98,10 +93,7 @@ async def _voice_assistant_impl(
             LanguageOption(language) if language else LanguageOption.AUTO
         )
         transcription_started_at = time.perf_counter()
-        transcription = transcription_service.transcribe(
-            temp_path,
-            transcription_language,
-        )
+        transcription = await transcription_service.transcribe(temp_path, transcription_language)
         transcription_duration = time.perf_counter() - transcription_started_at
         transcript = str(transcription.get("text", "")).strip()
         if not transcript:
@@ -130,10 +122,7 @@ async def _voice_assistant_impl(
             )
 
         tts_started_at = time.perf_counter()
-        audio = await synthesize_speech_with_fallback(
-            reply_text,
-            SUPPORTED_LANGUAGE_VOICES[assistant_language],
-        )
+        audio = await synthesize_speech(reply_text, assistant_language)
         tts_duration = time.perf_counter() - tts_started_at
         logger.info(
             "voice_assistant_step_durations transcription=%.3fs assistant=%.3fs tts=%.3fs",
@@ -167,11 +156,6 @@ async def _voice_assistant_impl(
             status_code=502,
             detail="Text-to-speech service returned no audio.",
         ) from exc
-    except EdgeTTSException as exc:
-        raise HTTPException(
-            status_code=502,
-            detail="Text-to-speech service failed.",
-        ) from exc
     except TimeoutError as exc:
         raise HTTPException(
             status_code=504,
@@ -190,11 +174,7 @@ def _store_memory_safely(transcript: str) -> None:
         logger.exception("Failed to store transcript memory.")
 
 
-def _resolve_assistant_language(
-    *,
-    requested_language: str | None,
-    detected_language: object,
-) -> AssistantLanguage:
+def _resolve_assistant_language(*, requested_language: str | None, detected_language: object) -> AssistantLanguage:
     if requested_language in {"en", "vi"}:
         return requested_language
 

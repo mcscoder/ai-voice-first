@@ -7,7 +7,7 @@ import pytest
 from httpx import ASGITransport
 
 from main import app
-from text_to_speech_service import SUPPORTED_LANGUAGE_VOICES, synthesize_speech_with_fallback
+from text_to_speech_service import synthesize_speech
 
 
 RUN_LIVE_VOICE_ENDPOINT = os.getenv("RUN_LIVE_VOICE_ENDPOINT") == "1"
@@ -16,9 +16,9 @@ RUN_LIVE_VOICE_ENDPOINT = os.getenv("RUN_LIVE_VOICE_ENDPOINT") == "1"
 @pytest.mark.anyio
 @pytest.mark.skipif(not RUN_LIVE_VOICE_ENDPOINT, reason="live voice endpoint test disabled")
 async def test_live_voice_assistant_endpoint_returns_audio():
-    input_audio = await synthesize_speech_with_fallback(
+    input_audio = await synthesize_speech(
         "Hello there, please reply briefly.",
-        SUPPORTED_LANGUAGE_VOICES["en"],
+        "en",
     )
 
     transport = ASGITransport(app=app, raise_app_exceptions=False)

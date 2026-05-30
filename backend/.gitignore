@@ -8,3 +8,6 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Local prompt debug logs
+assistant_prompt.log

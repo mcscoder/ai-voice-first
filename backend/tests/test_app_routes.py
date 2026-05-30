@@ -33,7 +33,7 @@ async def test_transcribe_rejects_empty_upload_without_loading_model(client):
 async def test_transcribe_returns_service_result(monkeypatch, client):
     calls = []
 
-    def fake_transcribe(file_path, language):
+    async def fake_transcribe(file_path, language):
         calls.append((file_path, language.value))
         return {
             "text": "hello",
@@ -44,7 +44,7 @@ async def test_transcribe_returns_service_result(monkeypatch, client):
             "duration_seconds": 1.2,
         }
 
-    monkeypatch.setattr("transcription_routes.service.transcribe", fake_transcribe)
+    monkeypatch.setattr("transcription_routes.transcription_service.transcribe", fake_transcribe)
 
     response = await client.post(
         "/transcribe",
@@ -75,6 +75,7 @@ async def test_lifespan_loads_asr_when_enabled(monkeypatch):
         calls.append("load")
 
     monkeypatch.setenv("ASR_LOAD_ON_STARTUP", "true")
+    monkeypatch.setenv("TTS_LOAD_ON_STARTUP", "false")
     monkeypatch.setattr(main.transcription_service, "load_model", fake_load_model)
 
     async with main.app.router.lifespan_context(main.app):
@@ -91,7 +92,42 @@ async def test_lifespan_skips_asr_when_disabled(monkeypatch):
         calls.append("load")
 
     monkeypatch.setenv("ASR_LOAD_ON_STARTUP", "false")
+    monkeypatch.setenv("TTS_LOAD_ON_STARTUP", "false")
     monkeypatch.setattr(main.transcription_service, "load_model", fake_load_model)
+
+    async with main.app.router.lifespan_context(main.app):
+        pass
+
+    assert calls == []
+
+
+@pytest.mark.anyio
+async def test_lifespan_loads_tts_when_enabled(monkeypatch):
+    calls = []
+
+    def fake_load_tts_model():
+        calls.append("load")
+
+    monkeypatch.setenv("ASR_LOAD_ON_STARTUP", "false")
+    monkeypatch.setenv("TTS_LOAD_ON_STARTUP", "true")
+    monkeypatch.setattr(main, "load_tts_model", fake_load_tts_model)
+
+    async with main.app.router.lifespan_context(main.app):
+        pass
+
+    assert calls == ["load"]
+
+
+@pytest.mark.anyio
+async def test_lifespan_skips_tts_when_disabled(monkeypatch):
+    calls = []
+
+    def fake_load_tts_model():
+        calls.append("load")
+
+    monkeypatch.setenv("ASR_LOAD_ON_STARTUP", "false")
+    monkeypatch.setenv("TTS_LOAD_ON_STARTUP", "false")
+    monkeypatch.setattr(main, "load_tts_model", fake_load_tts_model)
 
     async with main.app.router.lifespan_context(main.app):
         pass
@@ -105,7 +141,7 @@ async def test_voice_assistant_returns_audio(monkeypatch, client):
     reply_calls = []
     synth_calls = []
 
-    def fake_transcribe(file_path, language):
+    async def fake_transcribe(file_path, language):
         transcribe_calls.append((file_path, language.value))
         return {
             "text": "xin chào",
@@ -123,8 +159,8 @@ async def test_voice_assistant_returns_audio(monkeypatch, client):
     monkeypatch.setattr("assistant_routes.transcription_service.transcribe", fake_transcribe)
     monkeypatch.setattr("assistant_routes.assistant_service.complete", fake_complete)
     monkeypatch.setattr(
-        "assistant_routes.synthesize_speech_with_fallback",
-        lambda text, voices: _fake_synthesize(text, voices, synth_calls),
+        "assistant_routes.synthesize_speech",
+        lambda text, language: _fake_synthesize(text, language, synth_calls),
     )
 
     response = await client.post(
@@ -147,10 +183,7 @@ async def test_voice_assistant_returns_audio(monkeypatch, client):
     assert reply_calls[0][2]["personality"] == "serious"
     assert reply_calls[0][2]["memory_context"] is None
     assert synth_calls == [
-        (
-            "Xin chào, tôi có thể giúp gì cho bạn?",
-            ("vi-VN-HoaiMyNeural", "vi-VN-NamMinhNeural"),
-        )
+        ("Xin chào, tôi có thể giúp gì cho bạn?", "vi")
     ]
 
 
@@ -168,7 +201,7 @@ async def test_voice_assistant_rejects_empty_upload(client):
 
 @pytest.mark.anyio
 async def test_voice_assistant_rejects_empty_transcript(monkeypatch, client):
-    def fake_transcribe(file_path, language):
+    async def fake_transcribe(file_path, language):
         return {
             "text": "   ",
             "requested_language": language.value,
@@ -195,7 +228,7 @@ async def test_voice_assistant_maps_assistant_timeout_to_gateway_timeout(
     monkeypatch,
     client,
 ):
-    def fake_transcribe(file_path, language):
+    async def fake_transcribe(file_path, language):
         return {
             "text": "xin chào",
             "requested_language": language.value,
@@ -221,6 +254,72 @@ async def test_voice_assistant_maps_assistant_timeout_to_gateway_timeout(
     assert response.json() == {"detail": "Assistant request timed out."}
 
 
-async def _fake_synthesize(text: str, voices, calls):
-    calls.append((text, voices))
+@pytest.mark.anyio
+async def test_voice_assistant_maps_tts_no_audio_to_bad_gateway(
+    monkeypatch,
+    client,
+):
+    from text_to_speech_service import TextToSpeechNoAudioError
+
+    _mock_voice_assistant_before_tts(monkeypatch)
+
+    async def fake_synthesize_speech(text, language):
+        raise TextToSpeechNoAudioError("no audio")
+
+    monkeypatch.setattr("assistant_routes.synthesize_speech", fake_synthesize_speech)
+
+    response = await client.post(
+        "/v1/voice/assistant",
+        data={"language": "vi"},
+        files={"file": ("sample.wav", b"audio-bytes", "audio/wav")},
+    )
+
+    assert response.status_code == 502
+    assert response.json() == {
+        "detail": "Text-to-speech service returned no audio.",
+    }
+
+
+@pytest.mark.anyio
+async def test_voice_assistant_maps_tts_timeout_to_gateway_timeout(
+    monkeypatch,
+    client,
+):
+    _mock_voice_assistant_before_tts(monkeypatch)
+
+    async def fake_synthesize_speech(text, language):
+        raise TimeoutError("synthesis timed out")
+
+    monkeypatch.setattr("assistant_routes.synthesize_speech", fake_synthesize_speech)
+
+    response = await client.post(
+        "/v1/voice/assistant",
+        data={"language": "vi"},
+        files={"file": ("sample.wav", b"audio-bytes", "audio/wav")},
+    )
+
+    assert response.status_code == 504
+    assert response.json() == {"detail": "Assistant speech synthesis timed out."}
+
+
+async def _fake_synthesize(text: str, language: str, calls):
+    calls.append((text, language))
     return b"fake-mp3"
+
+
+def _mock_voice_assistant_before_tts(monkeypatch):
+    async def fake_transcribe(file_path, language):
+        return {
+            "text": "xin chào",
+            "requested_language": language.value,
+            "model": "base",
+            "language": "vi",
+            "language_probability": 0.99,
+            "duration_seconds": 1.2,
+        }
+
+    async def fake_complete(transcript, language, **kwargs):
+        return "Xin chào, tôi có thể giúp gì cho bạn?"
+
+    monkeypatch.setattr("assistant_routes.transcription_service.transcribe", fake_transcribe)
+    monkeypatch.setattr("assistant_routes.assistant_service.complete", fake_complete)

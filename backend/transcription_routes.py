@@ -41,7 +41,7 @@ async def transcribe_audio(
         if bytes_written == 0:
             raise HTTPException(status_code=400, detail="Uploaded file is empty.")
 
-        result = transcription_service.transcribe(temp_path, language=language)
+        result = await transcription_service.transcribe(temp_path, language=language)
         return {
             **result,
             "filename": file.filename,

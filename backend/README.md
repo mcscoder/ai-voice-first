@@ -24,7 +24,9 @@ HOST=0.0.0.0
 PORT=8000
 ASR_PRECISION=fp32
 ASR_NUM_THREADS=4
+ASR_PROVIDER=cuda
 ASR_LOAD_ON_STARTUP=true
+TTS_LOAD_ON_STARTUP=true
 ```
 
 Assistant settings:
@@ -40,8 +42,11 @@ ASSISTANT_USE_MEMORY_CONTEXT=true
 ```
 
 - `ASR_PRECISION=int8` reduces memory usage and can improve latency.
+- `ASR_PROVIDER=cuda` runs Sherpa ONNX ASR on GPU.
 - `ASR_LOAD_ON_STARTUP=true` preloads ASR model files during app startup.
+- `TTS_LOAD_ON_STARTUP=true` preloads local VieNeu TTS model files during app startup.
 - ASR model repo and decoding method are hardcoded in backend code to avoid config drift.
+- TTS model repo and GPU mode are hardcoded in backend code to avoid config drift.
 - The assistant and memory extractor share the same OpenAI-compatible LLM server.
 
 ## Transcription API
@@ -80,7 +85,7 @@ Validation rules:
 - Assistant replies longer than the TTS limit are rejected with `502`.
 - Assistant timeouts return `504`.
 - Assistant provider failures return `502`.
-- TTS failures return `502`.
+- TTS empty-audio and synthesis failures return `502`.
 
 The backend owns the assistant API key, base URL, system prompt, and TTS wiring. Flutter
 should only upload audio and play the returned speech.
@@ -90,8 +95,9 @@ should only upload audio and play the returned speech.
 `POST /tts` accepts JSON text and returns MP3 bytes as `audio/mpeg` with
 `Content-Disposition: attachment; filename="speech.mp3"`.
 
-Vietnamese is the default language. The backend tries `vi-VN-HoaiMyNeural`
-first and falls back to `vi-VN-NamMinhNeural` if Edge TTS returns no audio:
+Vietnamese is the default language. The backend synthesizes speech locally with
+VieNeu TTS v2 Turbo (`pnnbao-ump/VieNeu-TTS-v2-Turbo`) on CUDA, then encodes
+the 24 kHz waveform to MP3:
 
 ```bash
 curl -X POST http://localhost:8000/tts \
@@ -100,7 +106,7 @@ curl -X POST http://localhost:8000/tts \
   --output speech-vi.mp3
 ```
 
-English voice:
+English language flag:
 
 ```bash
 curl -X POST http://localhost:8000/tts \
@@ -115,16 +121,18 @@ Validation rules:
 - Empty text is rejected.
 - Text longer than 5000 characters after trimming is rejected.
 - `language` must be `vi` or `en`; omitted language defaults to `vi`.
-- Synthesis times out after 30 seconds.
-- Upstream synthesis timeouts return `504`.
-- Upstream Edge TTS failures return `502`.
+- Missing TTS audio returns `502`; runtime failures are not wrapped.
 
 Swagger UI can show the endpoint shape, but `curl --output` is better for
 checking MP3 output.
 
-TTS uses remote Edge TTS. Submitted text leaves this server for synthesis, and
-the remote service can fail or throttle. Add authentication and rate limiting
-before exposing this endpoint publicly.
+ASR and TTS run in separate internal worker processes. Startup can download and
+warm the Hugging Face model caches, and the host must provide a CUDA-capable
+NVIDIA runtime, GPU ONNX Runtime, and eSpeak NG. FastAPI talks to workers
+through local process queues, not HTTP. The `language` field is kept for API
+compatibility and validation; VieNeu uses its configured default voice. Keep
+this service on a trusted network unless authentication and rate limiting are
+added because speech synthesis consumes GPU resources.
 
 ## Test
 

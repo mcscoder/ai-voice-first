@@ -6,13 +6,10 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel, field_validator
 
-from edge_tts.exceptions import EdgeTTSException
-
 from text_to_speech_service import (
     MAX_TEXT_LENGTH,
-    SUPPORTED_LANGUAGE_VOICES,
     TextToSpeechNoAudioError,
-    synthesize_speech_with_fallback,
+    synthesize_speech,
 )
 
 
@@ -50,24 +47,11 @@ class TextToSpeechRequest(BaseModel):
 )
 async def text_to_speech(request: TextToSpeechRequest) -> Response:
     try:
-        audio = await synthesize_speech_with_fallback(
-            request.text,
-            SUPPORTED_LANGUAGE_VOICES[request.language],
-        )
-    except TimeoutError as exc:
-        raise HTTPException(
-            status_code=504,
-            detail="Text-to-speech synthesis timed out.",
-        ) from exc
+        audio = await synthesize_speech(request.text, request.language)
     except TextToSpeechNoAudioError as exc:
         raise HTTPException(
             status_code=502,
             detail="Text-to-speech service returned no audio.",
-        ) from exc
-    except EdgeTTSException as exc:
-        raise HTTPException(
-            status_code=502,
-            detail="Text-to-speech service failed.",
         ) from exc
 
     return Response(
