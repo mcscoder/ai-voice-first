@@ -145,7 +145,7 @@ manual `-f https://k2-fsa.github.io/sherpa/onnx/cuda.html` flag.
 The backend ASR stack uses Sherpa ONNX + Hugging Face model files in an internal
 worker process. The backend TTS stack uses VieNeu + Torch/CUDA + ONNX Runtime
 GPU in another internal worker process. FastAPI talks to both workers through
-local process queues, not HTTP. Startup preload downloads and warms model files
+local process pipes, not HTTP. Startup preload downloads and warms model files
 when `ASR_LOAD_ON_STARTUP=true` and `TTS_LOAD_ON_STARTUP=true`, so missing CUDA
 provider support, eSpeak NG, model cache access, and MP3 encoding support fail
 before the API serves traffic.

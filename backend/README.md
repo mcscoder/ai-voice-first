@@ -129,7 +129,7 @@ checking MP3 output.
 ASR and TTS run in separate internal worker processes. Startup can download and
 warm the Hugging Face model caches, and the host must provide a CUDA-capable
 NVIDIA runtime, GPU ONNX Runtime, and eSpeak NG. FastAPI talks to workers
-through local process queues, not HTTP. The `language` field is kept for API
+through local process pipes, not HTTP. The `language` field is kept for API
 compatibility and validation; VieNeu uses its configured default voice. Keep
 this service on a trusted network unless authentication and rate limiting are
 added because speech synthesis consumes GPU resources.

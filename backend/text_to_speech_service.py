@@ -3,9 +3,8 @@ from __future__ import annotations
 import asyncio
 import io
 import time
-import uuid
-from multiprocessing import Process, Queue
-from threading import Thread
+from multiprocessing import Pipe, Process
+from multiprocessing.connection import Connection
 from typing import Any
 
 import soundfile as sf
@@ -28,69 +27,61 @@ class TextToSpeechNoAudioError(Exception):
 
 class TextToSpeechService:
     def __init__(self) -> None:
-        self.tts_in = Queue()
-        self.tts_out = Queue()
-        self.waiters: dict[str, tuple[asyncio.AbstractEventLoop, asyncio.Future]] = {}
+        self.tts_connection: Connection | None = None
+        self.request_lock = asyncio.Lock()
         self.tts_process: Process | None = None
-        self.result_thread: Thread | None = None
 
     def load_model(self) -> None:
         if self.tts_process is not None and self.tts_process.is_alive():
             return
 
+        self.tts_connection, worker_connection = Pipe()
         self.tts_process = Process(
             target=_run_tts_worker,
-            args=(self.tts_in, self.tts_out),
+            args=(worker_connection,),
             name="vieneu-tts",
         )
         self.tts_process.start()
-        while self.tts_out.empty():
+        worker_connection.close()
+        while not self.tts_connection.poll():
             if not self.tts_process.is_alive():
                 raise RuntimeError("VieNeu TTS worker exited while loading.")
             time.sleep(0.1)
-        self.tts_out.get()
-        self.result_thread = Thread(target=self._result_loop, daemon=True)
-        self.result_thread.start()
+        self.tts_connection.recv()
 
     async def synthesize(self, text: str) -> bytes:
-        self.load_model()
+        async with self.request_lock:
+            self.load_model()
+            if self.tts_connection is None:
+                raise RuntimeError("VieNeu TTS worker is not connected.")
 
-        job_id = str(uuid.uuid4())
-        loop = asyncio.get_running_loop()
-        future = loop.create_future()
-        future.add_done_callback(lambda _: self.waiters.pop(job_id, None))
-        self.waiters[job_id] = (loop, future)
+            self.tts_connection.send({
+                "cmd": "RUN",
+                "text": text,
+            })
 
-        self.tts_in.put({
-            "cmd": "RUN",
-            "job_id": job_id,
-            "text": text,
-        })
-
-        result = await asyncio.wait_for(future, TTS_REQUEST_TIMEOUT_SECONDS)
-        return result["audio"]
-
-    def _result_loop(self) -> None:
-        while True:
-            result = self.tts_out.get()
-            job_id = result["job_id"]
-            waiter = self.waiters.get(job_id)
-            if waiter:
-                loop, future = waiter
-                loop.call_soon_threadsafe(_set_result_if_pending, future, result)
+            result = await asyncio.wait_for(
+                asyncio.to_thread(self.tts_connection.recv),
+                TTS_REQUEST_TIMEOUT_SECONDS,
+            )
+            return result["audio"]
 
     def shutdown_model(self) -> None:
         if self.tts_process is None:
             return
 
         if self.tts_process.is_alive():
-            self.tts_in.put({"cmd": "STOP"})
+            if self.tts_connection is not None:
+                self.tts_connection.send({"cmd": "STOP"})
             self.tts_process.join(timeout=5)
 
         if self.tts_process.is_alive():
             self.tts_process.terminate()
             self.tts_process.join(timeout=5)
 
+        if self.tts_connection is not None:
+            self.tts_connection.close()
+            self.tts_connection = None
         self.tts_process = None
 
 
@@ -107,22 +98,23 @@ async def synthesize_speech(text: str, language: str) -> bytes:
     return await tts_service.synthesize(text)
 
 
-def _run_tts_worker(tts_in: Any, tts_out: Any) -> None:
+def _run_tts_worker(connection: Connection) -> None:
     tts = _create_tts_engine()
     _synthesize_with_engine(tts, TTS_WARMUP_TEXT)
-    tts_out.put({"ready": True})
+    connection.send({"ready": True})
 
     while True:
-        job = tts_in.get()
+        job = connection.recv()
 
         if job["cmd"] == "STOP":
             break
 
         audio = _synthesize_with_engine(tts, job["text"])
-        tts_out.put({
-            "job_id": job["job_id"],
+        connection.send({
             "audio": audio,
         })
+
+    connection.close()
 
 
 def _create_tts_engine() -> Any:
@@ -172,11 +164,6 @@ def _ensure_cuda_provider_available() -> None:
         raise RuntimeError(
             "VieNeu TTS is configured for CUDA, but ONNX Runtime does not expose CUDAExecutionProvider."
         )
-
-
-def _set_result_if_pending(future: asyncio.Future, value: dict[str, Any]) -> None:
-    if not future.done():
-        future.set_result(value)
 
 
 tts_service = TextToSpeechService()

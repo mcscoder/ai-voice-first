@@ -3,10 +3,9 @@ from __future__ import annotations
 import asyncio
 import os
 import time
-import uuid
 from enum import StrEnum
-from multiprocessing import Process, Queue
-from threading import Thread
+from multiprocessing import Pipe, Process
+from multiprocessing.connection import Connection
 from typing import Any
 
 from dotenv import load_dotenv
@@ -115,42 +114,44 @@ class _LocalTranscriptionModel:
 
 class TranscriptionService:
     def __init__(self) -> None:
-        self.asr_in = Queue()
-        self.asr_out = Queue()
-        self.waiters: dict[str, tuple[asyncio.AbstractEventLoop, asyncio.Future]] = {}
+        self.asr_connection: Connection | None = None
+        self.request_lock = asyncio.Lock()
         self.asr_process: Process | None = None
-        self.result_thread: Thread | None = None
 
     def load_model(self) -> None:
         if self.asr_process is not None and self.asr_process.is_alive():
             return
 
+        self.asr_connection, worker_connection = Pipe()
         self.asr_process = Process(
             target=_run_asr_worker,
-            args=(self.asr_in, self.asr_out),
+            args=(worker_connection,),
             name="gipformer-asr",
         )
         self.asr_process.start()
-        while self.asr_out.empty():
+        worker_connection.close()
+        while not self.asr_connection.poll():
             if not self.asr_process.is_alive():
                 raise RuntimeError("ASR worker exited while loading.")
             time.sleep(0.1)
-        self.asr_out.get()
-        self.result_thread = Thread(target=self._asr_result_loop, daemon=True)
-        self.result_thread.start()
+        self.asr_connection.recv()
 
     def shutdown_model(self) -> None:
         if self.asr_process is None:
             return
 
         if self.asr_process.is_alive():
-            self.asr_in.put({"cmd": "STOP"})
+            if self.asr_connection is not None:
+                self.asr_connection.send({"cmd": "STOP"})
             self.asr_process.join(timeout=5)
 
         if self.asr_process.is_alive():
             self.asr_process.terminate()
             self.asr_process.join(timeout=5)
 
+        if self.asr_connection is not None:
+            self.asr_connection.close()
+            self.asr_connection = None
         self.asr_process = None
 
     async def transcribe(
@@ -158,41 +159,31 @@ class TranscriptionService:
         file_path: str,
         language: LanguageOption = LanguageOption.AUTO,
     ) -> dict[str, object]:
-        self.load_model()
+        async with self.request_lock:
+            self.load_model()
+            if self.asr_connection is None:
+                raise RuntimeError("ASR worker is not connected.")
 
-        job_id = str(uuid.uuid4())
-        loop = asyncio.get_running_loop()
-        future = loop.create_future()
-        future.add_done_callback(lambda _: self.waiters.pop(job_id, None))
-        self.waiters[job_id] = (loop, future)
+            self.asr_connection.send({
+                "cmd": "RUN",
+                "file_path": file_path,
+                "language": language.value,
+            })
 
-        self.asr_in.put({
-            "cmd": "RUN",
-            "job_id": job_id,
-            "file_path": file_path,
-            "language": language.value,
-        })
-
-        message = await asyncio.wait_for(future, ASR_REQUEST_TIMEOUT_SECONDS)
-        return message["result"]
-
-    def _asr_result_loop(self) -> None:
-        while True:
-            result = self.asr_out.get()
-            job_id = result["job_id"]
-            waiter = self.waiters.get(job_id)
-            if waiter:
-                loop, future = waiter
-                loop.call_soon_threadsafe(_set_result_if_pending, future, result)
+            message = await asyncio.wait_for(
+                asyncio.to_thread(self.asr_connection.recv),
+                ASR_REQUEST_TIMEOUT_SECONDS,
+            )
+            return message["result"]
 
 
-def _run_asr_worker(asr_in: Any, asr_out: Any) -> None:
+def _run_asr_worker(connection: Connection) -> None:
     asr = _LocalTranscriptionModel()
     asr.load_model()
-    asr_out.put({"ready": True})
+    connection.send({"ready": True})
 
     while True:
-        job = asr_in.get()
+        job = connection.recv()
 
         if job["cmd"] == "STOP":
             break
@@ -201,15 +192,11 @@ def _run_asr_worker(asr_in: Any, asr_out: Any) -> None:
             job["file_path"],
             LanguageOption(job["language"]),
         )
-        asr_out.put({
-            "job_id": job["job_id"],
+        connection.send({
             "result": result,
         })
 
-
-def _set_result_if_pending(future: asyncio.Future, value: dict[str, Any]) -> None:
-    if not future.done():
-        future.set_result(value)
+    connection.close()
 
 
 transcription_service = TranscriptionService()
