@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 
 import assistant_routes
@@ -65,6 +67,46 @@ async def test_transcribe_returns_service_result(monkeypatch, client):
     }
     assert len(calls) == 1
     assert calls[0][1] == "en"
+
+
+@pytest.mark.anyio
+async def test_transcribe_maps_audio_decode_error_to_bad_request(monkeypatch, client):
+    async def fake_transcribe(file_path, language):
+        raise assistant_routes.AudioTranscriptionError(
+            "Uploaded audio could not be decoded."
+        )
+
+    monkeypatch.setattr("transcription_routes.transcription_service.transcribe", fake_transcribe)
+
+    response = await client.post(
+        "/transcribe",
+        data={"language": "vi"},
+        files={"file": ("android-recording.m4a", b"audio-bytes", "audio/mp4")},
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": "Uploaded audio could not be decoded."}
+
+
+@pytest.mark.anyio
+async def test_transcribe_maps_backend_decode_error_to_server_error(monkeypatch, client):
+    async def fake_transcribe(file_path, language):
+        raise assistant_routes.BackendTranscriptionError(
+            "Compressed audio requires ffmpeg to be installed."
+        )
+
+    monkeypatch.setattr("transcription_routes.transcription_service.transcribe", fake_transcribe)
+
+    response = await client.post(
+        "/transcribe",
+        data={"language": "vi"},
+        files={"file": ("android-recording.m4a", b"audio-bytes", "audio/mp4")},
+    )
+
+    assert response.status_code == 500
+    assert response.json() == {
+        "detail": "Compressed audio requires ffmpeg to be installed.",
+    }
 
 
 @pytest.mark.anyio
@@ -188,6 +230,145 @@ async def test_voice_assistant_returns_audio(monkeypatch, client):
 
 
 @pytest.mark.anyio
+async def test_voice_assistant_passes_memory_context_when_enabled(monkeypatch, client):
+    reply_calls = []
+    memory_context = "[MEMORY CONTEXT]\n- Minh nợ tao 60k (finance)\n[/MEMORY CONTEXT]"
+
+    class FakeMemoryService:
+        async def build_context(self, user_id, transcript):
+            assert user_id == "local-user"
+            assert transcript == "Minh nợ bao nhiêu?"
+            return memory_context
+
+    async def fake_transcribe(file_path, language):
+        return {
+            "text": "Minh nợ bao nhiêu?",
+            "requested_language": language.value,
+            "model": "base",
+            "language": "vi",
+            "language_probability": 0.99,
+            "duration_seconds": 1.2,
+        }
+
+    async def fake_complete(transcript, language, **kwargs):
+        reply_calls.append((transcript, language, kwargs))
+        return "Minh nợ bạn 60k."
+
+    monkeypatch.setenv("ASSISTANT_USE_MEMORY_CONTEXT", "true")
+    monkeypatch.setattr("assistant_routes.MemoryService", lambda: FakeMemoryService())
+    monkeypatch.setattr("assistant_routes.transcription_service.transcribe", fake_transcribe)
+    monkeypatch.setattr("assistant_routes.assistant_service.complete", fake_complete)
+    monkeypatch.setattr(
+        "assistant_routes.synthesize_speech",
+        lambda text, language: _fake_synthesize(text, language, []),
+    )
+
+    response = await client.post(
+        "/v1/voice/assistant",
+        data={"language": "vi"},
+        files={"file": ("sample.wav", b"audio-bytes", "audio/wav")},
+    )
+
+    assert response.status_code == 200
+    assert reply_calls[0][2]["memory_context"] == memory_context
+
+
+@pytest.mark.anyio
+async def test_voice_assistant_ignores_memory_context_failure(monkeypatch, client):
+    reply_calls = []
+
+    class FailingMemoryService:
+        async def build_context(self, user_id, transcript):
+            raise RuntimeError("database unavailable")
+
+    async def fake_complete(transcript, language, **kwargs):
+        reply_calls.append((transcript, language, kwargs))
+        return "Tôi chưa tìm thấy ghi nhớ phù hợp."
+
+    monkeypatch.setenv("ASSISTANT_USE_MEMORY_CONTEXT", "true")
+    monkeypatch.setattr("assistant_routes.MemoryService", lambda: FailingMemoryService())
+    _mock_voice_assistant_before_tts(monkeypatch, complete=fake_complete)
+    monkeypatch.setattr(
+        "assistant_routes.synthesize_speech",
+        lambda text, language: _fake_synthesize(text, language, []),
+    )
+
+    response = await client.post(
+        "/v1/voice/assistant",
+        data={"language": "vi"},
+        files={"file": ("sample.wav", b"audio-bytes", "audio/wav")},
+    )
+
+    assert response.status_code == 200
+    assert reply_calls[0][2]["memory_context"] is None
+
+
+def test_recall_questions_are_not_memory_storage_candidates():
+    assert assistant_routes.should_store_memory_transcript("Minh nợ bao nhiêu?") is False
+    assert assistant_routes.should_store_memory_transcript("ai nợ tao tiền?") is False
+    assert assistant_routes.should_store_memory_transcript("lần cuối gặp Minh khi nào?") is False
+    assert assistant_routes.should_store_memory_transcript("Minh nợ tao 60k") is True
+    assert assistant_routes.should_store_memory_transcript("mai gặp Minh") is True
+
+
+def test_memory_access_defaults_to_all_requests(monkeypatch):
+    monkeypatch.delenv("ASSISTANT_ALLOW_REMOTE_MEMORY_CONTEXT", raising=False)
+    local_request = SimpleNamespace(client=SimpleNamespace(host="127.0.0.1"))
+    remote_request = SimpleNamespace(client=SimpleNamespace(host="203.0.113.10"))
+
+    assert assistant_routes.should_use_memory_for_request(local_request) is True
+    assert assistant_routes.should_use_memory_for_request(remote_request) is True
+
+    monkeypatch.setenv("ASSISTANT_ALLOW_REMOTE_MEMORY_CONTEXT", "false")
+    assert assistant_routes.should_use_memory_for_request(local_request) is True
+    assert assistant_routes.should_use_memory_for_request(remote_request) is False
+
+
+@pytest.mark.anyio
+async def test_voice_assistant_does_not_store_recall_question(monkeypatch, client):
+    started_threads = []
+
+    class FakeThread:
+        def __init__(self, target, args, daemon):
+            started_threads.append((target, args, daemon))
+
+        def start(self):
+            raise AssertionError("recall question should not start memory storage")
+
+    async def fake_transcribe(file_path, language):
+        return {
+            "text": "Minh nợ bao nhiêu?",
+            "requested_language": language.value,
+            "model": "base",
+            "language": "vi",
+            "language_probability": 0.99,
+            "duration_seconds": 1.2,
+        }
+
+    async def fake_complete(transcript, language, **kwargs):
+        return "Minh nợ bạn 60k."
+
+    monkeypatch.setenv("ASSISTANT_STORE_MEMORIES", "true")
+    monkeypatch.setenv("ASSISTANT_USE_MEMORY_CONTEXT", "false")
+    monkeypatch.setattr("assistant_routes.threading.Thread", FakeThread)
+    monkeypatch.setattr("assistant_routes.transcription_service.transcribe", fake_transcribe)
+    monkeypatch.setattr("assistant_routes.assistant_service.complete", fake_complete)
+    monkeypatch.setattr(
+        "assistant_routes.synthesize_speech",
+        lambda text, language: _fake_synthesize(text, language, []),
+    )
+
+    response = await client.post(
+        "/v1/voice/assistant",
+        data={"language": "vi"},
+        files={"file": ("sample.wav", b"audio-bytes", "audio/wav")},
+    )
+
+    assert response.status_code == 200
+    assert started_threads == []
+
+
+@pytest.mark.anyio
 async def test_voice_assistant_rejects_empty_upload(client):
     response = await client.post(
         "/v1/voice/assistant",
@@ -221,6 +402,52 @@ async def test_voice_assistant_rejects_empty_transcript(monkeypatch, client):
 
     assert response.status_code == 400
     assert response.json() == {"detail": "No speech detected."}
+
+
+@pytest.mark.anyio
+async def test_voice_assistant_maps_audio_decode_error_to_bad_request(
+    monkeypatch,
+    client,
+):
+    async def fake_transcribe(file_path, language):
+        raise assistant_routes.AudioTranscriptionError(
+            "Uploaded audio could not be decoded."
+        )
+
+    monkeypatch.setattr("assistant_routes.transcription_service.transcribe", fake_transcribe)
+
+    response = await client.post(
+        "/v1/voice/assistant",
+        data={"language": "vi"},
+        files={"file": ("android-recording.m4a", b"audio-bytes", "audio/mp4")},
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": "Uploaded audio could not be decoded."}
+
+
+@pytest.mark.anyio
+async def test_voice_assistant_maps_backend_decode_error_to_server_error(
+    monkeypatch,
+    client,
+):
+    async def fake_transcribe(file_path, language):
+        raise assistant_routes.BackendTranscriptionError(
+            "Compressed audio requires ffmpeg to be installed."
+        )
+
+    monkeypatch.setattr("assistant_routes.transcription_service.transcribe", fake_transcribe)
+
+    response = await client.post(
+        "/v1/voice/assistant",
+        data={"language": "vi"},
+        files={"file": ("android-recording.m4a", b"audio-bytes", "audio/mp4")},
+    )
+
+    assert response.status_code == 500
+    assert response.json() == {
+        "detail": "Compressed audio requires ffmpeg to be installed.",
+    }
 
 
 @pytest.mark.anyio
@@ -307,7 +534,7 @@ async def _fake_synthesize(text: str, language: str, calls):
     return b"fake-mp3"
 
 
-def _mock_voice_assistant_before_tts(monkeypatch):
+def _mock_voice_assistant_before_tts(monkeypatch, *, complete=None):
     async def fake_transcribe(file_path, language):
         return {
             "text": "xin chào",
@@ -322,4 +549,4 @@ def _mock_voice_assistant_before_tts(monkeypatch):
         return "Xin chào, tôi có thể giúp gì cho bạn?"
 
     monkeypatch.setattr("assistant_routes.transcription_service.transcribe", fake_transcribe)
-    monkeypatch.setattr("assistant_routes.assistant_service.complete", fake_complete)
+    monkeypatch.setattr("assistant_routes.assistant_service.complete", complete or fake_complete)

@@ -39,15 +39,41 @@ ASSISTANT_PROVIDER_TIMEOUT_SECONDS=30
 ASSISTANT_SYSTEM_PROMPT=You are a helpful voice assistant. Reply in {language_name}. Keep answers concise, natural, and useful. Do not mention transcripts or internal processing.
 ASSISTANT_STORE_MEMORIES=true
 ASSISTANT_USE_MEMORY_CONTEXT=true
+ASSISTANT_ALLOW_REMOTE_MEMORY_CONTEXT=true
+ASSISTANT_PROMPT_LOG_FILE=assistant_prompt.log
+MEMORY_RAG_MAX_CANDIDATES=300
+MEMORY_EMBEDDINGS_ENABLED=false
+MEMORY_EMBEDDING_API_BASE_URL=
+MEMORY_EMBEDDING_API_KEY=
+MEMORY_EMBEDDING_MODEL=text-embedding-3-small
+MEMORY_EMBEDDING_TIMEOUT_SECONDS=10
 ```
 
 - `ASR_PRECISION=int8` reduces memory usage and can improve latency.
 - `ASR_PROVIDER=cuda` runs Sherpa ONNX ASR on GPU.
 - `ASR_LOAD_ON_STARTUP=true` preloads ASR model files during app startup.
 - `TTS_LOAD_ON_STARTUP=true` preloads local VieNeu TTS model files during app startup.
+- `ffmpeg` must be installed on the host so Android `.m4a`/AAC uploads can be
+  decoded before ASR.
 - ASR model repo and decoding method are hardcoded in backend code to avoid config drift.
 - TTS model repo and GPU mode are hardcoded in backend code to avoid config drift.
 - The assistant and memory extractor share the same OpenAI-compatible LLM server.
+- The backend appends a speech-output instruction to assistant prompts because
+  replies are spoken directly by TTS and Markdown artifacts sound unnatural.
+- `ASSISTANT_USE_MEMORY_CONTEXT=true` retrieves relevant SQLite memories before
+  assistant generation. Retrieval uses structured finance/person rows, optional
+  embeddings, and lexical fallback over `MEMORY_RAG_MAX_CANDIDATES` rows.
+- Memory context and memory storage run for LAN/mobile clients by default. Set
+  `ASSISTANT_ALLOW_REMOTE_MEMORY_CONTEXT=false` to restrict memory to loopback
+  requests only.
+- `ASSISTANT_STORE_MEMORIES=true` stores factual transcripts after the response.
+  Pure recall questions like `Minh nợ bao nhiêu?` are skipped to avoid polluting memory.
+- `ASSISTANT_PROMPT_LOG_FILE` defaults to `assistant_prompt.log`. Memory context
+  is redacted before prompt payloads are written.
+- Embeddings are disabled by default. When `MEMORY_EMBEDDINGS_ENABLED=true` and
+  `MEMORY_EMBEDDING_API_BASE_URL` points to an OpenAI-compatible `/embeddings`
+  endpoint, new memories are embedded into SQLite. Embedding failures are logged
+  and the assistant falls back to structured and lexical retrieval.
 
 ## Transcription API
 
@@ -82,6 +108,9 @@ Validation rules:
 - `language` is optional and accepts `vi` or `en`.
 - Empty uploads are rejected with `400`.
 - Empty transcripts are rejected with `400`.
+- Unreadable, oversized, or slow compressed audio returns `400`.
+- Missing `ffmpeg` for Android `.m4a`/AAC uploads is a backend setup error and
+  returns `500`.
 - Assistant replies longer than the TTS limit are rejected with `502`.
 - Assistant timeouts return `504`.
 - Assistant provider failures return `502`.
@@ -89,6 +118,9 @@ Validation rules:
 
 The backend owns the assistant API key, base URL, system prompt, and TTS wiring. Flutter
 should only upload audio and play the returned speech.
+
+Memory context is private server-side user data. Keep this backend on a trusted
+network until authentication, authorization, and rate limiting are added.
 
 ## Text To Speech API
 

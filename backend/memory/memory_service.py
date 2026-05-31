@@ -1,17 +1,25 @@
 from __future__ import annotations
 
+import asyncio
 import json
-import re
+import logging
 import sqlite3
 import uuid
 from datetime import datetime, timezone
-from difflib import SequenceMatcher
 
 from database import bootstrap_schema, get_database_engine
 
+from .context_builder import MemoryContextBuilder
+from .embedding_service import MemoryEmbeddingService
 from .entity_resolver import EntityResolver
 from .extractor import MemoryExtractor
+from .retrieval_records import EmbeddingProvider
+from .retrieval_service import MemoryRetrievalService
 from .schemas import ExtractedMemory, StoredMemory
+from .text_similarity import memory_similarity, tokenize
+
+
+logger = logging.getLogger(__name__)
 
 
 def _utcnow() -> str:
@@ -23,20 +31,31 @@ class MemoryService:
         self,
         extractor: MemoryExtractor | None = None,
         entity_resolver: EntityResolver | None = None,
+        embedding_service: EmbeddingProvider | None = None,
     ) -> None:
         self.extractor = extractor or MemoryExtractor()
         self.entity_resolver = entity_resolver or EntityResolver()
+        self.embedding_service = embedding_service or MemoryEmbeddingService()
         self._engine = get_database_engine()
+        self.retrieval_service = MemoryRetrievalService(
+            self._engine,
+            embedding_service=self.embedding_service,
+        )
+        self.context_builder = MemoryContextBuilder()
 
     def bootstrap(self) -> None:
         with self._engine.connection() as connection:
             bootstrap_schema(connection)
 
     async def build_context(self, user_id: str, transcript: str, limit: int = 5) -> str:
-        return self._build_context_sync(user_id, transcript, limit)
+        return await asyncio.to_thread(self._build_context_sync, user_id, transcript, limit)
+
+    def _build_context_sync(self, user_id: str, transcript: str, limit: int = 5) -> str:
+        results = self.retrieval_service.search(user_id, transcript, limit)
+        return self.context_builder.build(results)
 
     async def process_transcript(self, user_id: str, raw_text: str) -> StoredMemory:
-        return self.process_transcript_sync(user_id, raw_text)
+        return await asyncio.to_thread(self.process_transcript_sync, user_id, raw_text)
 
     def process_transcript_sync(self, user_id: str, raw_text: str) -> StoredMemory:
         extracted = self.extractor.extract(raw_text)
@@ -102,6 +121,8 @@ class MemoryService:
 
             self._link_recent_memories(connection, user_id, memory_id, extracted)
 
+        self._store_embedding(memory_id, extracted.processed_text)
+
         return StoredMemory(
             id=memory_id,
             user_id=user_id,
@@ -114,50 +135,6 @@ class MemoryService:
             metadata=extracted.model_dump(),
             created_at=now,
         )
-
-    def _build_context_sync(self, user_id: str, transcript: str, limit: int) -> str:
-        query_tokens = self._tokenize(transcript)
-        with self._engine.connection() as connection:
-            rows = connection.execute(
-                """
-                SELECT m.id, m.processed_text, m.category, m.sentiment, m.importance,
-                       m.created_at, p.name AS person_name, f.amount, f.currency, f.status
-                FROM memories m
-                LEFT JOIN financial_records f ON f.memory_id = m.id
-                LEFT JOIN people p ON p.id = f.person_id
-                WHERE m.user_id = ?
-                ORDER BY m.created_at DESC
-                LIMIT 30
-                """,
-                (user_id,),
-            ).fetchall()
-
-        scored: list[tuple[float, str]] = []
-        for row in rows:
-            text = str(row["processed_text"])
-            haystack = f"{text} {row['category']} {row['person_name'] or ''}".lower()
-            score = self._score_haystack(query_tokens, haystack)
-            if score <= 0:
-                continue
-
-            amount = row["amount"]
-            person = row["person_name"]
-            snippets = [f"- {text} ({row['category']}, {row['created_at']})"]
-            if person or amount is not None:
-                details: list[str] = []
-                if person:
-                    details.append(f"person={person}")
-                if amount is not None:
-                    details.append(f"amount={amount:g} {row['currency']}")
-                if details:
-                    snippets[-1] += f" [{', '.join(details)}]"
-            scored.append((score, snippets[0]))
-
-        scored.sort(key=lambda item: item[0], reverse=True)
-        selected = [line for _, line in scored[:limit]]
-        if not selected:
-            return ""
-        return "\n".join(["[MEMORY CONTEXT]", *selected, "[/MEMORY CONTEXT]"])
 
     def _ensure_user(self, connection: sqlite3.Connection, user_id: str) -> None:
         now = _utcnow()
@@ -203,10 +180,10 @@ class MemoryService:
             (user_id, memory_id),
         ).fetchall()
         now = _utcnow()
-        source_tokens = self._tokenize(extracted.processed_text)
+        source_tokens = tokenize(extracted.processed_text)
         for row in rows:
             candidate_text = str(row["processed_text"])
-            similarity = self._memory_similarity(
+            similarity = memory_similarity(
                 extracted.processed_text,
                 candidate_text,
                 source_tokens=source_tokens,
@@ -264,39 +241,32 @@ class MemoryService:
             )
         return memories
 
-    def _tokenize(self, text: str) -> set[str]:
-        return {
-            token.lower()
-            for token in re.findall(r"[\wÀ-ỹ']+", text)
-            if len(token) > 2
-        }
-
-    def _score_haystack(self, query_tokens: set[str], haystack: str) -> float:
-        if not query_tokens:
-            return 0.0
-
-        score = sum(1.0 for token in query_tokens if token in haystack)
-        if any(token in query_tokens for token in {"nợ", "tiền", "trả", "debt", "money"}):
-            if "finance" in haystack or "money" in haystack:
-                score += 2.0
-        if any(token in query_tokens for token in {"mai", "hôm nay", "tuần", "month", "plan"}):
-            if "plan" in haystack:
-                score += 1.0
-        return score
-
-    def _memory_similarity(
+    def _store_embedding(
         self,
-        source_text: str,
-        candidate_text: str,
-        *,
-        source_tokens: set[str],
-    ) -> float:
-        candidate_tokens = self._tokenize(candidate_text)
-        union = source_tokens | candidate_tokens
-        overlap = 0.0 if not union else len(source_tokens & candidate_tokens) / len(union)
-        text_ratio = SequenceMatcher(
-            None,
-            source_text.lower(),
-            candidate_text.lower(),
-        ).ratio()
-        return max(overlap, text_ratio)
+        memory_id: str,
+        processed_text: str,
+    ) -> None:
+        if not self.embedding_service.is_enabled:
+            return
+        try:
+            embedding = self.embedding_service.embed(processed_text)
+            if not embedding:
+                return
+            now = _utcnow()
+            with self._engine.connection() as connection:
+                connection.execute(
+                    """
+                    INSERT OR REPLACE INTO memory_embeddings (
+                        id, memory_id, embedding_json, model_name, created_at
+                    ) VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (
+                        str(uuid.uuid4()),
+                        memory_id,
+                        json.dumps(embedding),
+                        self.embedding_service.model_name,
+                        now,
+                    ),
+                )
+        except Exception:
+            logger.exception("Failed to store memory embedding.")

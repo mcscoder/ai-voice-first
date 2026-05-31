@@ -35,10 +35,11 @@ Upgrade the current voice assistant from a stateless voice-in/voice-out loop int
 
 | Relationship | Plan | Status |
 |-------------|------|--------|
+| Foundation | `260531-1703-memory-rag-context-retrieval` | complete |
 | Depends on | `260523-2349-voice-assistant-response-flow` | complete |
 | Depends on | `260426-1631-migrate-tts-endpoint-to-backend` | completed |
 
-Both prerequisite plans are complete. The voice pipeline and TTS are already working.
+Voice pipeline, TTS, and the focused SQLite RAG context plan are complete. The broader plan can now continue with deeper graph retrieval, reminders, insights, and UI work without hiding the previous recency-window blocker.
 
 ## Architecture Decision
 

@@ -10,6 +10,7 @@ os.environ["ASR_LOAD_ON_STARTUP"] = "false"
 os.environ["TTS_LOAD_ON_STARTUP"] = "false"
 os.environ["ASSISTANT_STORE_MEMORIES"] = "false"
 os.environ["ASSISTANT_USE_MEMORY_CONTEXT"] = "false"
+os.environ["ASSISTANT_PROMPT_LOG_FILE"] = ""
 
 from main import app  # noqa: E402
 

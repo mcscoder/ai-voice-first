@@ -17,6 +17,7 @@ Before enabling GPU mode, the target system must provide:
 - cuDNN for CUDA 12.x
 - ONNX Runtime GPU with `CUDAExecutionProvider`
 - eSpeak NG for VieNeu text normalization and phonemization
+- ffmpeg for decoding compressed audio uploads such as Android `.m4a`/AAC before ASR
 
 For this backend, install the CUDA 12 package line explicitly. Do not replace it with the unversioned `cuda-toolkit` meta-package.
 
@@ -64,7 +65,7 @@ sudo apt-get install -y cuda-toolkit-12
 ```bash
 sudo apt-get update
 sudo apt-get -y install cudnn9-cuda-12
-sudo apt-get -y install espeak-ng
+sudo apt-get -y install espeak-ng ffmpeg
 ```
 
 ### 4. Complete the platform installation
@@ -104,7 +105,7 @@ sudo apt-get install -y cuda-toolkit-12
 ```bash
 sudo apt-get update
 sudo apt-get -y install cudnn9-cuda-12
-sudo apt-get -y install espeak-ng
+sudo apt-get -y install espeak-ng ffmpeg
 ```
 
 ### 5. Complete the platform installation

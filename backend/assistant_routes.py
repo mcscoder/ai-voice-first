@@ -9,10 +9,14 @@ import time
 from pathlib import Path
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import Response
 
-from config import env_flag
+from assistant_memory_policy import (
+    should_store_memories,
+    should_use_memory_context,
+    should_use_memory_for_request,
+)
 from assistant_service import (
     AssistantEmptyReplyError,
     AssistantServiceError,
@@ -31,7 +35,7 @@ from text_to_speech_service import (
     TextToSpeechNoAudioError,
     synthesize_speech,
 )
-from memory import MemoryService
+from memory import MemoryService, should_store_memory_transcript
 from personality import PersonalityService
 
 
@@ -41,8 +45,6 @@ router = APIRouter()
 assistant_service = VoiceAssistantService()
 personality_service = PersonalityService(default_personality=os.getenv("ASSISTANT_PERSONALITY", "serious"))
 logger = logging.getLogger("uvicorn.error")
-store_memories_after_response = env_flag("ASSISTANT_STORE_MEMORIES", True)
-use_memory_context = env_flag("ASSISTANT_USE_MEMORY_CONTEXT", True)
 
 
 @router.post(
@@ -60,12 +62,13 @@ use_memory_context = env_flag("ASSISTANT_USE_MEMORY_CONTEXT", True)
     },
 )
 async def voice_assistant(
+    request: Request,
     file: UploadFile = File(...),
     language: Annotated[Literal["vi", "en"] | None, Form()] = None,
 ) -> Response:
     try:
         return await asyncio.wait_for(
-            _voice_assistant_impl(file=file, language=language),
+            _voice_assistant_impl(request=request, file=file, language=language),
             timeout=ASSISTANT_REQUEST_TIMEOUT_SECONDS,
         )
     except TimeoutError as exc:
@@ -75,7 +78,9 @@ async def voice_assistant(
         ) from exc
 
 
-async def _voice_assistant_impl(file: UploadFile, language: str | None) -> Response:
+async def _voice_assistant_impl(
+    request: Request, file: UploadFile, language: str | None,
+) -> Response:
     suffix = Path(file.filename or "").suffix or ".bin"
     temp_path: str | None = None
 
@@ -104,8 +109,12 @@ async def _voice_assistant_impl(file: UploadFile, language: str | None) -> Respo
             detected_language=transcription.get("language"),
         )
         memory_context = ""
-        if use_memory_context:
-            memory_context = await MemoryService().build_context("local-user", transcript)
+        memory_allowed = should_use_memory_for_request(request)
+        if should_use_memory_context() and memory_allowed:
+            try:
+                memory_context = await MemoryService().build_context("local-user", transcript)
+            except Exception:
+                logger.exception("Failed to build memory context.")
         assistant_started_at = time.perf_counter()
         reply = await assistant_service.complete(
             transcript,
@@ -130,7 +139,11 @@ async def _voice_assistant_impl(file: UploadFile, language: str | None) -> Respo
             assistant_duration,
             tts_duration,
         )
-        if store_memories_after_response:
+        if (
+            should_store_memories()
+            and memory_allowed
+            and should_store_memory_transcript(transcript)
+        ):
             threading.Thread(
                 target=_store_memory_safely,
                 args=(transcript,),

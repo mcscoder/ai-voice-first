@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from assistant_memory_prompt import MEMORY_CONTEXT_INSTRUCTION
+
 from .presets import PERSONALITIES
 
 
@@ -16,7 +18,7 @@ class PersonalityPromptBuilder:
             PERSONALITIES.get(personality, PERSONALITIES["serious"])["system_prompt_fragment"],
         ]
         if memory_context:
-            fragments.append(f"Relevant memory context:\n{memory_context}")
+            fragments.append(MEMORY_CONTEXT_INSTRUCTION)
         if user_tone_profile:
             fragments.append(f"Tone profile: {user_tone_profile}")
         return "\n\n".join(fragments)
