@@ -174,6 +174,69 @@ class RetrievalCandidateLoader:
                 results.append(row_to_result(row, score=similarity * 5.0))
         return results
 
+    def linked_candidates(
+        self,
+        connection: sqlite3.Connection,
+        user_id: str,
+        seed_results: list[MemorySearchResult],
+    ) -> list[MemorySearchResult]:
+        if not seed_results:
+            return []
+
+        seed_scores = {result.memory_id: result.score for result in seed_results}
+        seed_ids = list(seed_scores)
+        placeholders = ", ".join("?" for _ in seed_ids)
+        link_rows = connection.execute(
+            f"""
+            SELECT source_memory_id, target_memory_id, strength
+            FROM memory_links
+            WHERE source_memory_id IN ({placeholders})
+               OR target_memory_id IN ({placeholders})
+            ORDER BY strength DESC
+            LIMIT ?
+            """,
+            (*seed_ids, *seed_ids, self._max_candidates),
+        ).fetchall()
+
+        related_scores: dict[str, float] = {}
+        for row in link_rows:
+            source_id = str(row["source_memory_id"])
+            target_id = str(row["target_memory_id"])
+            strength = float(row["strength"])
+            if source_id in seed_scores:
+                related_id = target_id
+                seed_score = seed_scores[source_id]
+            else:
+                related_id = source_id
+                seed_score = seed_scores[target_id]
+            if related_id in seed_scores:
+                continue
+            score = max(1.0, seed_score * strength * 0.85)
+            related_scores[related_id] = max(score, related_scores.get(related_id, 0.0))
+
+        if not related_scores:
+            return []
+
+        related_ids = list(related_scores)
+        related_placeholders = ", ".join("?" for _ in related_ids)
+        rows = connection.execute(
+            f"""
+            SELECT m.id, m.processed_text, m.category, m.importance, m.created_at,
+                   p.name AS person_name, f.type AS financial_type, f.amount,
+                   f.currency, f.status
+            FROM memories m
+            LEFT JOIN financial_records f ON f.memory_id = m.id
+            LEFT JOIN people p ON p.id = f.person_id
+            WHERE m.user_id = ? AND m.id IN ({related_placeholders})
+            ORDER BY m.importance DESC, m.created_at DESC
+            """,
+            (user_id, *related_ids),
+        ).fetchall()
+        return [
+            row_to_result(row, score=related_scores[str(row["id"])])
+            for row in rows
+        ]
+
     def is_finance_query(self, query_tokens: set[str]) -> bool:
         return bool(query_tokens & FINANCE_QUERY_TERMS)
 

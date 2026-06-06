@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Mapping
+from datetime import datetime
 from typing import Literal
 
 import httpx
@@ -94,6 +95,7 @@ class VoiceAssistantService:
                 f"{system_prompt}\n\n"
                 f"{MEMORY_CONTEXT_INSTRUCTION}"
             )
+        system_prompt = _append_current_date_instruction(system_prompt)
         system_prompt = _append_speech_output_instruction(system_prompt)
 
         messages: list[dict[str, str]] = [
@@ -186,3 +188,22 @@ def _append_speech_output_instruction(system_prompt: str) -> str:
     if not system_prompt:
         return SPEECH_OUTPUT_INSTRUCTION
     return f"{system_prompt}\n\n{SPEECH_OUTPUT_INSTRUCTION}"
+
+
+def _append_current_date_instruction(system_prompt: str) -> str:
+    current_datetime_instruction = _current_datetime_instruction()
+    if current_datetime_instruction in system_prompt:
+        return system_prompt
+    if not system_prompt:
+        return current_datetime_instruction
+    return f"{system_prompt}\n\n{current_datetime_instruction}"
+
+
+def _current_datetime_instruction(now: datetime | None = None) -> str:
+    current = (now or datetime.now()).astimezone()
+    return (
+        "Current local datetime: "
+        f"{current.isoformat(timespec='seconds')} ({current.strftime('%A')}). "
+        "Use this as the source of truth for the current date, current time, "
+        "weekday, and relative time calculations."
+    )

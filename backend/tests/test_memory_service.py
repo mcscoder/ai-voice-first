@@ -182,7 +182,7 @@ async def test_memory_extractor_parses_llm_json_response():
 
 
 @pytest.mark.anyio
-async def test_memory_extractor_prompt_log_redacts_transcript(monkeypatch, tmp_path):
+async def test_memory_extractor_prompt_log_writes_transcript(monkeypatch, tmp_path):
     prompt_log = tmp_path / "assistant_prompt.log"
     monkeypatch.setenv("ASSISTANT_PROMPT_LOG_FILE", str(prompt_log))
     extractor = MemoryExtractor(
@@ -193,8 +193,8 @@ async def test_memory_extractor_prompt_log_redacts_transcript(monkeypatch, tmp_p
     extractor.extract("Minh nợ tao 60k")
 
     log_text = prompt_log.read_text(encoding="utf-8")
-    assert "Minh nợ tao 60k" not in log_text
-    assert "[MEMORY EXTRACTION PAYLOAD REDACTED]" in log_text
+    assert "Minh nợ tao 60k" in log_text
+    assert "[MEMORY EXTRACTION PAYLOAD REDACTED]" not in log_text
 
 
 @pytest.mark.anyio
@@ -274,6 +274,37 @@ async def test_memory_context_returns_empty_for_unrelated_query(tmp_path, monkey
     context = await service.build_context("user-1", "thời tiết hôm nay thế nào?")
 
     assert context == ""
+
+
+@pytest.mark.anyio
+async def test_memory_context_expands_from_relevant_seed_to_linked_memories(
+    tmp_path,
+    monkeypatch,
+):
+    service = _memory_service(tmp_path, monkeypatch)
+    seed = await service.process_transcript("user-1", "Project Atlas deadline Friday")
+    linked = await service.process_transcript("user-1", "Budget approval moved to Monday")
+    with service._engine.connection() as connection:
+        connection.execute(
+            """
+            INSERT INTO memory_links (
+                id, source_memory_id, target_memory_id, link_type, strength, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "link-1",
+                seed.id,
+                linked.id,
+                "related",
+                0.9,
+                "2026-06-01T00:00:00+00:00",
+            ),
+        )
+
+    context = await service.build_context("user-1", "deadline Friday")
+
+    assert "Project Atlas deadline Friday" in context
+    assert "Budget approval moved to Monday" in context
 
 
 @pytest.mark.anyio

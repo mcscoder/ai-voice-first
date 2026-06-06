@@ -68,8 +68,8 @@ MEMORY_EMBEDDING_TIMEOUT_SECONDS=10
   requests only.
 - `ASSISTANT_STORE_MEMORIES=true` stores factual transcripts after the response.
   Pure recall questions like `Minh nợ bao nhiêu?` are skipped to avoid polluting memory.
-- `ASSISTANT_PROMPT_LOG_FILE` defaults to `assistant_prompt.log`. Memory context
-  is redacted before prompt payloads are written.
+- `ASSISTANT_PROMPT_LOG_FILE` defaults to `assistant_prompt.log`. Prompt payloads
+  are written directly, including transcripts and memory context, for local debugging.
 - Embeddings are disabled by default. When `MEMORY_EMBEDDINGS_ENABLED=true` and
   `MEMORY_EMBEDDING_API_BASE_URL` points to an OpenAI-compatible `/embeddings`
   endpoint, new memories are embedded into SQLite. Embedding failures are logged

@@ -59,8 +59,27 @@ class MemoryRetrievalService:
                     query_tokens=query_tokens,
                 ),
             )
+            seed_results = self._rank_candidates(candidates)[:limit]
+            self._merge_candidates(
+                candidates,
+                self._candidate_loader.linked_candidates(
+                    connection,
+                    user_id,
+                    seed_results,
+                ),
+            )
 
-        selected = [result for result in candidates.values() if result.score >= 1.0]
+        return self._rank_candidates(candidates)[:limit]
+
+    def _rank_candidates(
+        self,
+        candidates: dict[str, MemorySearchResult],
+    ) -> list[MemorySearchResult]:
+        selected = [
+            result
+            for result in candidates.values()
+            if result.score >= 1.0
+        ]
         selected.sort(
             key=lambda result: (
                 result.score,
@@ -69,7 +88,7 @@ class MemoryRetrievalService:
             ),
             reverse=True,
         )
-        return selected[:limit]
+        return selected
 
     def _merge_candidates(
         self,

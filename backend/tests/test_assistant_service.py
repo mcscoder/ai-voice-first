@@ -10,6 +10,7 @@ from assistant_service import (
     AssistantServiceError,
     AssistantTimeoutError,
     VoiceAssistantService,
+    _current_datetime_instruction,
 )
 
 
@@ -23,6 +24,8 @@ async def test_complete_builds_prompt_and_extracts_reply():
         assert payload["model"] == "gemini-2.5-flash-lite"
         assert payload["messages"][0]["role"] == "system"
         system_prompt = payload["messages"][0]["content"]
+        assert "Current local datetime:" in system_prompt
+        assert "relative time calculations" in system_prompt
         assert "plain speakable text" in system_prompt
         assert "sent directly to text-to-speech" in system_prompt
         assert "Do not use Markdown" in system_prompt
@@ -56,6 +59,20 @@ async def test_complete_builds_prompt_and_extracts_reply():
     assert len(requests) == 1
     assert requests[0].headers["authorization"] == "Bearer secret"
     assert requests[0].url.path == "/v1/chat/completions"
+
+
+def test_current_datetime_instruction_formats_exact_runtime_datetime():
+    from datetime import datetime, timedelta, timezone
+
+    instruction = _current_datetime_instruction(
+        datetime(2026, 6, 6, 9, 30, 15, tzinfo=timezone(timedelta(hours=7)))
+    )
+
+    assert instruction == (
+        "Current local datetime: 2026-06-06T09:30:15+07:00 (Saturday). "
+        "Use this as the source of truth for the current date, current time, "
+        "weekday, and relative time calculations."
+    )
 
 
 @pytest.mark.anyio
@@ -146,7 +163,7 @@ async def test_complete_uses_explicit_memory_and_personality_kwargs():
 
 
 @pytest.mark.anyio
-async def test_prompt_log_redacts_memory_context(monkeypatch, tmp_path):
+async def test_prompt_log_writes_memory_context(monkeypatch, tmp_path):
     prompt_log = tmp_path / "assistant_prompt.log"
 
     async def handler(request: httpx.Request) -> httpx.Response:
@@ -169,8 +186,8 @@ async def test_prompt_log_redacts_memory_context(monkeypatch, tmp_path):
     )
 
     log_text = prompt_log.read_text(encoding="utf-8")
-    assert "Minh nợ tao 60k" not in log_text
-    assert "[MEMORY CONTEXT REDACTED]" in log_text
+    assert "Minh nợ tao 60k" in log_text
+    assert "[MEMORY CONTEXT REDACTED]" not in log_text
 
 
 @pytest.mark.anyio
