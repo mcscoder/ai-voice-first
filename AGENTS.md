@@ -51,3 +51,11 @@ For multi-step tasks, state a brief plan:
 2. [Step] → verify: [check]
 3. [Step] → verify: [check]
 ```
+
+# 5. Python Package Management
+
+**Use `uv` only.**
+
+- Install packages with `uv add`.
+- Sync dependencies with `uv sync`.
+- Use the global `uv` cache. Custom cache locations will be denied.
