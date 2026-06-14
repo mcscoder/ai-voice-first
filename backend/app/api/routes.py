@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 
+# Keep base routes together until the API surface grows enough to split by feature.
 router = APIRouter()
 
 

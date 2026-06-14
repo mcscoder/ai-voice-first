@@ -1,17 +1,19 @@
 from fastapi import FastAPI
 
 from app.api.routes import router
-from app.core.config import APP_HOST, APP_PORT, APP_TITLE, APP_VERSION
+from app.core.config import config
 
 
-app = FastAPI(title=APP_TITLE, version=APP_VERSION)
+# Build the FastAPI application and register project routes.
+app = FastAPI(title=config.title, version=config.version)
 app.include_router(router)
 
 
 def main() -> None:
     import uvicorn
 
-    uvicorn.run(app, host=APP_HOST, port=APP_PORT)
+    # Run the API from Python so deployment does not depend on a uvicorn CLI command.
+    uvicorn.run(app, host=config.host, port=config.port)
 
 
 if __name__ == "__main__":
