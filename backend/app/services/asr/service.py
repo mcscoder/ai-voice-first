@@ -1,15 +1,17 @@
 from __future__ import annotations
 
-from io import BytesIO
 import threading
 from dataclasses import dataclass
+from io import BytesIO
+from typing import TYPE_CHECKING
 
 import numpy as np
 import soundfile as sf
 from app.core.config import AsrDevice, config
+from qwen_asr import Qwen3ASRModel
 
-
-AudioInput = str | tuple[np.ndarray, int]
+if TYPE_CHECKING:
+    from qwen_asr.inference.utils import AudioLike
 
 
 class AsrError(Exception):
@@ -40,15 +42,12 @@ class AsrService:
         self.device = device
         self.language_map = language_map or config.asr.language_map
 
-        self._model: object | None = None
+        self._model: Qwen3ASRModel | None = None
         self._lock = threading.RLock()
 
-    def load_model(self) -> object:
+    def load_model(self) -> Qwen3ASRModel:
         with self._lock:
             if self._model is None:
-                # Import lazily so tests and FastAPI import do not initialize ML deps.
-                from qwen_asr import Qwen3ASRModel
-
                 self._model = Qwen3ASRModel.from_pretrained(
                     self.model_name,
                     device_map=self.device,
@@ -57,11 +56,13 @@ class AsrService:
 
     def transcribe(
         self,
-        audio: bytes | AudioInput,
+        audio: bytes | AudioLike,
         language: str | None = None,
     ) -> AsrResult:
         normalized_language = self.normalize_language(language)
-        audio_input = self.decode_audio_bytes(audio) if isinstance(audio, bytes) else audio
+        audio_input = (
+            self.decode_audio_bytes(audio) if isinstance(audio, bytes) else audio
+        )
 
         with self._lock:
             # Startup normally loads the model, but keep this fallback for direct use.
@@ -81,7 +82,7 @@ class AsrService:
             model=self.model_name,
         )
 
-    def decode_audio_bytes(self, audio_bytes: bytes) -> AudioInput:
+    def decode_audio_bytes(self, audio_bytes: bytes) -> AudioLike:
         with BytesIO(audio_bytes) as audio_file:
             audio, sample_rate = sf.read(
                 audio_file,
@@ -102,5 +103,6 @@ class AsrService:
                 f"Unsupported language. Use one of: {supported}."
             )
         return normalized
+
 
 asr_service = AsrService()
