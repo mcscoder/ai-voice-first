@@ -1,18 +1,30 @@
+import asyncio
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
 from app.api.routes import router
 from app.core.config import config
+from app.services.asr import asr_service
 
 
-# Build the FastAPI application and register project routes.
-app = FastAPI(title=config.title, version=config.version)
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    # Load the ASR model during startup instead of on the first upload.
+    if config.asr.load_on_startup:
+        await asyncio.to_thread(asr_service.load_model)
+
+    yield
+
+
+app = FastAPI(title=config.title, version=config.version, lifespan=lifespan)
 app.include_router(router)
 
 
 def main() -> None:
     import uvicorn
 
-    # Run the API from Python so deployment does not depend on a uvicorn CLI command.
     uvicorn.run(app, host=config.host, port=config.port)
 
 
