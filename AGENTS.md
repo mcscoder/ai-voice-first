@@ -16,6 +16,8 @@ Before implementing:
 - No abstractions for single-use code.
 - No "flexibility" or "configurability" that wasn't requested.
 - No error handling for impossible scenarios.
+- Fail fast: let unexpected errors surface instead of hiding them behind defensive fallbacks.
+- Do not wrap backend code in broad `try`/`except` blocks. Catch only errors with a clear recovery path or when translating a known failure into an API response.
 - If you write 200 lines and it could be 50, rewrite it.
 
 Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
@@ -56,11 +58,16 @@ For multi-step tasks, state a brief plan:
 
 **A test must exercise the implementation it claims to verify.**
 
+- Tests are part of the deliverable, not decoration. A passing test suite only
+  matters when the tests would fail for the bug or regression they claim to
+  cover.
 - Import the production module, class, or function under test.
 - Call the real production code and assert its observable result or side effect.
 - Derive expected behavior from the specification or bug report, not by guessing current output.
 - Do not copy or reimplement production logic inside the test to calculate the expected result.
 - Do not create a fake stand-in for the module under test. Mocks and fakes are only for external boundaries such as networks, databases, clocks, or third-party services.
+- Do not write tests that only prove a mock was called, a fake returned a value,
+  or duplicated test logic matches itself. Those are fake tests.
 - Prefer testing the public interface. Test private helpers only when they contain meaningful behavior that cannot be verified through the public interface.
 - A regression test must fail when the relevant production code is reverted or deliberately broken. If it still passes, it is not testing the requested behavior.
 

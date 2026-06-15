@@ -5,6 +5,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel, field_validator
 
 from app.core.config import TtsVoice, config
+from app.services.assistant import assistant_service
 from app.services.asr import asr_service
 from app.services.tts import tts_service
 
@@ -89,4 +90,39 @@ async def text_to_speech(request: TtsRequest) -> Response:
         content=result.audio,
         media_type=result.media_type,
         headers={"Content-Disposition": 'attachment; filename="speech.wav"'},
+    )
+
+
+@router.post(
+    "/v1/voice/assistant",
+    responses={
+        200: {
+            "content": {
+                "audio/wav": {
+                    "schema": {"type": "string", "format": "binary"},
+                },
+            },
+            "description": "Generated assistant WAV audio",
+        },
+    },
+    response_class=Response,
+)
+async def voice_assistant(
+    file: UploadFile = File(...),
+    language: str | None = Form(None),
+) -> Response:
+    audio_bytes = await file.read()
+    if not audio_bytes:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+
+    result = await asyncio.to_thread(
+        assistant_service.respond,
+        audio_bytes,
+        language,
+    )
+
+    return Response(
+        content=result.audio,
+        media_type=result.media_type,
+        headers={"Content-Disposition": 'attachment; filename="assistant.wav"'},
     )

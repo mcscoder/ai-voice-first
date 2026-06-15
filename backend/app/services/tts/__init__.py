@@ -3,6 +3,7 @@ from app.services.tts.service import (
     TtsError,
     TtsResult,
     TtsService,
+    encode_wav_audio,
     tts_service,
 )
 
@@ -11,5 +12,6 @@ __all__ = [
     "TtsError",
     "TtsResult",
     "TtsService",
+    "encode_wav_audio",
     "tts_service",
 ]

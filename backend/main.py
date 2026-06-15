@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from app.api.routes import router
 from app.core.config import config
 from app.services.asr import asr_service
+from app.services.memory import memory_service
 from app.services.tts import tts_service
 
 
@@ -17,6 +18,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         await asyncio.to_thread(asr_service.load_model)
     if config.tts.load_on_startup:
         await asyncio.to_thread(tts_service.load_model)
+    if config.memory.load_on_startup:
+        await asyncio.to_thread(memory_service.load_memory)
 
     yield
 

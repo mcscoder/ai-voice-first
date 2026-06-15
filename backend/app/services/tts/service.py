@@ -3,15 +3,12 @@ from __future__ import annotations
 import threading
 from dataclasses import dataclass
 from io import BytesIO
-from typing import TYPE_CHECKING
 
-import soundfile as sf
+import av
+import numpy as np
 from app.core.config import TtsDevice, TtsEmotion, TtsVoice, config
 from vieneu import Vieneu
 from vieneu.base import BaseVieneuTTS
-
-if TYPE_CHECKING:
-    import numpy as np
 
 
 class TtsError(Exception):
@@ -26,6 +23,48 @@ class EmptyTtsAudioError(TtsError):
 class TtsResult:
     audio: bytes
     media_type: str
+
+
+def encode_wav_audio(audio: np.ndarray, sample_rate: int) -> bytes:
+    audio_file = BytesIO()
+    audio_array = format_audio_frame(audio)
+    layout = "mono" if audio_array.shape[0] == 1 else "stereo"
+
+    with av.open(audio_file, mode="w", format="wav") as container:
+        stream = container.add_stream("pcm_s16le", rate=sample_rate)
+        stream.layout = layout
+
+        frame = av.AudioFrame.from_ndarray(
+            audio_array,
+            format="flt",
+            layout=layout,
+        )
+        frame.sample_rate = sample_rate
+
+        for packet in stream.encode(frame):
+            container.mux(packet)
+        for packet in stream.encode():
+            container.mux(packet)
+
+    return audio_file.getvalue()
+
+
+def format_audio_frame(audio: np.ndarray) -> np.ndarray:
+    audio_array = np.asarray(audio, dtype=np.float32)
+    if audio_array.ndim == 1:
+        return audio_array.reshape(1, -1)
+    if audio_array.ndim != 2:
+        raise TtsError(f"Unsupported TTS audio shape: {audio_array.shape}.")
+
+    if audio_array.shape[0] in (1, 2):
+        channels_first = audio_array
+    else:
+        channels_first = audio_array.T
+
+    if channels_first.shape[0] not in (1, 2):
+        raise TtsError("TTS WAV encoding supports mono or stereo audio.")
+
+    return np.ascontiguousarray(channels_first, dtype=np.float32)
 
 
 class TtsService:
@@ -69,9 +108,7 @@ class TtsService:
 
     def encode_audio(self, audio: np.ndarray) -> bytes:
         model = self._model or self.load_model()
-        audio_file = BytesIO()
-        sf.write(audio_file, audio, model.sample_rate, format="WAV")
-        return audio_file.getvalue()
+        return encode_wav_audio(audio, model.sample_rate)
 
 
 tts_service = TtsService()

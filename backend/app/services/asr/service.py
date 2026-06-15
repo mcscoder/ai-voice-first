@@ -5,8 +5,8 @@ from dataclasses import dataclass
 from io import BytesIO
 from typing import TYPE_CHECKING
 
+import av
 import numpy as np
-import soundfile as sf
 from app.core.config import AsrDevice, config
 from qwen_asr import Qwen3ASRModel
 
@@ -83,14 +83,38 @@ class AsrService:
         )
 
     def decode_audio_bytes(self, audio_bytes: bytes) -> AudioLike:
-        with BytesIO(audio_bytes) as audio_file:
-            audio, sample_rate = sf.read(
-                audio_file,
-                dtype="float32",
-                always_2d=False,
-            )
+        audio_chunks: list[np.ndarray] = []
+        sample_rate: int | None = None
+
+        with av.open(BytesIO(audio_bytes), mode="r") as container:
+            for frame in container.decode(audio=0):
+                sample_rate = int(frame.sample_rate)
+                chunk = frame.to_ndarray()
+                audio_chunks.append(self._normalize_audio_chunk(chunk))
+
+        if not audio_chunks or sample_rate is None:
+            raise AsrError("Uploaded audio contains no decodable audio frames.")
+
+        audio = np.concatenate(audio_chunks, axis=0)
+        if audio.shape[1] == 1:
+            audio = audio[:, 0]
 
         return np.asarray(audio, dtype=np.float32), int(sample_rate)
+
+    def _normalize_audio_chunk(self, chunk: np.ndarray) -> np.ndarray:
+        audio = np.asarray(chunk)
+        if audio.ndim == 1:
+            audio = audio.reshape(-1, 1)
+        elif audio.ndim == 2:
+            audio = audio.T
+        else:
+            raise AsrError(f"Unsupported decoded audio shape: {audio.shape}.")
+
+        audio = audio.astype(np.float32)
+        if np.issubdtype(chunk.dtype, np.integer):
+            max_value = float(np.iinfo(chunk.dtype).max)
+            audio = audio / max_value
+        return audio
 
     def normalize_language(self, language: str | None) -> str:
         # Accept API aliases while passing canonical language names to the model.

@@ -11,6 +11,14 @@ uv run python main.py
 
 Open `http://127.0.0.1:8000/docs` for the generated API docs.
 
+## Development Principles
+
+- Fail fast: let unexpected errors surface instead of hiding them behind
+  defensive fallbacks.
+- Do not wrap backend code in broad `try`/`except` blocks. Catch only errors
+  with a clear recovery path or when translating a known failure into an API
+  response.
+
 ## ASR
 
 ```bash

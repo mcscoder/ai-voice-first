@@ -63,6 +63,8 @@ class TtsConfig:
 class MemoryConfig:
     """Runtime settings for Mem0 memory storage."""
 
+    load_on_startup: bool = True
+
     llm_provider: str = "gemini"
     llm_model: str = "gemini-2.5-flash-lite"
     llm_api_key: str = "suka-blyat"
