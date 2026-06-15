@@ -52,7 +52,7 @@ Run the real memory integration test with:
 
 ```bash
 cd backend
-RUN_MEMORY_INTEGRATION_TESTS=1 uv run pytest tests/test_memory_service_integration.py -q
+uv run pytest tests/test_memory_service_integration.py -q
 ```
 
 ## TTS

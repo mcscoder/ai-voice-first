@@ -9,14 +9,6 @@ from app.core.config import MemoryConfig
 from app.services.memory.service import MemoryService
 
 
-pytestmark = pytest.mark.skipif(
-    os.getenv("RUN_MEMORY_INTEGRATION_TESTS") != "1",
-    reason=(
-        "Set RUN_MEMORY_INTEGRATION_TESTS=1 to run real Mem0/Qwen integration tests."
-    ),
-)
-
-
 def test_memory_service_adds_and_searches_real_mem0_memory(tmp_path: Path) -> None:
     service = MemoryService(MemoryConfig(data_dir=tmp_path))
     user_id = "integration-user"
