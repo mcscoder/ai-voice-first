@@ -5,21 +5,52 @@ Nhằm đánh giá hành vi và khó khăn của người dùng trong việc qu�
 
 *   **78.5%** đáp viên thừa nhận họ thường xuyên quên mất các ý tưởng sáng tạo nảy ra bất chợt do không tiện mở điện thoại hoặc sổ tay để ghi chép ngay tại thời điểm đó.
 *   **62%** đáp viên cảm thấy phiền phức khi phải mở các ứng dụng như Notion hoặc Obsidian trên điện thoại vì thời gian tải ứng dụng lâu và cấu trúc phân mục phức tạp khiến việc lưu trữ một thông tin ngắn mất nhiều thao tác.
-*   **54.5%** đáp viên mong muốn có một ứng dụng hỗ trợ ra lệnh bằng giọng nói tiếng Việt nhưng có khả năng hiểu ngữ nghĩa thay vị chỉ ghi nhận nguyên văn (transcription) dạng thô.
+*   **54.5%** đáp viên mong muốn có một ứng dụng hỗ trợ ra lệnh bằng giọng nói tiếng Việt nhưng có khả năng hiểu ngữ nghĩa thay vì chỉ ghi nhận nguyên văn (transcription) dạng thô.
 *   **83%** đáp viên mong muốn ứng dụng ghi chú của họ có thể tự động liên kết các mẩu thông tin rời rạc (ví dụ: liên kết lịch hẹn công việc với thông tin liên hệ của một người) mà không cần họ phải tự tạo liên kết thủ công.
 
 Kết quả khảo sát này khẳng định nhu cầu cấp thiết về một giải pháp ghi chú tối giản, hỗ trợ giọng nói tiếng Việt mượt mà và tích hợp cơ chế quản lý trí nhớ tự động.
 
-### 2.2.2. So sánh ưu nhược điểm của các giải pháp hiện tại
-Để làm rõ giá trị nổi bật của VocalMind, nhóm nghiên cứu tiến hành phân tích, đối chiếu sản phẩm với các giải pháp quản lý tri thức và trợ lý ảo phổ biến hiện nay trên thế giới và tại Việt Nam.
+---
 
-| Tiêu chí so sánh | Trợ lý ảo truyền thống (Siri, Google Assistant) | Ứng dụng ghi chú tĩnh (Notion, Obsidian) | Trợ lý ghi chú AI (Mem.ai, Notion AI) | **Giải pháp VocalMind** |
-| :--- | :--- | :--- | :--- | :--- |
-| **Phương thức nhập liệu** | Giọng nói (Voice-first) | Bàn phím (Text-first) | Bàn phím là chủ yếu, hỗ trợ ghi âm đơn giản | **Giọng nói là chủ đạo (Voice-first)** |
-| **Hỗ trợ Tiếng Việt** | Khá tốt (nhận lệnh cơ bản) | Rất tốt (hỗ trợ hiển thị văn bản) | Hạn chế hoặc trung bình | **Xuất sắc (Tích hợp Qwen ASR và Vieneu TTS chuyên sâu)** |
-| **Bộ nhớ dài hạn (Long-term memory)** | Không có hoặc cực kỳ hạn chế (không lưu ngữ cảnh cuộc thoại trước) | Có (lưu trữ tĩnh do người dùng tự sắp xếp) | Có (AI tìm kiếm trên cơ sở dữ liệu văn bản) | **Có (Đồ thị trí nhớ động tự liên kết thông tin qua Mem0)** |
-| **Khả năng tự động suy luận** | Không (chỉ trả lời theo kịch bản/tìm kiếm web) | Không (hoàn toàn phụ thuộc cấu trúc thủ công) | Trung bình (tóm tắt văn bản, gợi ý liên kết) | **Cao (Tự trích xuất thực thể, mối quan hệ và hành vi chủ động)** |
-| **Mức độ ma sát thao tác** | Thấp (chỉ cần gọi trợ lý) | Cao (nhiều thao tác mở app, chọn mục, gõ chữ) | Trung bình (cần mở app và gõ câu lệnh AI) | **Cực thấp (Một chạm để nói, phản hồi bằng giọng nói tự nhiên)** |
+### 2.2.2. So sánh ưu nhược điểm của các giải pháp hiện tại
+Để làm rõ giá trị nổi bật của VocalMind, nhóm nghiên cứu tiến hành phân tích và đối chiếu dự án với 3 nhóm giải pháp quản lý tri thức và trợ lý ảo phổ biến hiện nay dựa trên 5 tiêu chí kỹ thuật cốt lõi:
+
+#### 2.2.2.1. Nhóm 1: Trợ lý ảo truyền thống thương mại (Siri, Google Assistant, Alexa)
+Các trợ lý ảo này được phát triển bởi các tập đoàn công nghệ lớn, tích hợp sâu vào hệ điều hành di động hoặc thiết bị IoT gia đình.
+*   **Phương thức nhập liệu:** Sử dụng giọng nói (Voice-first) làm chủ đạo, hỗ trợ kích hoạt rảnh tay bằng câu lệnh thoại.
+*   **Khả năng hỗ trợ Tiếng Việt:** Google Assistant hỗ trợ khá tốt; Siri đã hỗ trợ nhưng khả năng nhận diện các câu thoại tiếng Việt phức tạp còn nhiều hạn chế.
+*   **Bộ nhớ dài hạn (Long-term memory):** Không hỗ trợ. Các trợ lý này không lưu giữ ngữ cảnh hội thoại dài hạn hoặc liên kết giữa các thông tin trao đổi từ trước đó.
+*   **Khả năng tự động suy luận:** Rất thấp, hoạt động dựa trên các kịch bản cứng nhắc hoặc thực hiện truy vấn tìm kiếm trực tiếp trên Internet.
+*   **Mức độ ma sát thao tác:** Thấp, người dùng chỉ cần gọi tên trợ lý và ra lệnh.
+*   **Hạn chế cốt lõi:** Không được thiết kế cho việc quản lý tri thức hay ghi chú cá nhân, thông tin lưu trữ bị phân tán và không có cấu trúc liên kết.
+
+#### 2.2.2.2. Nhóm 2: Ứng dụng ghi chú tĩnh truyền thống (Notion, Obsidian, Evernote)
+Đây là các công cụ ghi chú mạnh mẽ và được sử dụng rộng rãi nhất trên máy tính để bàn để xây dựng cơ sở tri thức cá nhân.
+*   **Phương thức nhập liệu:** Lấy văn bản làm trung tâm (Text-first). Việc nhập liệu hoàn toàn phụ thuộc vào việc gõ bàn phím.
+*   **Khả năng hỗ trợ Tiếng Việt:** Tốt thông qua việc hiển thị ký tự Unicode tiêu chuẩn trên giao diện.
+*   **Bộ nhớ dài hạn (Long-term memory):** Có bộ nhớ tĩnh. Tuy nhiên, việc tổ chức, phân mục và liên kết các ghi chú hoàn toàn do người dùng tự xây dựng thủ công bằng cây thư mục hoặc liên kết hai chiều.
+*   **Khả năng tự động suy luận:** Không hỗ trợ. Hệ thống không hiểu nội dung lưu trữ bên trong các tệp văn bản.
+*   **Mức độ ma sát thao tác:** Rất cao trên di động. Việc mở ứng dụng, chọn mục lưu trữ, tạo file mới và gõ chữ tốn nhiều thời gian và thao tác.
+*   **Hạn chế cốt lõi:** Ma sát gõ phím quá lớn trên điện thoại di động làm cản trở việc ghi chép nhanh các ý tưởng bất chợt.
+
+#### 2.2.2.3. Nhóm 3: Trợ lý ghi chú tích hợp trí tuệ nhân tạo (Mem.ai, Notion AI, Evernote AI)
+Các ứng dụng ghi chú thế hệ mới được trang bị thêm các tính năng LLM để hỗ trợ tóm tắt, tìm kiếm và viết lách.
+*   **Phương thức nhập liệu:** Vẫn là hướng văn bản (Text-first). Mặc dù có hỗ trợ ghi âm nhưng chỉ dừng lại ở mức chuyển băng âm thanh sang chữ thô (transcription), không có tương tác đối thoại giọng nói hai chiều.
+*   **Khả năng hỗ trợ Tiếng Việt:** Hạn chế hoặc trung bình. Các dịch vụ này tối ưu chủ yếu cho tiếng Anh, khi xử lý tiếng Việt thường gặp lỗi diễn đạt hoặc không hiểu thấu đáo các thuật ngữ bản địa.
+*   **Bộ nhớ dài hạn (Long-term memory):** Tốt. AI hỗ trợ tìm kiếm ngữ nghĩa (semantic search) trên toàn bộ kho tài liệu văn bản đã lưu.
+*   **Khả năng tự động suy luận:** Trung bình, hỗ trợ tóm tắt văn bản và đưa ra gợi ý liên kết các tài liệu tương đồng.
+*   **Mức độ ma sát thao tác:** Trung bình, người dùng vẫn phải mở ứng dụng và nhập các câu lệnh (prompts) dạng chữ cho AI.
+*   **Hạn chế cốt lõi:** Giá thành dịch vụ cao, độ trễ phản hồi lớn do máy chủ đặt ở nước ngoài và thiếu đi giao diện hội thoại bằng giọng nói tự nhiên.
+
+#### 2.2.2.4. Giải pháp đề xuất: Hệ thống trợ lý giọng nói thông minh VocalMind
+VocalMind định hình một hướng tiếp cận kết hợp tối ưu giữa tương tác thoại và quản lý tri thức.
+*   **Phương thức nhập liệu:** Hoàn toàn hướng giọng nói (Voice-first). Một chạm để nói và lắng nghe trợ lý phản hồi bằng âm thanh.
+*   **Khả năng hỗ trợ Tiếng Việt:** Xuất sắc nhờ tích hợp bộ đôi mô hình AI chuyên biệt cho tiếng Việt: Qwen ASR nhận dạng giọng nói và Vieneu TTS tổng hợp giọng nói tự nhiên.
+*   **Bộ nhớ dài hạn (Long-term memory):** Xuất sắc. Tự động hóa việc xây dựng Đồ thị ký ức (Memory Graph) để liên kết thông tin.
+*   **Khả năng tự động suy luận:** Cao nhờ sử dụng lõi Mem0 để trích xuất các thực thể, mối quan hệ và tự động giải quyết xung đột thông tin.
+*   **Mức độ ma sát thao tác:** Cực kỳ thấp. Trải nghiệm một chạm đơn giản, hoàn toàn phù hợp để sử dụng khi đang di chuyển hoặc làm các công việc khác.
+
+---
 
 ### 2.2.3. Phân tích chi tiết các điểm hạn chế cốt lõi của đối thủ cạnh tranh
 
