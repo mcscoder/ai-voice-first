@@ -66,7 +66,7 @@ class MemoryConfig:
     load_on_startup: bool = True
 
     llm_provider: str = "gemini"
-    llm_model: str = "gemini-2.5-flash-lite"
+    llm_model: str = "gemini-3.1-flash-lite"
     llm_api_key: str = "suka-blyat"
     llm_temperature: float = 0.1
     llm_max_tokens: int = 2000
