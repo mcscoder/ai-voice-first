@@ -25,15 +25,17 @@ Open `http://127.0.0.1:8000/docs` for the generated API docs.
 curl -F "file=@speech.wav" -F "language=English" http://127.0.0.1:8000/asr
 ```
 
-The ASR endpoint uses `Qwen/Qwen3-ASR-0.6B`, loads the model on app startup,
-and supports English (`en`) and Vietnamese (`vi`).
+The ASR endpoint uses `Qwen/Qwen3-ASR-0.6B`, loads the model on app startup
+with 4-bit bitsandbytes quantization, and supports English (`en`) and
+Vietnamese (`vi`).
 
 ## Memory
 
 The memory service uses Mem0 with:
 
 - Gemini as the LLM provider
-- `Qwen/Qwen3-Embedding-0.6B` through the Hugging Face embedder
+- `Qwen/Qwen3-Embedding-0.6B` through the Hugging Face embedder with 4-bit
+  bitsandbytes quantization
 - Local Qdrant storage under `backend/app/data/mem0`
 
 The Gemini API key in `app.core.config.MemoryConfig` is a mock placeholder. For

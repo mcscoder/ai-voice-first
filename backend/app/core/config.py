@@ -2,6 +2,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
+from transformers import BitsAndBytesConfig
+
 
 # ASR runs on Qwen/Transformers; use "cuda:0" to require GPU 0.
 AsrDevice = Literal["auto", "cuda:0", "cpu"]
@@ -28,11 +30,33 @@ TtsVoice = Literal[
 
 
 @dataclass(frozen=True)
+class QuantizationConfig:
+    """Shared 4-bit model loading settings for Qwen models."""
+
+    load_in_4bit: bool = True
+    bnb_4bit_compute_dtype: str = "float16"
+    bnb_4bit_quant_type: str = "nf4"
+    bnb_4bit_use_double_quant: bool = True
+
+    def to_bitsandbytes_config(self) -> BitsAndBytesConfig:
+        return BitsAndBytesConfig(
+            load_in_4bit=self.load_in_4bit,
+            bnb_4bit_compute_dtype=self.bnb_4bit_compute_dtype,
+            bnb_4bit_quant_type=self.bnb_4bit_quant_type,
+            bnb_4bit_use_double_quant=self.bnb_4bit_use_double_quant,
+        )
+
+    def to_transformers_kwargs(self) -> dict[str, BitsAndBytesConfig]:
+        return {"quantization_config": self.to_bitsandbytes_config()}
+
+
+@dataclass(frozen=True)
 class AsrConfig:
     """Runtime settings for automatic speech recognition."""
 
     model_name: str = "Qwen/Qwen3-ASR-0.6B"
     device: AsrDevice = "auto"
+    quantization: QuantizationConfig = field(default_factory=QuantizationConfig)
     load_on_startup: bool = True
 
     default_language: str = "English"
@@ -74,6 +98,9 @@ class MemoryConfig:
     embedder_provider: str = "huggingface"
     embedder_model: str = "Qwen/Qwen3-Embedding-0.6B"
     embedding_dims: int = 1024
+    embedding_quantization: QuantizationConfig = field(
+        default_factory=QuantizationConfig
+    )
 
     vector_store_provider: str = "qdrant"
     vector_store_collection_name: str = "ai_voice_first_memories"
@@ -107,6 +134,12 @@ class MemoryConfig:
                 "config": {
                     "model": self.embedder_model,
                     "embedding_dims": self.embedding_dims,
+                    "model_kwargs": {
+                        "model_kwargs": {
+                            **self.embedding_quantization.to_transformers_kwargs(),
+                            "device_map": "auto",
+                        },
+                    },
                 },
             },
             "vector_store": {
