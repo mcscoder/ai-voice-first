@@ -43,3 +43,13 @@ def test_memory_config_passes_4bit_quantization_to_huggingface_embedder() -> Non
     assert str(quantization_config.bnb_4bit_compute_dtype) == "torch.float16"
     assert quantization_config.bnb_4bit_quant_type == "nf4"
     assert quantization_config.bnb_4bit_use_double_quant is True
+
+
+def test_memory_config_uses_deepseek_llm() -> None:
+    mem0_config = MemoryConfig().to_mem0_config()
+
+    llm_config = mem0_config["llm"]
+    assert llm_config["provider"] == "deepseek"
+    assert llm_config["config"]["model"] == "deepseek-v4-flash"
+    assert llm_config["config"]["api_key"] is None
+    assert llm_config["config"]["deepseek_base_url"] == "https://api.deepseek.com"

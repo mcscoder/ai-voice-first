@@ -33,30 +33,19 @@ Vietnamese (`vi`).
 
 The memory service uses Mem0 with:
 
-- Gemini as the LLM provider
+- DeepSeek as the LLM provider
 - `Qwen/Qwen3-Embedding-0.6B` through the Hugging Face embedder with 4-bit
   bitsandbytes quantization
 - Local Qdrant storage under `backend/app/data/mem0`
 
-The Gemini API key in `app.core.config.MemoryConfig` is a mock placeholder. For
-local development, Gemini calls are routed through the local proxy server by
-patching Mem0's installed Gemini adapter:
+Set `DEEPSEEK_API_KEY` before starting the backend:
 
-```python
-self.client = genai.Client(
-    api_key=api_key,
-    http_options={"base_url": "http://127.0.0.1:8317"},
-)
+```bash
+export DEEPSEEK_API_KEY=your_deepseek_api_key_here
 ```
 
-Patch location:
-
-```text
-.venv/lib/python3.12/site-packages/mem0/llms/gemini.py
-```
-
-This is a local virtualenv patch and is not tracked by git. Reinstalling or
-syncing dependencies can overwrite it.
+`app.core.config.MemoryConfig` defaults to `deepseek-v4-flash` through the
+official DeepSeek API base URL.
 
 Run the real memory integration test with:
 

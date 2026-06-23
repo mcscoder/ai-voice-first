@@ -89,9 +89,10 @@ class MemoryConfig:
 
     load_on_startup: bool = True
 
-    llm_provider: str = "gemini"
-    llm_model: str = "gemini-3.1-flash-lite"
-    llm_api_key: str = "suka-blyat"
+    llm_provider: str = "deepseek"
+    llm_model: str = "deepseek-v4-flash"
+    llm_api_key: str | None = None
+    llm_base_url: str = "https://api.deepseek.com"
     llm_temperature: float = 0.1
     llm_max_tokens: int = 2000
 
@@ -125,6 +126,7 @@ class MemoryConfig:
                 "config": {
                     "model": self.llm_model,
                     "api_key": self.llm_api_key,
+                    "deepseek_base_url": self.llm_base_url,
                     "temperature": self.llm_temperature,
                     "max_tokens": self.llm_max_tokens,
                 },
