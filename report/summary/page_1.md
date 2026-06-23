@@ -1,20 +1,20 @@
-# TÓM TẮT ĐỀ TÀI (EXECUTIVE SUMMARY)
+# EXECUTIVE SUMMARY
 
-## 1. Tóm tắt đề tài (Summary)
-Đề tài **VocalMind** xây dựng một hệ thống trợ lý ghi nhớ thông minh hướng giọng nói (Voice-first Personal Knowledge Management) hoạt động như một "Trí óc thứ hai" (Second Brain) cho người dùng. Khác với các ứng dụng ghi chú truyền thống bằng văn bản vốn đòi hỏi thao tác nhập liệu phức tạp bằng bàn phím, VocalMind cho phép người dùng tương tác hoàn toàn bằng giọng nói tự nhiên thông qua ứng dụng di động Flutter. Backend của hệ thống được xây dựng trên nền tảng FastAPI (Python), tích hợp các mô hình học sâu tiên tiến bao gồm **Qwen ASR** cho nhận dạng giọng nói, **Vieneu** cho tổng hợp giọng nói tiếng Việt tự nhiên, **Mem0** làm lõi quản lý ký ức hội thoại dạng đồ thị (Memory Graph) và **DeepSeek** làm nhà cung cấp LLM sinh phản hồi hội thoại. Hệ thống có khả năng tự động trích xuất thông tin, tổ chức và liên kết các ký ức theo thời gian và ngữ cảnh, hỗ trợ nhắc nhở chủ động và phản hồi hội thoại thông minh.
+## 1. Project Summary
+**VocalMind** is a voice-first intelligent memory assistant that acts as a user's "Second Brain." Unlike traditional text-based note-taking apps that require keyboard input, VocalMind lets users interact entirely through natural speech via a Flutter mobile app. The backend is built with FastAPI (Python) and integrates advanced deep learning models: **Qwen ASR** for speech recognition, **Vieneu** for natural Vietnamese speech synthesis, **Mem0** as the graph-based conversational memory layer, and **DeepSeek** as the LLM provider for conversational responses. The system can automatically extract information, organize and connect memories by time and context, and support proactive reminders and intelligent dialogue.
 
-## 2. Phương pháp nghiên cứu (Methodology)
-Nghiên cứu được triển khai theo quy trình phát triển sản phẩm Agile/Scrum kết hợp tư duy khởi nghiệp tinh gọn (Lean Startup). Các phương pháp chính bao gồm:
-*   **Khảo sát và Phân tích Yêu cầu:** Phân tích ma sát trong quy trình quản lý tri thức cá nhân (PKM) hiện tại và lập biểu đồ hành trình khách hàng.
-*   **Thiết kế Kiến trúc Hệ thống:** Áp dụng mô hình Client-Server hướng dịch vụ microservices nhẹ, giao tiếp qua RESTful API không đồng bộ (Async API).
-*   **Tích hợp Trí tuệ Nhân tạo:** Sử dụng học máy chuyển giao (Transfer Learning) và mô hình ngôn ngữ lớn (LLM) thông qua thư viện Mem0 để xây dựng bộ nhớ có ngữ cảnh.
-*   **Thử nghiệm và Đánh giá:** Đánh giá hiệu năng dựa trên độ trễ phản hồi (latency), độ chính xác của ASR (Word Error Rate - WER) và khảo sát sự hài lòng của người dùng cuối.
+## 2. Methodology
+The study followed an Agile/Scrum product-development process combined with Lean Startup thinking. The main methods included:
+*   **Survey and requirements analysis:** Identifying friction in current personal knowledge management (PKM) workflows and mapping the customer journey.
+*   **System architecture design:** Applying a lightweight service-oriented Client-Server model with asynchronous RESTful APIs.
+*   **AI integration:** Using transfer learning and LLMs through Mem0 to build contextual memory.
+*   **Testing and evaluation:** Measuring latency, ASR accuracy (Word Error Rate - WER), and end-user satisfaction.
 
-## 3. Các kết quả chính đạt được (Findings)
-*   **Ứng dụng Di động:** Phát triển thành công ứng dụng Flutter với giao diện tối giản, tối ưu hóa cho tương tác giọng nói, sử dụng Cubit làm giải pháp quản lý trạng thái mượt mà.
-*   **Hệ thống Backend:** Xây dựng hệ thống FastAPI có khả năng xử lý luồng âm thanh đa phương tiện (qua PyAV), tích hợp mô hình nhận dạng tiếng Việt Qwen ASR, DeepSeek LLM và tổng hợp giọng nói Vieneu; lần chạy thực tế ghi nhận tổng thời gian phản hồi khoảng **14.22 giây**.
-*   **Công nghệ Trí nhớ thông minh:** Ứng dụng thành công Mem0 để ghi nhận ký ức người dùng một cách nhất quán, có khả năng tự động suy luận và liên kết các sự kiện liên quan (nợ nần, kế hoạch, mối quan hệ).
+## 3. Key Findings
+*   **Mobile app:** Successfully developed a Flutter app with a minimal interface optimized for voice interaction, using Cubit for smooth state management.
+*   **Backend system:** Built a FastAPI backend capable of handling multimedia audio streams via PyAV, integrating Qwen ASR, DeepSeek LLM, and Vieneu TTS; a real execution recorded a total response time of about **14.22 seconds**.
+*   **Intelligent memory:** Successfully used Mem0 to store user memories consistently, with automatic inference and linking of related events (debts, plans, relationships).
 
-## 4. Đề xuất và Định hướng Khởi nghiệp (Recommendations)
-*   **Định hướng Thương mại hóa:** Triển khai sản phẩm theo mô hình SaaS (Software as a Service) với hai phiên bản: Miễn phí (giới hạn dung lượng bộ nhớ) và Trả phí (bộ nhớ không giới hạn, tùy chỉnh tính cách trợ lý, đồng bộ hóa đa thiết bị).
-*   **Kế hoạch Phát triển:** Tối ưu hóa mô hình AI để chạy offline (Edge AI) giúp bảo vệ quyền riêng tư tuyệt đối cho người dùng, và tích hợp các thiết bị đeo thông minh (wearables).
+## 4. Recommendations and Startup Direction
+*   **Commercialization:** Launch the product as SaaS with two tiers: Free (limited memory storage) and Paid (unlimited memory, assistant personality customization, multi-device sync).
+*   **Development plan:** Optimize the AI models for offline execution (Edge AI) to strengthen privacy, and integrate smart wearables.

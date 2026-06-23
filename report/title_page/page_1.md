@@ -1,27 +1,27 @@
-# BÁO CÁO KHÓA LUẬN TỐT NGHIỆP
-## ĐỊNH HƯỚNG KHỞI NGHIỆP & ĐỔI MỚI SÁNG TẠO NĂM 2026
+# GRADUATION THESIS REPORT
+## 2026 STARTUP AND INNOVATION ORIENTATION
 
 ---
 
-**ĐỀ TÀI:**
-### **VOCALMIND: HỆ THỐNG TRỢ LÝ GHI NHỚ THÔNG MINH BẰNG GIỌNG NÓI (VOICE-FIRST PERSONAL KNOWLEDGE MANAGEMENT & SECOND BRAIN)**
+**TOPIC:**
+### **VOCALMIND: A VOICE-FIRST INTELLIGENT MEMORY ASSISTANT SYSTEM (VOICE-FIRST PERSONAL KNOWLEDGE MANAGEMENT & SECOND BRAIN)**
 
 ---
 
-**ĐƠN VỊ THỰC HIỆN:**
-*   **Trường:** Đại học Công nghệ Thông tin và Truyền thông Việt - Hàn (UD-VKU)
-*   **Khoa:** Khoa Khoa học Máy tính
-*   **Chuyên ngành:** Công nghệ Phần mềm / Trí tuệ Nhân tạo
+**INSTITUTION:**
+*   **School:** Vietnam-Korea University of Information and Communication Technology (UD-VKU)
+*   **Faculty:** Computer Science
+*   **Major:** Software Engineering / Artificial Intelligence
 
-**SINH VIÊN THỰC HIỆN:**
-*   **Sinh viên 1:** Nguyễn Văn A (MSV: 22GIT001)
-*   **Sinh viên 2:** Trần Thị B (MSV: 22GIT002)
+**STUDENTS:**
+*   **Student 1:** Nguyen Van A (Student ID: 22GIT001)
+*   **Student 2:** Tran Thi B (Student ID: 22GIT002)
 
-**GIÁO VIÊN HƯỚNG DẪN:**
-*   **GVHD:** TS. Lê Hoàng C
+**SUPERVISOR:**
+*   **Supervisor:** Dr. Le Hoang C
 
 ---
 
 <div style="page-break-after: always;"></div>
 
-*Đà Nẵng, Tháng 06 Năm 2026*
+*Da Nang, June 2026*

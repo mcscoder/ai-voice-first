@@ -1,6 +1,6 @@
-# DANH MỤC TÀI LIỆU THAM KHẢO (REFERENCES)
+# REFERENCES
 
-Tài liệu tham khảo được trình bày theo chuẩn APA (American Psychological Association) 7th Edition:
+References are formatted in APA (American Psychological Association) 7th Edition:
 
 1.  Alibaba Group. (2024). *Qwen ASR: An Advanced Large-scale Speech Recognition Model*. GitHub Repository. Retrieved from https://github.com/QwenLM/Qwen-ASR
 2.  Bastian, M., Heymann, S., & Jacomy, M. (2009). Gephi: an open source software for exploring and manipulating networks. *International AAAI Conference on Weblogs and Social Media*, 3(1), 361-362.
@@ -13,4 +13,4 @@ Tài liệu tham khảo được trình bày theo chuẩn APA (American Psycholo
 9.  Ries, E. (2011). *The Lean Startup: How Today's Entrepreneurs Use Continuous Innovation to Create Radically Successful Businesses*. Crown Business.
 10. Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., Kaiser, L., & Polosukhin, I. (2017). Attention is all you need. *Advances in Neural Information Processing Systems*, 30, 5998-6008.
 11. Vieneu Developer Group. (2025). *Vieneu: High-fidelity Neural Text-to-Speech System for Vietnamese Language*. Retrieved from https://github.com/vieneu/vieneu
-12. Tiêu chuẩn Quốc gia TCVN 12790:2020 về Công nghệ thông tin - Định dạng tài liệu số và yêu cầu kỹ thuật đối với báo cáo khóa luận tốt nghiệp. Bộ Khoa học và Công nghệ Việt Nam.
+12. National Standard TCVN 12790:2020 on information technology - Digital document format and technical requirements for graduation thesis reports. Ministry of Science and Technology of Vietnam.
