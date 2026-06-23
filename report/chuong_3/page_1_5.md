@@ -23,7 +23,7 @@ graph TD
         TTS[TTS Service / Vieneu TTS]
         MemService[Memory Service]
         Mem0[Mem0 Engine / Vector DB]
-        LLM[LLM Assistant]
+        LLM[DeepSeek LLM Assistant]
     end
 
     UI -->|Thao tác người dùng| Cubit
@@ -48,8 +48,8 @@ Khi người dùng thực hiện tương tác giọng nói với trợ lý, lu�
 3.  **Nhận dạng giọng nói (ASR) tại Backend:** FastAPI Backend nhận được tệp âm thanh, sử dụng thư viện `PyAV` để giải mã luồng âm thanh thô thành mảng NumPy, chuẩn hóa tần số lấy mẫu và chuyển cho mô hình `Qwen3ASRModel` thực hiện nhận dạng sang văn bản thô (transcription text).
 4.  **Xử lý Trí nhớ và Sinh câu trả lời (Memory & LLM):** Văn bản nhận dạng được gửi tới `MemoryService`.
     *   Hệ thống gọi phương thức `memory.search()` của thư viện `Mem0` để tìm kiếm 5 ký ức có độ tương đồng ngữ nghĩa cao nhất liên quan đến nội dung người dùng vừa nói.
-    *   Nội dung ký ức tìm được kết hợp với câu nói hiện tại của người dùng để làm thành một prompt ngữ cảnh đầy đủ gửi tới mô hình ngôn ngữ lớn (LLM).
-    *   LLM sinh câu trả lời ngắn gọn, tự nhiên dưới dạng văn bản.
+    *   Nội dung ký ức tìm được kết hợp với câu nói hiện tại của người dùng để làm thành một prompt ngữ cảnh đầy đủ gửi tới mô hình ngôn ngữ lớn DeepSeek (`deepseek-v4-flash`).
+    *   DeepSeek sinh câu trả lời ngắn gọn, tự nhiên dưới dạng văn bản.
     *   Hệ thống gọi phương thức `memory.add()` để cập nhật cặp hội thoại (User - Assistant) mới vào đồ thị ký ức của người dùng.
 5.  **Tổng hợp giọng nói (TTS) tại Backend:** Văn bản phản hồi của LLM được chuyển tới `TtsService`. Mô hình `Vieneu` thực hiện tổng hợp văn bản này thành luồng âm thanh WAV tiếng Việt tự nhiên theo giọng đọc cấu hình sẵn.
 6.  **Trả về và Phát âm thanh phía Client:** Máy chủ trả về dữ liệu âm thanh nhị phân WAV trong phản hồi HTTP Response với định dạng `audio/wav`. Phía Client nhận được mảng bytes âm thanh, chuyển vào `AudioPlayer` để phát ngay lập tức cho người dùng nghe, đồng thời hiển thị văn bản phản hồi lên màn hình.

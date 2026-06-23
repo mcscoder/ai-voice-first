@@ -23,7 +23,7 @@
 Mặc dù đạt được những kết quả khả quan, hệ thống VocalMind vẫn tồn tại một số điểm hạn chế kỹ thuật cần được khắc phục trong tương lai:
 1.  **Sự phụ thuộc mạng (Network Dependency):** Do các mô hình học sâu kích thước lớn (ASR, TTS, LLM) phải vận hành tập trung trên máy chủ có GPU mạnh, hệ thống đòi hỏi thiết bị di động của người dùng phải luôn có kết nối Internet tốc độ ổn định. Ứng dụng chưa thể hoạt động trong điều kiện ngoại tuyến (Offline Mode - như khi ở trên máy bay hay vùng núi sóng yếu).
 2.  **Chi phí hạ tầng máy chủ lớn:** Chi phí thuê máy chủ Cloud GPU chuyên dụng để chạy suy luận (inference) thời gian thực cho ASR, TTS và duy trì cơ sở dữ liệu vector/đồ thị tri thức của Mem0 là rất cao. Điều này tạo áp lực tài chính lớn cho mô hình kinh doanh trong giai đoạn khởi nghiệp ban đầu khi chưa có tệp khách hàng trả phí lớn để bù đắp chi phí vận hành (Operational Expenses - OPEX).
-3.  **Vấn đề độ trễ khi kết nối mạng kém:** Trong điều kiện mạng di động không ổn định (sóng 3G yếu), thời gian tải lên tệp âm thanh nhị phân và nhận tệp WAV phản hồi bị kéo dài, làm tăng tổng độ trễ phản hồi vượt quá mức 3.0 giây, ảnh hưởng xấu tới trải nghiệm người dùng.
+3.  **Vấn đề độ trễ xử lý:** Lần chạy thực tế hiện ghi nhận tổng thời gian phản hồi khoảng **14.22 giây**, trong đó bước tổng hợp giọng nói Vieneu mất khoảng **8.29 giây** và bước Memory/DeepSeek mất khoảng **4.73 giây**. Khi kết nối mạng yếu, thời gian tải lên tệp âm thanh và nhận tệp WAV phản hồi có thể làm độ trễ tăng thêm, ảnh hưởng tới trải nghiệm hội thoại tự nhiên.
 
 ---
 

@@ -47,6 +47,20 @@ export DEEPSEEK_API_KEY=your_deepseek_api_key_here
 `app.core.config.MemoryConfig` defaults to `deepseek-v4-flash` through the
 official DeepSeek API base URL.
 
+## Runtime Notes
+
+Current local test hardware uses an NVIDIA RTX 2080S with 8GB VRAM.
+
+Observed voice assistant run:
+
+```text
+HTTP Request: POST https://api.deepseek.com/chat/completions "HTTP/1.1 200 OK"
+Total existing memories: 0
+voice_assistant step=memory duration_ms=4726.48
+voice_assistant step=tts duration_ms=8291.70
+voice_assistant step=total duration_ms=14224.81
+```
+
 Run the real memory integration test with:
 
 ```bash

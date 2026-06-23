@@ -7,7 +7,7 @@
 *   **Hệ điều hành:** Linux Ubuntu 20.04 LTS hoặc cao hơn.
 *   **Bộ xử lý (CPU):** Intel Xeon hoặc AMD Ryzen 8 cores (khuyến nghị).
 *   **Bộ nhớ trong (RAM):** 16 GB trở lên.
-*   **Bộ xử lý đồ họa (GPU):** NVIDIA GPU hỗ trợ kiến trúc CUDA (ví dụ: RTX 3060, RTX 4090, A10G) với tối thiểu 8GB VRAM.
+*   **Bộ xử lý đồ họa (GPU):** NVIDIA GPU hỗ trợ kiến trúc CUDA; môi trường chạy thử hiện tại sử dụng RTX 2080S với 8GB VRAM.
 *   **Môi trường:** Python phiên bản >= 3.12, quản lý thư viện bằng công cụ `uv`.
 
 ### 1.2. Cấu hình phía Client (Frontend)
@@ -51,7 +51,7 @@ Tạo một tệp tin `.env` trong thư mục `backend/` để cấu hình các 
 APP_ENV=development
 
 # Khóa API để gọi mô hình ngôn ngữ lớn (LLM) cho Mem0
-OPENAI_API_KEY=your_openai_api_key_here
+DEEPSEEK_API_KEY=your_deepseek_api_key_here
 
 # Cấu hình cổng chạy máy chủ
 PORT=8000

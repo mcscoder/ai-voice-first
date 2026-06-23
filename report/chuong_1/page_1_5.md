@@ -64,6 +64,7 @@ Hệ thống VocalMind được xây dựng và vận hành dựa trên các cô
 | **ASR Engine** | Qwen ASR (`Qwen3ASRModel`) | Nhận dạng âm thanh tải lên và chuyển dịch thành văn bản tiếng Việt/Anh. |
 | **TTS Engine** | Vieneu TTS (`Vieneu` SDK) | Tổng hợp câu trả lời dạng chữ thành âm thanh dạng WAV. |
 | **Memory Engine** | Mem0 (`mem0ai`) | Quản lý trí nhớ dài hạn/ngắn hạn của người dùng, lưu trữ vector ngữ cảnh và cập nhật tri thức hội thoại. |
+| **LLM Provider** | DeepSeek (`deepseek-v4-flash`) | Sinh phản hồi hội thoại ngắn gọn dựa trên prompt ngữ cảnh từ Mem0. |
 
 ### 1.3.3. Giới hạn hệ thống và môi trường triển khai
 *   **Ngôn ngữ hỗ trợ:** Tập trung tối ưu cho tiếng Việt và tiếng Anh.

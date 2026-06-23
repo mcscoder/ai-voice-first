@@ -1,7 +1,7 @@
 # TÓM TẮT ĐỀ TÀI (EXECUTIVE SUMMARY)
 
 ## 1. Tóm tắt đề tài (Summary)
-Đề tài **VocalMind** xây dựng một hệ thống trợ lý ghi nhớ thông minh hướng giọng nói (Voice-first Personal Knowledge Management) hoạt động như một "Trí óc thứ hai" (Second Brain) cho người dùng. Khác với các ứng dụng ghi chú truyền thống bằng văn bản vốn đòi hỏi thao tác nhập liệu phức tạp bằng bàn phím, VocalMind cho phép người dùng tương tác hoàn toàn bằng giọng nói tự nhiên thông qua ứng dụng di động Flutter. Backend của hệ thống được xây dựng trên nền tảng FastAPI (Python), tích hợp các mô hình học sâu tiên tiến bao gồm **Qwen ASR** cho nhận dạng giọng nói, **Vieneu** cho tổng hợp giọng nói tiếng Việt tự nhiên và **Mem0** làm lõi quản lý ký ức hội thoại dạng đồ thị (Memory Graph). Hệ thống có khả năng tự động trích xuất thông tin, tổ chức và liên kết các ký ức theo thời gian và ngữ cảnh, hỗ trợ nhắc nhở chủ động và phản hồi hội thoại thông minh.
+Đề tài **VocalMind** xây dựng một hệ thống trợ lý ghi nhớ thông minh hướng giọng nói (Voice-first Personal Knowledge Management) hoạt động như một "Trí óc thứ hai" (Second Brain) cho người dùng. Khác với các ứng dụng ghi chú truyền thống bằng văn bản vốn đòi hỏi thao tác nhập liệu phức tạp bằng bàn phím, VocalMind cho phép người dùng tương tác hoàn toàn bằng giọng nói tự nhiên thông qua ứng dụng di động Flutter. Backend của hệ thống được xây dựng trên nền tảng FastAPI (Python), tích hợp các mô hình học sâu tiên tiến bao gồm **Qwen ASR** cho nhận dạng giọng nói, **Vieneu** cho tổng hợp giọng nói tiếng Việt tự nhiên, **Mem0** làm lõi quản lý ký ức hội thoại dạng đồ thị (Memory Graph) và **DeepSeek** làm nhà cung cấp LLM sinh phản hồi hội thoại. Hệ thống có khả năng tự động trích xuất thông tin, tổ chức và liên kết các ký ức theo thời gian và ngữ cảnh, hỗ trợ nhắc nhở chủ động và phản hồi hội thoại thông minh.
 
 ## 2. Phương pháp nghiên cứu (Methodology)
 Nghiên cứu được triển khai theo quy trình phát triển sản phẩm Agile/Scrum kết hợp tư duy khởi nghiệp tinh gọn (Lean Startup). Các phương pháp chính bao gồm:
@@ -12,7 +12,7 @@ Nghiên cứu được triển khai theo quy trình phát triển sản phẩm A
 
 ## 3. Các kết quả chính đạt được (Findings)
 *   **Ứng dụng Di động:** Phát triển thành công ứng dụng Flutter với giao diện tối giản, tối ưu hóa cho tương tác giọng nói, sử dụng Cubit làm giải pháp quản lý trạng thái mượt mà.
-*   **Hệ thống Backend:** Xây dựng hệ thống FastAPI có khả năng xử lý luồng âm thanh đa phương tiện (qua PyAV), tích hợp mô hình nhận dạng tiếng Việt Qwen ASR và tổng hợp giọng nói Vieneu với thời gian phản hồi dưới 2.5 giây.
+*   **Hệ thống Backend:** Xây dựng hệ thống FastAPI có khả năng xử lý luồng âm thanh đa phương tiện (qua PyAV), tích hợp mô hình nhận dạng tiếng Việt Qwen ASR, DeepSeek LLM và tổng hợp giọng nói Vieneu; lần chạy thực tế ghi nhận tổng thời gian phản hồi khoảng **14.22 giây**.
 *   **Công nghệ Trí nhớ thông minh:** Ứng dụng thành công Mem0 để ghi nhận ký ức người dùng một cách nhất quán, có khả năng tự động suy luận và liên kết các sự kiện liên quan (nợ nần, kế hoạch, mối quan hệ).
 
 ## 4. Đề xuất và Định hướng Khởi nghiệp (Recommendations)
