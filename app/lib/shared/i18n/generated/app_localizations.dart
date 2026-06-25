@@ -220,6 +220,12 @@ abstract class AppLocalizations {
   /// **'Open settings'**
   String get voiceOpenSettings;
 
+  /// No description provided for @voiceCancelRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get voiceCancelRequest;
+
   /// No description provided for @voiceLanguageLabel.
   ///
   /// In en, this message translates to:

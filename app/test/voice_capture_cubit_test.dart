@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:ai_voice_first/core/error.dart' as app_error;
@@ -84,6 +85,35 @@ void main() {
       expect(cubit.state.status, VoiceCaptureStatus.success);
       expect(cubit.state.selectedLanguage, VoiceLanguage.vietnamese);
       expect(playedAudio.single, equals(Uint8List.fromList(const [9, 8, 7])));
+      await cubit.close();
+    });
+
+    test('cancels an in-flight voice request', () async {
+      final api = FakeTranscriptionApi.pending();
+      final cubit = VoiceCaptureCubit(
+        FakePermissionService(checkStatus: AppPermissionStatus.granted),
+        FakeAudioRecorderService(stopPath: '/tmp/audio.m4a'),
+        api,
+        playAssistantSpeech: _noopPlayback,
+      );
+
+      await cubit.startRecording();
+      final stopFuture = cubit.stopRecording();
+      await api.requestStarted;
+
+      expect(cubit.state.status, VoiceCaptureStatus.uploading);
+      expect(cubit.state.requestStartedAt, isNotNull);
+
+      cubit.cancelRequest();
+
+      expect(api.lastCancelToken?.isCancelled, isTrue);
+      expect(cubit.state.status, VoiceCaptureStatus.idle);
+      expect(cubit.state.requestStartedAt, isNull);
+
+      api.complete(const [1, 2, 3]);
+      await stopFuture;
+
+      expect(cubit.state.status, VoiceCaptureStatus.idle);
       await cubit.close();
     });
 
@@ -344,23 +374,46 @@ final class FakeAudioRecorderService extends AudioRecorderService {
 final class FakeTranscriptionApi extends TranscriptionApi {
   FakeTranscriptionApi.success(List<int> audio)
     : _result = (error: null, audio: Uint8List.fromList(audio)),
+      _pending = null,
       super(Dio());
 
   FakeTranscriptionApi.error(app_error.NetworkError error)
     : _result = (error: error, audio: null),
+      _pending = null,
       super(Dio());
 
-  final ({app_error.NetworkError? error, Uint8List? audio}) _result;
+  FakeTranscriptionApi.pending()
+    : _result = null,
+      _pending =
+          Completer<({app_error.NetworkError? error, Uint8List? audio})>(),
+      super(Dio());
+
+  final ({app_error.NetworkError? error, Uint8List? audio})? _result;
+  final Completer<({app_error.NetworkError? error, Uint8List? audio})>?
+  _pending;
+  final Completer<void> _requestStarted = Completer<void>();
   String? lastLanguageCode;
+  CancelToken? lastCancelToken;
+
+  Future<void> get requestStarted => _requestStarted.future;
+
+  void complete(List<int> audio) {
+    _pending?.complete((error: null, audio: Uint8List.fromList(audio)));
+  }
 
   @override
   Future<({app_error.NetworkError? error, Uint8List? audio})> respond({
     required String filePath,
     required VoiceLanguage language,
+    CancelToken? cancelToken,
     ProgressCallback? onSendProgress,
   }) async {
     lastLanguageCode = language.code;
-    return _result;
+    lastCancelToken = cancelToken;
+    if (!_requestStarted.isCompleted) {
+      _requestStarted.complete();
+    }
+    return _pending?.future ?? _result!;
   }
 }
 

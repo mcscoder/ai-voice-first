@@ -20,6 +20,7 @@
   "voiceBackendErrorStatus": "The assistant service failed.",
   "voiceUnknownErrorStatus": "Something went wrong. Try again.",
   "voiceOpenSettings": "Open settings",
+  "voiceCancelRequest": "Cancel",
   "voiceLanguageLabel": "Language",
   "voiceStartHint": "Tap to start",
   "voiceStopHint": "Tap to stop",

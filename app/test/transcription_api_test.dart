@@ -16,6 +16,8 @@ void main() {
 
       FormData? capturedFormData;
       String? capturedPath;
+      CancelToken? capturedCancelToken;
+      final cancelToken = CancelToken();
 
       final dio = Dio(BaseOptions(baseUrl: 'http://localhost:8000'));
       dio.interceptors.add(
@@ -23,6 +25,7 @@ void main() {
           onRequest: (options, handler) {
             capturedPath = options.path;
             capturedFormData = options.data as FormData;
+            capturedCancelToken = options.cancelToken;
             handler.resolve(
               Response<List<int>>(
                 requestOptions: options,
@@ -37,11 +40,13 @@ void main() {
       final result = await api.respond(
         filePath: file.path,
         language: VoiceLanguage.english,
+        cancelToken: cancelToken,
       );
 
       expect(result.error, isNull);
       expect(result.audio, equals(Uint8List.fromList(const [1, 2, 3, 4])));
       expect(capturedPath, '/v1/voice/assistant');
+      expect(capturedCancelToken, same(cancelToken));
       expect(capturedFormData, isNotNull);
       expect(capturedFormData!.fields.single.key, 'language');
       expect(capturedFormData!.fields.single.value, 'en');

@@ -16,6 +16,7 @@ base class TranscriptionApi extends Api {
   Future<({NetworkError? error, Uint8List? audio})> respond({
     required String filePath,
     required VoiceLanguage language,
+    CancelToken? cancelToken,
     ProgressCallback? onSendProgress,
   }) async {
     final result = await withTimeoutRequest(() async {
@@ -30,6 +31,7 @@ base class TranscriptionApi extends Api {
       final response = await dio.post<List<int>>(
         ApiPath.voiceAssistant,
         data: formData,
+        cancelToken: cancelToken,
         options: Options(responseType: ResponseType.bytes),
         onSendProgress: onSendProgress,
       );

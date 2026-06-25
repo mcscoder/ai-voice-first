@@ -77,6 +77,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voiceOpenSettings => 'Open settings';
 
   @override
+  String get voiceCancelRequest => 'Cancel';
+
+  @override
   String get voiceLanguageLabel => 'Language';
 
   @override

@@ -5,6 +5,7 @@ import 'package:hydrated_bloc/hydrated_bloc.dart';
 import 'package:injectable/injectable.dart';
 
 import '../../../core/error.dart';
+import '../../../core/network/request_cancellation_mixin.dart';
 import '../../../core/permissions/permission_service.dart';
 import '../data/audio_recorder_service.dart';
 import '../data/transcription_api.dart';
@@ -12,7 +13,8 @@ import '../data/voice_language.dart';
 import 'voice_capture_state.dart';
 
 @injectable
-class VoiceCaptureCubit extends HydratedCubit<VoiceCaptureState> {
+class VoiceCaptureCubit extends HydratedCubit<VoiceCaptureState>
+    with RequestCancellationMixin<VoiceCaptureState> {
   VoiceCaptureCubit(
     this._permissionService,
     this._audioRecorderService,
@@ -38,6 +40,7 @@ class VoiceCaptureCubit extends HydratedCubit<VoiceCaptureState> {
   final TranscriptionApi _transcriptionApi;
   late final AudioPlayer? _audioPlayer;
   late final Future<void> Function(Uint8List audioBytes) _playAssistantSpeech;
+  int _requestGeneration = 0;
 
   void selectLanguage(VoiceLanguage language) {
     if (state.isBusy || language.code == state.selectedLanguage.code) {
@@ -101,6 +104,7 @@ class VoiceCaptureCubit extends HydratedCubit<VoiceCaptureState> {
           status: VoiceCaptureStatus.recording,
           reply: '',
           clearFailure: true,
+          clearRequestTiming: true,
         ),
       );
     } on AudioRecordingException {
@@ -121,19 +125,32 @@ class VoiceCaptureCubit extends HydratedCubit<VoiceCaptureState> {
   }
 
   Future<void> stopRecording() async {
+    final requestGeneration = ++_requestGeneration;
     emit(
-      state.copyWith(status: VoiceCaptureStatus.uploading, clearFailure: true),
+      state.copyWith(
+        status: VoiceCaptureStatus.uploading,
+        clearFailure: true,
+        requestStartedAt: DateTime.now(),
+        requestCompletedAt: null,
+      ),
     );
 
     String? filePath;
 
     try {
       filePath = await _audioRecorderService.stop();
+      if (_isStaleRequest(requestGeneration)) {
+        return;
+      }
 
       final result = await _transcriptionApi.respond(
         filePath: filePath,
         language: state.selectedLanguage,
+        cancelToken: cancelToken,
         onSendProgress: (sent, total) {
+          if (_isStaleRequest(requestGeneration)) {
+            return;
+          }
           if (total > 0 &&
               sent >= total &&
               state.status == VoiceCaptureStatus.uploading) {
@@ -146,15 +163,22 @@ class VoiceCaptureCubit extends HydratedCubit<VoiceCaptureState> {
           }
         },
       );
+      if (_isStaleRequest(requestGeneration)) {
+        return;
+      }
       final error = result.error;
       final audio = result.audio;
 
       if (error != null) {
+        if (cancelToken.isCancelled) {
+          return;
+        }
         emit(
           state.copyWith(
             status: VoiceCaptureStatus.failure,
             failure: _mapNetworkError(error),
             reply: state.reply,
+            requestCompletedAt: DateTime.now(),
           ),
         );
         return;
@@ -167,13 +191,18 @@ class VoiceCaptureCubit extends HydratedCubit<VoiceCaptureState> {
             status: VoiceCaptureStatus.failure,
             failure: VoiceCaptureFailure.badAudio,
             clearFailure: true,
+            requestCompletedAt: DateTime.now(),
           ),
         );
         return;
       }
 
       emit(
-        state.copyWith(status: VoiceCaptureStatus.speaking, clearFailure: true),
+        state.copyWith(
+          status: VoiceCaptureStatus.speaking,
+          clearFailure: true,
+          requestCompletedAt: DateTime.now(),
+        ),
       );
 
       try {
@@ -184,6 +213,7 @@ class VoiceCaptureCubit extends HydratedCubit<VoiceCaptureState> {
             status: VoiceCaptureStatus.failure,
             failure: VoiceCaptureFailure.unknown,
             clearFailure: true,
+            requestCompletedAt: DateTime.now(),
           ),
         );
         return;
@@ -193,17 +223,25 @@ class VoiceCaptureCubit extends HydratedCubit<VoiceCaptureState> {
         state.copyWith(status: VoiceCaptureStatus.success, clearFailure: true),
       );
     } on AudioRecordingException {
+      if (_isStaleRequest(requestGeneration)) {
+        return;
+      }
       emit(
         state.copyWith(
           status: VoiceCaptureStatus.failure,
           failure: VoiceCaptureFailure.badAudio,
+          requestCompletedAt: DateTime.now(),
         ),
       );
     } on Exception {
+      if (cancelToken.isCancelled || _isStaleRequest(requestGeneration)) {
+        return;
+      }
       emit(
         state.copyWith(
           status: VoiceCaptureStatus.failure,
           failure: VoiceCaptureFailure.unknown,
+          requestCompletedAt: DateTime.now(),
         ),
       );
     } finally {
@@ -215,6 +253,23 @@ class VoiceCaptureCubit extends HydratedCubit<VoiceCaptureState> {
 
   Future<void> openSettings() async {
     await _permissionService.openSettings();
+  }
+
+  void cancelRequest() {
+    if (state.status != VoiceCaptureStatus.uploading &&
+        state.status != VoiceCaptureStatus.processing) {
+      return;
+    }
+
+    _requestGeneration += 1;
+    cancelRequests('Voice request cancelled');
+    emit(
+      state.copyWith(
+        status: VoiceCaptureStatus.idle,
+        clearFailure: true,
+        clearRequestTiming: true,
+      ),
+    );
   }
 
   bool _isGranted(AppPermissionStatus status) {
@@ -235,8 +290,13 @@ class VoiceCaptureCubit extends HydratedCubit<VoiceCaptureState> {
     return VoiceCaptureFailure.network;
   }
 
+  bool _isStaleRequest(int requestGeneration) {
+    return requestGeneration != _requestGeneration || isClosed;
+  }
+
   @override
   Future<void> close() async {
+    cancelRequests();
     await _audioRecorderService.cancel();
     await _audioPlayer?.dispose();
     return super.close();

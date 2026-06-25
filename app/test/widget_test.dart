@@ -30,11 +30,68 @@ void main() {
       ),
     );
 
-    expect(find.text('Your assistant speech will play here.'), findsOneWidget);
     expect(find.text('Ready'), findsOneWidget);
     expect(find.byIcon(Icons.mic), findsOneWidget);
-    expect(find.byKey(const Key('voice_language_dropdown')), findsOneWidget);
-    expect(find.text('Language'), findsOneWidget);
+    expect(find.byKey(const Key('voice_language_dropdown')), findsNothing);
+    expect(find.text('Language'), findsNothing);
+    expect(find.text('Cancel'), findsNothing);
+
+    await cubit.close();
+  });
+
+  testWidgets('voice screen shows request timer and cancel action', (
+    WidgetTester tester,
+  ) async {
+    final cubit = _TestVoiceCaptureCubit();
+    cubit.push(
+      VoiceCaptureState(
+        status: VoiceCaptureStatus.uploading,
+        requestStartedAt: DateTime.now(),
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: VoiceScreen(cubit: cubit),
+      ),
+    );
+
+    await tester.pump();
+
+    expect(find.text('Uploading…'), findsOneWidget);
+    expect(find.text('0:00'), findsOneWidget);
+    expect(find.text('Cancel'), findsOneWidget);
+    expect(find.byIcon(Icons.hourglass_top), findsOneWidget);
+
+    await cubit.close();
+  });
+
+  testWidgets('voice screen animates processing orb without layout errors', (
+    WidgetTester tester,
+  ) async {
+    final cubit = _TestVoiceCaptureCubit();
+    cubit.push(
+      VoiceCaptureState(
+        status: VoiceCaptureStatus.processing,
+        requestStartedAt: DateTime.now(),
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: VoiceScreen(cubit: cubit),
+      ),
+    );
+
+    await tester.pump(const Duration(milliseconds: 800));
+
+    expect(find.text('Processing…'), findsOneWidget);
+    expect(find.byType(CustomPaint), findsWidgets);
+    expect(tester.takeException(), isNull);
 
     await cubit.close();
   });
@@ -149,6 +206,7 @@ final class _FakeTranscriptionApi extends TranscriptionApi {
   Future<({NetworkError? error, Uint8List? audio})> respond({
     required String filePath,
     required VoiceLanguage language,
+    CancelToken? cancelToken,
     ProgressCallback? onSendProgress,
   }) async {
     return (error: null, audio: Uint8List.fromList(const [1, 2, 3]));
