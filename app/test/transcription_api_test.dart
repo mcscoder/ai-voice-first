@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:io';
 
@@ -82,6 +83,58 @@ void main() {
 
       expect(result.audio, isNull);
       expect(result.error, isA<BadRequest>());
+
+      await tempDir.delete(recursive: true);
+    });
+
+    test('streams multipart audio from /v1/voice/assistant/stream', () async {
+      final tempDir = await Directory.systemTemp.createTemp('voice_api_test');
+      final file = File('${tempDir.path}/sample.m4a');
+      await file.writeAsString('audio');
+
+      FormData? capturedFormData;
+      String? capturedPath;
+      final dio = Dio(BaseOptions(baseUrl: 'http://localhost:8000'));
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            capturedPath = options.path;
+            capturedFormData = options.data as FormData;
+            handler.resolve(
+              Response<ResponseBody>(
+                requestOptions: options,
+                data: ResponseBody.fromString(
+                  [
+                    '{"type":"text_delta","text":"Hello"}',
+                    '{"type":"audio","sequence":0,"media_type":"audio/wav","audio":"${base64Encode([1, 2, 3])}"}',
+                    '{"type":"done","text":"Hello"}',
+                  ].join('\n'),
+                  200,
+                  headers: {
+                    Headers.contentTypeHeader: ['application/x-ndjson'],
+                  },
+                ),
+              ),
+            );
+          },
+        ),
+      );
+
+      final api = TranscriptionApi(dio);
+      final events = await api
+          .respondStream(filePath: file.path, language: VoiceLanguage.english)
+          .toList();
+
+      expect(capturedPath, '/v1/voice/assistant/stream');
+      expect(capturedFormData, isNotNull);
+      expect(events[0], isA<VoiceAssistantTextDeltaEvent>());
+      expect((events[0] as VoiceAssistantTextDeltaEvent).text, 'Hello');
+      expect(events[1], isA<VoiceAssistantAudioEvent>());
+      expect(
+        (events[1] as VoiceAssistantAudioEvent).audio,
+        Uint8List.fromList(const [1, 2, 3]),
+      );
+      expect(events[2], isA<VoiceAssistantDoneEvent>());
 
       await tempDir.delete(recursive: true);
     });

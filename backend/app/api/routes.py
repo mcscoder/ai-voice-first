@@ -1,8 +1,11 @@
 import asyncio
+import json
+from collections.abc import Iterator
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
-from fastapi.responses import Response
+from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, field_validator
+from starlette.background import BackgroundTask
 
 from app.core.config import TtsVoice, config
 from app.services.assistant import assistant_service
@@ -125,4 +128,46 @@ async def voice_assistant(
         content=result.audio,
         media_type=result.media_type,
         headers={"Content-Disposition": 'attachment; filename="assistant.wav"'},
+    )
+
+
+@router.post(
+    "/v1/voice/assistant/stream",
+    responses={
+        200: {
+            "content": {
+                "application/x-ndjson": {
+                    "schema": {"type": "string"},
+                },
+            },
+            "description": "Streaming assistant events",
+        },
+    },
+    response_class=StreamingResponse,
+)
+async def voice_assistant_stream(
+    file: UploadFile = File(...),
+    language: str | None = Form(None),
+) -> StreamingResponse:
+    audio_bytes = await file.read()
+    if not audio_bytes:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+
+    response_holder: dict[str, str] = {}
+
+    def event_lines() -> Iterator[bytes]:
+        for event in assistant_service.stream_events(
+            audio_bytes,
+            language,
+            response_holder,
+        ):
+            yield (json.dumps(event) + "\n").encode("utf-8")
+
+    return StreamingResponse(
+        event_lines(),
+        media_type="application/x-ndjson",
+        background=BackgroundTask(
+            assistant_service.persist_streamed_response,
+            response_holder,
+        ),
     )

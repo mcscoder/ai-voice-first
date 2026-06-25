@@ -211,6 +211,21 @@ final class _FakeTranscriptionApi extends TranscriptionApi {
   }) async {
     return (error: null, audio: Uint8List.fromList(const [1, 2, 3]));
   }
+
+  @override
+  Stream<VoiceAssistantStreamEvent> respondStream({
+    required String filePath,
+    required VoiceLanguage language,
+    CancelToken? cancelToken,
+    ProgressCallback? onSendProgress,
+  }) async* {
+    yield VoiceAssistantAudioEvent(
+      sequence: 0,
+      mediaType: 'audio/wav',
+      audio: Uint8List.fromList(const [1, 2, 3]),
+    );
+    yield const VoiceAssistantDoneEvent(text: '');
+  }
 }
 
 final class _TestVoiceCaptureCubit extends VoiceCaptureCubit {

@@ -34,7 +34,8 @@ final class VoiceScreen extends StatelessWidget {
                   state.status == VoiceCaptureStatus.speaking;
               final canCancelRequest =
                   state.status == VoiceCaptureStatus.uploading ||
-                  state.status == VoiceCaptureStatus.processing;
+                  state.status == VoiceCaptureStatus.processing ||
+                  state.status == VoiceCaptureStatus.speaking;
 
               return Center(
                 child: ConstrainedBox(

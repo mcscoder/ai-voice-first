@@ -25,6 +25,7 @@ final class VoiceCaptureState extends Equatable {
   const VoiceCaptureState({
     this.status = VoiceCaptureStatus.idle,
     this.reply = '',
+    this.transcript = '',
     this.selectedLanguage = VoiceLanguage.english,
     this.failure,
     this.requestStartedAt,
@@ -33,6 +34,7 @@ final class VoiceCaptureState extends Equatable {
 
   final VoiceCaptureStatus status;
   final String reply;
+  final String transcript;
   final VoiceLanguage selectedLanguage;
   final VoiceCaptureFailure? failure;
   final DateTime? requestStartedAt;
@@ -47,6 +49,7 @@ final class VoiceCaptureState extends Equatable {
   VoiceCaptureState copyWith({
     VoiceCaptureStatus? status,
     String? reply,
+    String? transcript,
     VoiceLanguage? selectedLanguage,
     VoiceCaptureFailure? failure,
     DateTime? requestStartedAt,
@@ -57,6 +60,7 @@ final class VoiceCaptureState extends Equatable {
     return VoiceCaptureState(
       status: status ?? this.status,
       reply: reply ?? this.reply,
+      transcript: transcript ?? this.transcript,
       selectedLanguage: selectedLanguage ?? this.selectedLanguage,
       failure: clearFailure && failure == null ? null : failure ?? this.failure,
       requestStartedAt: clearRequestTiming
@@ -72,6 +76,7 @@ final class VoiceCaptureState extends Equatable {
   List<Object?> get props => [
     status,
     reply,
+    transcript,
     selectedLanguage.code,
     failure,
     requestStartedAt,

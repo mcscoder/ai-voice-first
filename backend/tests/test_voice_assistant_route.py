@@ -1,3 +1,6 @@
+import base64
+import json
+
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 import pytest
@@ -73,3 +76,121 @@ def test_voice_assistant_propagates_service_errors(monkeypatch) -> None:
             data={"language": "fr"},
             files={"file": ("speech.wav", b"audio-bytes", "audio/wav")},
         )
+
+
+def test_voice_assistant_stream_returns_ordered_events(monkeypatch) -> None:
+    calls: dict[str, object] = {}
+
+    def transcribe(audio: bytes, language: str | None) -> AsrResult:
+        return AsrResult(text="Hello", language=language or "English", model="test")
+
+    def search_memories(query: str, user_id: str) -> list[str]:
+        calls["search"] = {"query": query, "user_id": user_id}
+        return ["User likes short answers."]
+
+    def stream_response(query: str, memories: list[str]):
+        calls["stream"] = {"query": query, "memories": memories}
+        yield "Hi there."
+
+    def synthesize(text: str, voice: object | None) -> TtsResult:
+        calls["tts"] = {"text": text, "voice": voice}
+        return TtsResult(audio=b"wav-chunk", media_type="audio/wav")
+
+    monkeypatch.setattr(routes.assistant_service.asr, "transcribe", transcribe)
+    monkeypatch.setattr(routes.assistant_service.memory, "search_memories", search_memories)
+    monkeypatch.setattr(routes.assistant_service.memory, "stream_response", stream_response)
+    monkeypatch.setattr(routes.assistant_service.tts, "synthesize", synthesize)
+
+    response = create_client().post(
+        "/v1/voice/assistant/stream",
+        data={"language": "en"},
+        files={"file": ("speech.wav", b"audio-bytes", "audio/wav")},
+    )
+
+    assert response.status_code == 200
+    events = [json.loads(line) for line in response.text.strip().splitlines()]
+    assert events == [
+        {"type": "asr", "text": "Hello", "language": "en", "model": "test"},
+        {"type": "text_delta", "text": "Hi there."},
+        {
+            "type": "audio",
+            "sequence": 0,
+            "media_type": "audio/wav",
+            "audio": base64.b64encode(b"wav-chunk").decode("ascii"),
+        },
+        {"type": "done", "text": "Hi there."},
+    ]
+    assert response.headers["content-type"].startswith("application/x-ndjson")
+    assert calls["search"] == {"query": "Hello", "user_id": DEFAULT_USER_ID}
+    assert calls["stream"] == {
+        "query": "Hello",
+        "memories": ["User likes short answers."],
+    }
+    assert calls["tts"] == {"text": "Hi there.", "voice": None}
+
+
+def test_voice_assistant_stream_persists_after_done(monkeypatch) -> None:
+    persisted: list[dict[str, str]] = []
+
+    def transcribe(audio: bytes, language: str | None) -> AsrResult:
+        return AsrResult(text="Remember this", language="English", model="test")
+
+    def stream_response(query: str, memories: list[str]):
+        yield "Saved."
+
+    def synthesize(text: str, voice: object | None) -> TtsResult:
+        assert persisted == []
+        return TtsResult(audio=b"wav-chunk", media_type="audio/wav")
+
+    def persist_conversation(query: str, response_text: str, user_id: str) -> None:
+        persisted.append(
+            {"query": query, "response_text": response_text, "user_id": user_id}
+        )
+
+    monkeypatch.setattr(routes.assistant_service.asr, "transcribe", transcribe)
+    monkeypatch.setattr(routes.assistant_service.memory, "search_memories", lambda *_: [])
+    monkeypatch.setattr(routes.assistant_service.memory, "stream_response", stream_response)
+    monkeypatch.setattr(routes.assistant_service.tts, "synthesize", synthesize)
+    monkeypatch.setattr(
+        routes.assistant_service.memory,
+        "persist_conversation",
+        persist_conversation,
+    )
+
+    response = create_client().post(
+        "/v1/voice/assistant/stream",
+        data={"language": "en"},
+        files={"file": ("speech.wav", b"audio-bytes", "audio/wav")},
+    )
+
+    assert response.status_code == 200
+    assert json.loads(response.text.strip().splitlines()[-1]) == {
+        "type": "done",
+        "text": "Saved.",
+    }
+    assert persisted == [
+        {
+            "query": "Remember this",
+            "response_text": "Saved.",
+            "user_id": DEFAULT_USER_ID,
+        }
+    ]
+
+
+def test_voice_assistant_stream_emits_known_service_errors(monkeypatch) -> None:
+    def transcribe(audio: bytes, language: str | None) -> AsrResult:
+        raise UnsupportedAsrLanguageError("Unsupported language.")
+
+    monkeypatch.setattr(routes.assistant_service.asr, "transcribe", transcribe)
+
+    response = create_client().post(
+        "/v1/voice/assistant/stream",
+        data={"language": "fr"},
+        files={"file": ("speech.wav", b"audio-bytes", "audio/wav")},
+    )
+
+    assert response.status_code == 200
+    assert [json.loads(line) for line in response.text.strip().splitlines()] == [
+        {"type": "error", "message": "Unsupported language."}
+    ]
+

@@ -31,7 +31,12 @@ class VoiceCaptureCubit extends HydratedCubit<VoiceCaptureState>
     final player = AudioPlayer();
     _audioPlayer = player;
     _playAssistantSpeech = (audioBytes) async {
-      await player.play(BytesSource(audioBytes, mimeType: 'audio/mpeg'));
+      final completed = player.onPlayerComplete.first;
+      final stopped = player.onPlayerStateChanged.firstWhere(
+        (state) => state == PlayerState.stopped,
+      );
+      await player.play(BytesSource(audioBytes, mimeType: 'audio/wav'));
+      await Future.any([completed, stopped]);
     };
   }
 
@@ -103,6 +108,7 @@ class VoiceCaptureCubit extends HydratedCubit<VoiceCaptureState>
         state.copyWith(
           status: VoiceCaptureStatus.recording,
           reply: '',
+          transcript: '',
           clearFailure: true,
           clearRequestTiming: true,
         ),
@@ -143,71 +149,107 @@ class VoiceCaptureCubit extends HydratedCubit<VoiceCaptureState>
         return;
       }
 
-      final result = await _transcriptionApi.respond(
-        filePath: filePath,
-        language: state.selectedLanguage,
-        cancelToken: cancelToken,
-        onSendProgress: (sent, total) {
+      var receivedAudio = false;
+      var playbackQueue = Future<void>.value();
+      try {
+        await for (final event in _transcriptionApi.respondStream(
+          filePath: filePath,
+          language: state.selectedLanguage,
+          cancelToken: cancelToken,
+          onSendProgress: (sent, total) {
+            if (_isStaleRequest(requestGeneration)) {
+              return;
+            }
+            if (total > 0 &&
+                sent >= total &&
+                state.status == VoiceCaptureStatus.uploading) {
+              emit(
+                state.copyWith(
+                  status: VoiceCaptureStatus.processing,
+                  clearFailure: true,
+                ),
+              );
+            }
+          },
+        )) {
           if (_isStaleRequest(requestGeneration)) {
             return;
           }
-          if (total > 0 &&
-              sent >= total &&
-              state.status == VoiceCaptureStatus.uploading) {
-            emit(
-              state.copyWith(
-                status: VoiceCaptureStatus.processing,
-                clearFailure: true,
-              ),
-            );
-          }
-        },
-      );
-      if (_isStaleRequest(requestGeneration)) {
-        return;
-      }
-      final error = result.error;
-      final audio = result.audio;
 
-      if (error != null) {
-        if (cancelToken.isCancelled) {
+          switch (event) {
+            case VoiceAssistantAsrEvent():
+              emit(state.copyWith(transcript: event.text));
+              if (state.status == VoiceCaptureStatus.uploading) {
+                emit(
+                  state.copyWith(
+                    status: VoiceCaptureStatus.processing,
+                    clearFailure: true,
+                  ),
+                );
+              }
+            case VoiceAssistantTextDeltaEvent():
+              emit(state.copyWith(reply: '${state.reply}${event.text}'));
+            case VoiceAssistantAudioEvent():
+              if (event.audio.isEmpty) {
+                continue;
+              }
+              receivedAudio = true;
+              if (state.status != VoiceCaptureStatus.speaking) {
+                emit(
+                  state.copyWith(
+                    status: VoiceCaptureStatus.speaking,
+                    clearFailure: true,
+                    requestCompletedAt: DateTime.now(),
+                  ),
+                );
+              }
+              playbackQueue = playbackQueue.then(
+                (_) => _playAssistantSpeech(event.audio),
+              );
+            case VoiceAssistantDoneEvent():
+              emit(state.copyWith(reply: event.text));
+            case VoiceAssistantErrorEvent():
+              emit(
+                state.copyWith(
+                  status: VoiceCaptureStatus.failure,
+                  failure: VoiceCaptureFailure.backend,
+                  requestCompletedAt: DateTime.now(),
+                ),
+              );
+              return;
+            case VoiceAssistantRequestErrorEvent():
+              if (cancelToken.isCancelled) {
+                return;
+              }
+              emit(
+                state.copyWith(
+                  status: VoiceCaptureStatus.failure,
+                  failure: _mapNetworkError(event.error),
+                  reply: state.reply,
+                  requestCompletedAt: DateTime.now(),
+                ),
+              );
+              return;
+          }
+        }
+
+        if (!receivedAudio) {
+          emit(
+            state.copyWith(
+              status: VoiceCaptureStatus.failure,
+              failure: VoiceCaptureFailure.badAudio,
+              clearFailure: true,
+              requestCompletedAt: DateTime.now(),
+            ),
+          );
           return;
         }
-        emit(
-          state.copyWith(
-            status: VoiceCaptureStatus.failure,
-            failure: _mapNetworkError(error),
-            reply: state.reply,
-            requestCompletedAt: DateTime.now(),
-          ),
-        );
-        return;
-      }
 
-      final audioBytes = audio ?? Uint8List(0);
-      if (audioBytes.isEmpty) {
-        emit(
-          state.copyWith(
-            status: VoiceCaptureStatus.failure,
-            failure: VoiceCaptureFailure.badAudio,
-            clearFailure: true,
-            requestCompletedAt: DateTime.now(),
-          ),
-        );
-        return;
-      }
-
-      emit(
-        state.copyWith(
-          status: VoiceCaptureStatus.speaking,
-          clearFailure: true,
-          requestCompletedAt: DateTime.now(),
-        ),
-      );
-
-      try {
-        await _playAssistantSpeech(audioBytes);
+        await playbackQueue;
       } on Exception {
+        if (cancelToken.isCancelled || _isStaleRequest(requestGeneration)) {
+          return;
+        }
         emit(
           state.copyWith(
             status: VoiceCaptureStatus.failure,
@@ -219,6 +261,9 @@ class VoiceCaptureCubit extends HydratedCubit<VoiceCaptureState>
         return;
       }
 
+      if (_isStaleRequest(requestGeneration)) {
+        return;
+      }
       emit(
         state.copyWith(status: VoiceCaptureStatus.success, clearFailure: true),
       );
@@ -257,12 +302,14 @@ class VoiceCaptureCubit extends HydratedCubit<VoiceCaptureState>
 
   void cancelRequest() {
     if (state.status != VoiceCaptureStatus.uploading &&
-        state.status != VoiceCaptureStatus.processing) {
+        state.status != VoiceCaptureStatus.processing &&
+        state.status != VoiceCaptureStatus.speaking) {
       return;
     }
 
     _requestGeneration += 1;
     cancelRequests('Voice request cancelled');
+    _audioPlayer?.stop();
     emit(
       state.copyWith(
         status: VoiceCaptureStatus.idle,

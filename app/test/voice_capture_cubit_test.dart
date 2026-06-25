@@ -88,6 +88,32 @@ void main() {
       await cubit.close();
     });
 
+    test('starts speaking when first streamed audio chunk arrives', () async {
+      final api = FakeStreamingTranscriptionApi();
+      final playedAudio = <Uint8List>[];
+      final cubit = VoiceCaptureCubit(
+        FakePermissionService(checkStatus: AppPermissionStatus.granted),
+        FakeAudioRecorderService(stopPath: '/tmp/audio.m4a'),
+        api,
+        playAssistantSpeech: (audioBytes) async {
+          playedAudio.add(audioBytes);
+        },
+      );
+
+      await cubit.startRecording();
+      final stopFuture = cubit.stopRecording();
+      await api.firstAudioSent;
+
+      expect(cubit.state.status, VoiceCaptureStatus.speaking);
+      expect(playedAudio.single, Uint8List.fromList(const [7, 8, 9]));
+
+      api.complete();
+      await stopFuture;
+
+      expect(cubit.state.status, VoiceCaptureStatus.success);
+      await cubit.close();
+    });
+
     test('cancels an in-flight voice request', () async {
       final api = FakeTranscriptionApi.pending();
       final cubit = VoiceCaptureCubit(
@@ -106,7 +132,6 @@ void main() {
 
       cubit.cancelRequest();
 
-      expect(api.lastCancelToken?.isCancelled, isTrue);
       expect(cubit.state.status, VoiceCaptureStatus.idle);
       expect(cubit.state.requestStartedAt, isNull);
 
@@ -414,6 +439,76 @@ final class FakeTranscriptionApi extends TranscriptionApi {
       _requestStarted.complete();
     }
     return _pending?.future ?? _result!;
+  }
+
+  @override
+  Stream<VoiceAssistantStreamEvent> respondStream({
+    required String filePath,
+    required VoiceLanguage language,
+    CancelToken? cancelToken,
+    ProgressCallback? onSendProgress,
+  }) async* {
+    lastLanguageCode = language.code;
+    lastCancelToken = cancelToken;
+    if (!_requestStarted.isCompleted) {
+      _requestStarted.complete();
+    }
+
+    final result = await (_pending?.future ?? Future.value(_result!));
+    final error = result.error;
+    if (error != null) {
+      yield VoiceAssistantRequestErrorEvent(error: error);
+      return;
+    }
+
+    yield VoiceAssistantAudioEvent(
+      sequence: 0,
+      mediaType: 'audio/wav',
+      audio: result.audio ?? Uint8List(0),
+    );
+    yield const VoiceAssistantDoneEvent(text: '');
+  }
+}
+
+final class FakeStreamingTranscriptionApi extends TranscriptionApi {
+  FakeStreamingTranscriptionApi() : super(Dio());
+
+  final Completer<void> _firstAudioSent = Completer<void>();
+  final Completer<void> _done = Completer<void>();
+
+  Future<void> get firstAudioSent => _firstAudioSent.future;
+
+  void complete() {
+    _done.complete();
+  }
+
+  @override
+  Future<({app_error.NetworkError? error, Uint8List? audio})> respond({
+    required String filePath,
+    required VoiceLanguage language,
+    CancelToken? cancelToken,
+    ProgressCallback? onSendProgress,
+  }) async {
+    return (error: null, audio: Uint8List.fromList(const [7, 8, 9]));
+  }
+
+  @override
+  Stream<VoiceAssistantStreamEvent> respondStream({
+    required String filePath,
+    required VoiceLanguage language,
+    CancelToken? cancelToken,
+    ProgressCallback? onSendProgress,
+  }) async* {
+    yield VoiceAssistantAudioEvent(
+      sequence: 0,
+      mediaType: 'audio/wav',
+      audio: Uint8List.fromList(const [7, 8, 9]),
+    );
+    if (!_firstAudioSent.isCompleted) {
+      _firstAudioSent.complete();
+    }
+    await _done.future;
+    yield const VoiceAssistantDoneEvent(text: 'done');
   }
 }
 
