@@ -1,5 +1,6 @@
 import logging
 
+from app.core.config import MemoryConfig
 from app.services.memory.service import MemorySearchResult, MemoryService
 
 
@@ -7,9 +8,12 @@ class FakeLlm:
     def __init__(self, response: str) -> None:
         self.response = response
         self.messages: list[dict[str, str]] | None = None
+        self.kwargs: dict[str, object] | None = None
+        self.client: object | None = None
 
-    def generate_response(self, messages: list[dict[str, str]]) -> str:
+    def generate_response(self, messages: list[dict[str, str]], **kwargs: object) -> str:
         self.messages = messages
+        self.kwargs = kwargs
         return self.response
 
 
@@ -45,11 +49,54 @@ class FakeMemory:
 
 
 class FakeMemoryService(MemoryService):
-    def __init__(self, memory: FakeMemory) -> None:
+    def __init__(
+        self,
+        memory: FakeMemory,
+        memory_config: MemoryConfig | None = None,
+    ) -> None:
         self.memory = memory
+        self.memory_config = memory_config or MemoryConfig()
 
     def load_memory(self) -> FakeMemory:
         return self.memory
+
+
+class FakeStreamDelta:
+    def __init__(self, content: str | None) -> None:
+        self.content = content
+
+
+class FakeStreamChoice:
+    def __init__(self, content: str | None) -> None:
+        self.delta = FakeStreamDelta(content)
+
+
+class FakeStreamChunk:
+    def __init__(self, content: str | None) -> None:
+        self.choices = [FakeStreamChoice(content)]
+
+
+class FakeChatCompletions:
+    def __init__(self) -> None:
+        self.kwargs: dict[str, object] | None = None
+
+    def create(self, **kwargs: object) -> list[FakeStreamChunk]:
+        self.kwargs = kwargs
+        return [
+            FakeStreamChunk("Xin"),
+            FakeStreamChunk(None),
+            FakeStreamChunk(" chào"),
+        ]
+
+
+class FakeChat:
+    def __init__(self, completions: FakeChatCompletions) -> None:
+        self.completions = completions
+
+
+class FakeDeepSeekClient:
+    def __init__(self, completions: FakeChatCompletions) -> None:
+        self.chat = FakeChat(completions)
 
 
 def test_memory_prompt_requires_plain_spoken_text() -> None:
@@ -63,6 +110,36 @@ def test_memory_prompt_requires_plain_spoken_text() -> None:
     assert "plain spoken text only" in system_prompt
     assert "Do not use Markdown" in system_prompt
     assert "real human assistant" in system_prompt
+
+
+def test_memory_respond_passes_deepseek_thinking_extra_body() -> None:
+    memory = FakeMemory("Tôi nghe rồi.")
+    service = FakeMemoryService(memory, MemoryConfig(llm_thinking="disabled"))
+
+    service.respond("Xin chào", "test-user")
+
+    assert memory.llm.kwargs == {"extra_body": {"thinking": {"type": "disabled"}}}
+
+
+def test_memory_stream_response_passes_deepseek_thinking_extra_body() -> None:
+    memory = FakeMemory("unused")
+    completions = FakeChatCompletions()
+    memory.llm.client = FakeDeepSeekClient(completions)
+    service = FakeMemoryService(memory, MemoryConfig(llm_thinking="enabled"))
+
+    chunks = list(
+        service.stream_response(
+            "Xin chào",
+            [],
+            [{"role": "user", "content": "Xin chào"}],
+        )
+    )
+
+    assert chunks == ["Xin", " chào"]
+    assert completions.kwargs is not None
+    assert completions.kwargs["model"] == "deepseek-v4-flash"
+    assert completions.kwargs["stream"] is True
+    assert completions.kwargs["extra_body"] == {"thinking": {"type": "enabled"}}
 
 
 def test_memory_response_cleans_markdown_before_saving_and_returning() -> None:

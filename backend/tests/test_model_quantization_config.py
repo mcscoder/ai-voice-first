@@ -1,3 +1,5 @@
+import pytest
+
 from app.core.config import MemoryConfig
 from app.services.asr.service import AsrService
 
@@ -105,3 +107,30 @@ def test_memory_config_uses_deepseek_llm() -> None:
     assert llm_config["config"]["model"] == "deepseek-v4-flash"
     assert llm_config["config"]["api_key"] is None
     assert llm_config["config"]["deepseek_base_url"] == "https://api.deepseek.com"
+
+
+def test_memory_config_disables_deepseek_thinking_by_default(monkeypatch) -> None:
+    monkeypatch.delenv("DEEPSEEK_THINKING", raising=False)
+
+    memory_config = MemoryConfig()
+
+    assert memory_config.llm_thinking == "disabled"
+    assert memory_config.to_deepseek_extra_body() == {
+        "thinking": {"type": "disabled"}
+    }
+
+
+def test_memory_config_can_enable_deepseek_thinking(monkeypatch) -> None:
+    monkeypatch.setenv("DEEPSEEK_THINKING", "enabled")
+
+    memory_config = MemoryConfig()
+
+    assert memory_config.llm_thinking == "enabled"
+    assert memory_config.to_deepseek_extra_body() == {"thinking": {"type": "enabled"}}
+
+
+def test_memory_config_rejects_invalid_deepseek_thinking(monkeypatch) -> None:
+    monkeypatch.setenv("DEEPSEEK_THINKING", "maybe")
+
+    with pytest.raises(ValueError, match="DEEPSEEK_THINKING"):
+        MemoryConfig()

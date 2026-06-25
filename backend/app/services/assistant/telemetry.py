@@ -238,6 +238,7 @@ class AssistantTelemetry:
             "asr_quantization": config.asr.quantization_level,
             "llm_provider": config.memory.llm_provider,
             "llm_model": config.memory.llm_model,
+            "llm_thinking": config.memory.llm_thinking,
             "embedder_model": config.memory.embedder_model,
             "tts_device": config.tts.device,
             "tts_voice": config.tts.default_voice,

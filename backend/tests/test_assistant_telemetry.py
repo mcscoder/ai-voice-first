@@ -97,6 +97,7 @@ def test_telemetry_formats_payload_and_sse_event() -> None:
     event = telemetry.sse_event(snapshot)
 
     assert payload["services"]["llm_model"] == "deepseek-v4-flash"
+    assert payload["services"]["llm_thinking"] == "disabled"
     lines = event.splitlines()
     assert lines[0] == "event: telemetry"
     assert json.loads(lines[1].removeprefix("data: "))["services"] == payload["services"]

@@ -164,7 +164,8 @@ class MemoryService:
         memory = self.load_memory()
         memories = self.search_memory_results(query, user_id)
         response = memory.llm.generate_response(
-            self.build_response_messages(query, memories)
+            self.build_response_messages(query, memories),
+            extra_body=self.memory_config.to_deepseek_extra_body(),
         )
 
         response_text = str(response).strip()
@@ -233,6 +234,7 @@ class MemoryService:
                 temperature=self.memory_config.llm_temperature,
                 max_tokens=self.memory_config.llm_max_tokens,
                 stream=True,
+                extra_body=self.memory_config.to_deepseek_extra_body(),
             )
 
             for chunk in stream:

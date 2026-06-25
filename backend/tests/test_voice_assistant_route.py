@@ -413,6 +413,7 @@ def test_voice_assistant_telemetry_endpoint_returns_service_metadata() -> None:
     payload = response.json()
     assert payload["summary"] == {"active_count": 0, "recent_count": 0}
     assert payload["services"]["llm_model"] == "deepseek-v4-flash"
+    assert payload["services"]["llm_thinking"] == "disabled"
     assert payload["services"]["asr_model"] == "Qwen/Qwen3-ASR-0.6B"
 
 
@@ -430,6 +431,7 @@ def test_voice_assistant_telemetry_stream_returns_sse_event() -> None:
     payload = json.loads(data_line.removeprefix("data: "))
     assert payload["summary"] == {"active_count": 0, "recent_count": 0}
     assert payload["services"]["llm_model"] == "deepseek-v4-flash"
+    assert payload["services"]["llm_thinking"] == "disabled"
 
 
 def test_voice_assistant_stream_emits_known_service_errors(monkeypatch) -> None:

@@ -67,7 +67,9 @@ export DEEPSEEK_API_KEY=your_deepseek_api_key_here
 ```
 
 `app.core.config.MemoryConfig` defaults to `deepseek-v4-flash` through the
-official DeepSeek API base URL.
+official DeepSeek API base URL. DeepSeek thinking mode defaults to disabled for
+lower voice latency. Set `DEEPSEEK_THINKING=enabled` to opt back into thinking
+mode.
 
 ## Runtime Notes
 

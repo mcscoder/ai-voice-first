@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
@@ -29,6 +30,14 @@ TtsVoice = Literal[
 ]
 
 QuantizationLevel = Literal["none", "int8", "int4-nf4", "int4-fp4"]
+DeepSeekThinking = Literal["enabled", "disabled"]
+
+
+def _deepseek_thinking_from_env() -> DeepSeekThinking:
+    value = os.getenv("DEEPSEEK_THINKING", "disabled").strip().lower()
+    if value not in ("enabled", "disabled"):
+        raise ValueError("DEEPSEEK_THINKING must be 'enabled' or 'disabled'.")
+    return value
 
 
 @dataclass(frozen=True)
@@ -104,6 +113,9 @@ class MemoryConfig:
     llm_base_url: str = "https://api.deepseek.com"
     llm_temperature: float = 0.1
     llm_max_tokens: int = 2000
+    llm_thinking: DeepSeekThinking = field(
+        default_factory=_deepseek_thinking_from_env,
+    )
 
     embedder_provider: str = "huggingface"
     embedder_model: str = "Qwen/Qwen3-Embedding-0.6B"
@@ -163,6 +175,9 @@ class MemoryConfig:
             },
             "history_db_path": self.history_db_path,
         }
+
+    def to_deepseek_extra_body(self) -> dict[str, object]:
+        return {"thinking": {"type": self.llm_thinking}}
 
 
 @dataclass(frozen=True)
