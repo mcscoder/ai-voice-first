@@ -177,7 +177,8 @@ def test_voice_assistant_stream_returns_ordered_events(monkeypatch) -> None:
     }
     assert isinstance(messages, list)
     assert messages[0]["role"] == "system"
-    assert messages[1]["role"] == "user"
+    assert messages[1]["role"] == "system"
+    assert messages[2] == {"role": "user", "content": "Hello"}
     prompt = messages[1]["content"]
     assert "Relevant memories CSV:" in prompt
     assert "memory,created_at,updated_at" in prompt
@@ -313,8 +314,13 @@ def test_voice_assistant_stream_records_pipeline_telemetry(monkeypatch) -> None:
     ]
     llm_metadata = stages["llm_response_stream"]["metadata"]
     assert llm_metadata["characters"] == len("Saved.")
+    assert llm_metadata["reply_chunks"] == [{"index": 1, "text": "Saved."}]
     assert llm_metadata["prompt_messages"][0]["role"] == "system"
-    assert llm_metadata["prompt_messages"][1]["role"] == "user"
+    assert llm_metadata["prompt_messages"][1]["role"] == "system"
+    assert llm_metadata["prompt_messages"][2] == {
+        "role": "user",
+        "content": "Remember this",
+    }
     prompt = llm_metadata["prompt_messages"][1]["content"]
     assert "Relevant memories CSV:" in prompt
     assert "memory,created_at,updated_at" in prompt
@@ -325,6 +331,14 @@ def test_voice_assistant_stream_records_pipeline_telemetry(monkeypatch) -> None:
     assert "memory-id" not in prompt
     assert "0.82" not in prompt
     assert stages["tts_synthesis"]["metadata"]["chunk_count"] == 1
+    assert stages["tts_synthesis"]["metadata"]["current_chunk"] is None
+    tts_chunks = stages["tts_synthesis"]["metadata"]["chunks"]
+    assert len(tts_chunks) == 1
+    assert tts_chunks[0]["sequence"] == 0
+    assert tts_chunks[0]["text"] == "Saved."
+    assert tts_chunks[0]["status"] == "streamed"
+    assert isinstance(tts_chunks[0]["duration_ms"], int | float)
+    assert tts_chunks[0]["duration_ms"] >= 0
     assert stages["mem0_persist_background"]["metadata"] == {"persisted": True}
 
 

@@ -134,8 +134,36 @@ void main() {
 
       expect(cubit.state.status, VoiceCaptureStatus.idle);
       expect(cubit.state.requestStartedAt, isNull);
+      expect(api.lastCancelToken?.isCancelled, isTrue);
 
       api.complete(const [1, 2, 3]);
+      await stopFuture;
+
+      expect(cubit.state.status, VoiceCaptureStatus.idle);
+      await cubit.close();
+    });
+
+    test('keeps cancelled streaming request idle after late done event', () async {
+      final api = FakeStreamingTranscriptionApi();
+      final cubit = VoiceCaptureCubit(
+        FakePermissionService(checkStatus: AppPermissionStatus.granted),
+        FakeAudioRecorderService(stopPath: '/tmp/audio.m4a'),
+        api,
+        playAssistantSpeech: _noopPlayback,
+      );
+
+      await cubit.startRecording();
+      final stopFuture = cubit.stopRecording();
+      await api.firstAudioSent;
+
+      expect(cubit.state.status, VoiceCaptureStatus.speaking);
+
+      cubit.cancelRequest();
+
+      expect(cubit.state.status, VoiceCaptureStatus.idle);
+      expect(api.lastCancelToken?.isCancelled, isTrue);
+
+      api.complete();
       await stopFuture;
 
       expect(cubit.state.status, VoiceCaptureStatus.idle);
@@ -475,6 +503,7 @@ final class FakeStreamingTranscriptionApi extends TranscriptionApi {
 
   final Completer<void> _firstAudioSent = Completer<void>();
   final Completer<void> _done = Completer<void>();
+  CancelToken? lastCancelToken;
 
   Future<void> get firstAudioSent => _firstAudioSent.future;
 
@@ -499,6 +528,7 @@ final class FakeStreamingTranscriptionApi extends TranscriptionApi {
     CancelToken? cancelToken,
     ProgressCallback? onSendProgress,
   }) async* {
+    lastCancelToken = cancelToken;
     yield VoiceAssistantAudioEvent(
       sequence: 0,
       mediaType: 'audio/wav',

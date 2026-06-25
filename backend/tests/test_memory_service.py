@@ -214,12 +214,13 @@ def test_memory_build_response_messages_quotes_csv_values() -> None:
     )
 
     assert messages[0]["role"] == "system"
-    assert messages[1]["role"] == "user"
-    user_prompt = messages[1]["content"]
-    assert '"User discussed a debt, with comma.",,' in user_prompt
-    assert "memory-id" not in user_prompt
-    assert "test-user" not in user_prompt
-    assert "0.91" not in user_prompt
+    assert messages[1]["role"] == "system"
+    assert messages[2] == {"role": "user", "content": "What changed?"}
+    context_prompt = messages[1]["content"]
+    assert '"User discussed a debt, with comma.",,' in context_prompt
+    assert "memory-id" not in context_prompt
+    assert "test-user" not in context_prompt
+    assert "0.91" not in context_prompt
 
 
 def test_memory_persist_returns_structured_memory_actions() -> None:

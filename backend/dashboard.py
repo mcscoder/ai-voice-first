@@ -161,6 +161,14 @@ def dashboard_component(base_url: str) -> str:
     border-left-color: #ef4444;
   }
 
+  .stage-card.cancelled {
+    border-left-color: #6b7280;
+  }
+
+  .stage-card.skipped {
+    border-left-color: #9ca3af;
+  }
+
   .stage-label {
     margin-top: 6px;
     font-size: 15px;
@@ -197,6 +205,12 @@ def dashboard_component(base_url: str) -> str:
   .stage-card.error .pill {
     background: #ef4444;
     color: #ffffff;
+  }
+
+  .stage-card.cancelled .pill,
+  .stage-card.skipped .pill {
+    background: #e5e7eb;
+    color: #374151;
   }
 
   .details {
@@ -246,7 +260,9 @@ def dashboard_component(base_url: str) -> str:
 
   .memory-list,
   .action-list,
-  .prompt-list {
+  .prompt-list,
+  .chunk-list,
+  .tts-chunk-list {
     display: grid;
     gap: 8px;
     margin-top: 10px;
@@ -257,7 +273,9 @@ def dashboard_component(base_url: str) -> str:
 
   .memory-item,
   .action-item,
-  .prompt-item {
+  .prompt-item,
+  .chunk-item,
+  .tts-chunk-item {
     border: 1px solid #e5e7eb;
     border-radius: 8px;
     padding: 10px;
@@ -270,6 +288,63 @@ def dashboard_component(base_url: str) -> str:
     align-items: start;
     justify-content: space-between;
     gap: 10px;
+  }
+
+  .chunk-header {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+
+  .chunk-index,
+  .chunk-status {
+    flex: 0 0 auto;
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  .chunk-index {
+    background: #eef2ff;
+    color: #3730a3;
+  }
+
+  .chunk-status {
+    background: #e5e7eb;
+    color: #374151;
+  }
+
+  .chunk-status.queued {
+    background: #fef3c7;
+    color: #78350f;
+  }
+
+  .chunk-status.synthesizing {
+    background: #fed7aa;
+    color: #7c2d12;
+  }
+
+  .chunk-status.synthesized {
+    background: #dbeafe;
+    color: #1e3a8a;
+  }
+
+  .chunk-status.streamed {
+    background: #d1fae5;
+    color: #064e3b;
+  }
+
+  .current-chunk {
+    margin-top: 8px;
+    border: 1px solid #fed7aa;
+    border-radius: 8px;
+    padding: 10px;
+    background: #fff7ed;
+    overflow-wrap: anywhere;
   }
 
   .score-badge {
@@ -471,9 +546,15 @@ def dashboard_component(base_url: str) -> str:
       return `${metadata.characters} chars`;
     }
     if ("chunk_count" in metadata) {
+      if (metadata.current_chunk) {
+        return `TTS #${metadata.current_chunk.sequence} synthesizing`;
+      }
       return `${metadata.chunk_count} audio chunks`;
     }
     if ("persisted" in metadata) {
+      if (metadata.persisted === false) {
+        return `Skipped: ${metadata.skip_reason || "not persisted"}`;
+      }
       const counts = metadata.action_counts || {};
       const total = Object.values(counts).reduce((sum, count) => sum + Number(count || 0), 0);
       return `${total} memory actions`;
@@ -544,6 +625,62 @@ def dashboard_component(base_url: str) -> str:
     `;
   }
 
+  function renderReplyChunks(llm) {
+    const chunks = llm.reply_chunks || [];
+    if (chunks.length === 0) {
+      return '<div class="empty">Waiting for LLM stream chunks...</div>';
+    }
+
+    return `
+      <div class="chunk-list">
+        ${chunks.map((chunk) => `
+          <div class="chunk-item">
+            <div class="chunk-header">
+              <span class="chunk-index">#${escapeHtml(chunk.index ?? "-")}</span>
+            </div>
+            <div>${escapeHtml(chunk.text || "")}</div>
+          </div>
+        `).join("")}
+      </div>
+    `;
+  }
+
+  function renderTtsChunks(tts) {
+    const chunks = tts.chunks || [];
+    const current = tts.current_chunk;
+    const currentMarkup = current
+      ? `
+        <div class="current-chunk">
+          <div class="detail-label">Currently synthesizing</div>
+          <div>#${escapeHtml(current.sequence)} · ${escapeHtml(current.text || "")}</div>
+        </div>
+      `
+      : '<div class="empty">No TTS chunk is currently synthesizing.</div>';
+
+    if (chunks.length === 0) {
+      return `${currentMarkup}<div class="empty">Waiting for TTS chunks...</div>`;
+    }
+
+    return `
+      ${currentMarkup}
+      <div class="tts-chunk-list">
+        ${chunks.map((chunk) => {
+          const status = chunk.status || "unknown";
+          const duration = typeof chunk.duration_ms === "number" ? formatMs(chunk.duration_ms) : "-";
+          return `
+            <div class="tts-chunk-item">
+              <div class="chunk-header">
+                <span class="chunk-index">#${escapeHtml(chunk.sequence ?? "-")}</span>
+                <span class="chunk-status ${escapeHtml(status)}">${escapeHtml(status)} · ${escapeHtml(duration)}</span>
+              </div>
+              <div>${escapeHtml(chunk.text || "")}</div>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    `;
+  }
+
   function renderMemoryActions(persist) {
     const actions = persist.memory_actions || [];
     const counts = persist.action_counts || {};
@@ -555,7 +692,11 @@ def dashboard_component(base_url: str) -> str:
     if (actions.length === 0) {
       return `
         <div class="empty">
-          ${persist.persisted ? "Mem0 persisted the conversation, but no memory action was returned." : "Waiting for Mem0 persistence..."}
+          ${persist.persisted
+            ? "Mem0 persisted the conversation, but no memory action was returned."
+            : persist.skip_reason
+              ? `Mem0 persistence skipped: ${escapeHtml(persist.skip_reason)}`
+              : "Waiting for Mem0 persistence..."}
         </div>
       `;
     }
@@ -644,8 +785,12 @@ def dashboard_component(base_url: str) -> str:
         <div class="detail-value">${escapeHtml(asr.transcript || "Waiting for ASR...")}</div>
       </div>
       <div class="detail-card">
-        <div class="detail-label">Assistant reply preview</div>
-        <div class="detail-value">${escapeHtml(llm.reply_preview || "Waiting for LLM stream...")}</div>
+        <div class="detail-label">Assistant reply chunks</div>
+        ${renderReplyChunks(llm)}
+      </div>
+      <div class="detail-card">
+        <div class="detail-label">TTS chunk status</div>
+        ${renderTtsChunks(tts)}
       </div>
       <div class="detail-card">
         <div class="detail-label">Run details</div>

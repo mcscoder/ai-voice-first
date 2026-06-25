@@ -120,6 +120,8 @@ class AssistantTelemetry:
         run_id: str | None,
         stage_name: str,
         metadata: dict[str, object] | None = None,
+        *,
+        status: StageStatus = "done",
     ) -> None:
         if run_id is None:
             return
@@ -132,7 +134,7 @@ class AssistantTelemetry:
                 stage.duration_ms = (perf_counter() - stage.started_at) * 1000
             elif stage.duration_ms is None:
                 stage.duration_ms = 0.0
-            stage.status = "done"
+            stage.status = status
             if metadata:
                 stage.metadata.update(metadata)
             self._publish_locked()
@@ -143,6 +145,8 @@ class AssistantTelemetry:
         stage_name: str,
         duration_ms: float,
         metadata: dict[str, object] | None = None,
+        *,
+        status: StageStatus = "done",
     ) -> None:
         if run_id is None:
             return
@@ -151,7 +155,7 @@ class AssistantTelemetry:
             if run is None:
                 return
             stage = run.stages[stage_name]
-            stage.status = "done"
+            stage.status = status
             stage.duration_ms = duration_ms
             if metadata:
                 stage.metadata.update(metadata)
@@ -191,6 +195,25 @@ class AssistantTelemetry:
             self._complete_locked(run)
             self._publish_locked()
 
+    def cancel_run(self, run_id: str | None, reason: str) -> None:
+        if run_id is None:
+            return
+        with self._lock:
+            run = self._active_runs.get(run_id)
+            if run is None:
+                return
+            run.status = "cancelled"
+            run.metadata["cancel_reason"] = reason
+            current_stage = run.stages.get(run.current_stage)
+            if current_stage and current_stage.status == "running":
+                current_stage.status = "cancelled"
+                current_stage.metadata["cancel_reason"] = reason
+                if current_stage.started_at is not None:
+                    current_stage.duration_ms = (
+                        perf_counter() - current_stage.started_at
+                    ) * 1000
+            self._publish_locked()
+
     def complete_run(self, run_id: str | None) -> None:
         if run_id is None:
             return
@@ -198,7 +221,7 @@ class AssistantTelemetry:
             run = self._active_runs.get(run_id)
             if run is None:
                 return
-            if run.status != "error":
+            if run.status not in ("error", "cancelled"):
                 run.status = "done"
             self._complete_locked(run)
             self._publish_locked()
