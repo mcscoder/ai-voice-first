@@ -11,6 +11,21 @@ uv run python main.py
 
 Open `http://127.0.0.1:8000/docs` for the generated API docs.
 
+## Dashboard
+
+Run the live Streamlit dashboard in a second terminal:
+
+```bash
+cd backend
+uv run streamlit run dashboard.py
+```
+
+The dashboard uses `GET /v1/voice/assistant/telemetry/stream` with
+Server-Sent Events and visualizes the current assistant pipeline: request
+intake, ASR, memory retrieval, DeepSeek streaming, VieNeu TTS chunks, client
+stream completion, and Mem0 background persistence. A snapshot endpoint is also
+available at `GET /v1/voice/assistant/telemetry`.
+
 ## Development Principles
 
 - Fail fast: let unexpected errors surface instead of hiding them behind

@@ -9,6 +9,7 @@ from starlette.background import BackgroundTask
 
 from app.core.config import TtsVoice, config
 from app.services.assistant import assistant_service
+from app.services.assistant.telemetry import assistant_telemetry
 from app.services.asr import asr_service
 from app.services.tts import tts_service
 
@@ -42,6 +43,32 @@ def read_root() -> dict[str, str]:
 @router.get("/health")
 def health_check() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@router.get("/v1/voice/assistant/telemetry")
+def voice_assistant_telemetry() -> dict[str, object]:
+    return assistant_telemetry.payload()
+
+
+@router.get("/v1/voice/assistant/telemetry/stream")
+def voice_assistant_telemetry_stream() -> StreamingResponse:
+    def event_lines() -> Iterator[str]:
+        for snapshot in assistant_telemetry.subscribe():
+            if snapshot is None:
+                yield ": keep-alive\n\n"
+                continue
+
+            yield assistant_telemetry.sse_event(snapshot)
+
+    return StreamingResponse(
+        event_lines(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Access-Control-Allow-Origin": "*",
+        },
+    )
 
 
 @router.post("/asr")

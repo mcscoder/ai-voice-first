@@ -6,9 +6,20 @@ from fastapi.testclient import TestClient
 import pytest
 
 from app.api import routes
+from app.services.assistant.telemetry import assistant_telemetry
 from app.services.asr import AsrResult, UnsupportedAsrLanguageError
-from app.services.memory import DEFAULT_USER_ID, MemoryReply
+from app.services.memory import (
+    DEFAULT_USER_ID,
+    MemoryPersistResult,
+    MemoryReply,
+    MemorySearchResult,
+)
 from app.services.tts import TtsResult
+
+
+@pytest.fixture(autouse=True)
+def reset_assistant_telemetry() -> None:
+    assistant_telemetry.reset()
 
 
 def create_client() -> TestClient:
@@ -84,9 +95,9 @@ def test_voice_assistant_stream_returns_ordered_events(monkeypatch) -> None:
     def transcribe(audio: bytes, language: str | None) -> AsrResult:
         return AsrResult(text="Hello", language=language or "English", model="test")
 
-    def search_memories(query: str, user_id: str) -> list[str]:
+    def search_memory_results(query: str, user_id: str) -> list[MemorySearchResult]:
         calls["search"] = {"query": query, "user_id": user_id}
-        return ["User likes short answers."]
+        return [MemorySearchResult("User likes short answers.", 0.91)]
 
     def stream_response(query: str, memories: list[str]):
         calls["stream"] = {"query": query, "memories": memories}
@@ -97,8 +108,17 @@ def test_voice_assistant_stream_returns_ordered_events(monkeypatch) -> None:
         return TtsResult(audio=b"wav-chunk", media_type="audio/wav")
 
     monkeypatch.setattr(routes.assistant_service.asr, "transcribe", transcribe)
-    monkeypatch.setattr(routes.assistant_service.memory, "search_memories", search_memories)
+    monkeypatch.setattr(
+        routes.assistant_service.memory,
+        "search_memory_results",
+        search_memory_results,
+    )
     monkeypatch.setattr(routes.assistant_service.memory, "stream_response", stream_response)
+    monkeypatch.setattr(
+        routes.assistant_service.memory,
+        "persist_conversation",
+        lambda *_: None,
+    )
     monkeypatch.setattr(routes.assistant_service.tts, "synthesize", synthesize)
 
     response = create_client().post(
@@ -148,7 +168,11 @@ def test_voice_assistant_stream_persists_after_done(monkeypatch) -> None:
         )
 
     monkeypatch.setattr(routes.assistant_service.asr, "transcribe", transcribe)
-    monkeypatch.setattr(routes.assistant_service.memory, "search_memories", lambda *_: [])
+    monkeypatch.setattr(
+        routes.assistant_service.memory,
+        "search_memory_results",
+        lambda *_: [],
+    )
     monkeypatch.setattr(routes.assistant_service.memory, "stream_response", stream_response)
     monkeypatch.setattr(routes.assistant_service.tts, "synthesize", synthesize)
     monkeypatch.setattr(
@@ -177,6 +201,142 @@ def test_voice_assistant_stream_persists_after_done(monkeypatch) -> None:
     ]
 
 
+def test_voice_assistant_stream_records_pipeline_telemetry(monkeypatch) -> None:
+    def transcribe(audio: bytes, language: str | None) -> AsrResult:
+        return AsrResult(text="Remember this", language="English", model="test")
+
+    def stream_response(query: str, memories: list[str]):
+        yield "Saved."
+
+    def synthesize(text: str, voice: object | None) -> TtsResult:
+        return TtsResult(audio=b"wav-chunk", media_type="audio/wav")
+
+    monkeypatch.setattr(routes.assistant_service.asr, "transcribe", transcribe)
+    monkeypatch.setattr(
+        routes.assistant_service.memory,
+        "search_memory_results",
+        lambda *_: [MemorySearchResult("User likes concise answers.", 0.82)],
+    )
+    monkeypatch.setattr(routes.assistant_service.memory, "stream_response", stream_response)
+    monkeypatch.setattr(routes.assistant_service.tts, "synthesize", synthesize)
+    monkeypatch.setattr(
+        routes.assistant_service.memory,
+        "persist_conversation",
+        lambda *_: None,
+    )
+
+    response = create_client().post(
+        "/v1/voice/assistant/stream",
+        data={"language": "en"},
+        files={"file": ("speech.wav", b"audio-bytes", "audio/wav")},
+    )
+
+    assert response.status_code == 200
+
+    telemetry_response = create_client().get("/v1/voice/assistant/telemetry")
+    assert telemetry_response.status_code == 200
+    payload = telemetry_response.json()
+    assert payload["summary"] == {"active_count": 0, "recent_count": 1}
+
+    run = payload["recent_runs"][0]
+    stages = {stage["name"]: stage for stage in run["stages"]}
+    assert run["status"] == "done"
+    assert stages["asr"]["metadata"]["transcript"] == "Remember this"
+    assert stages["memory_search"]["metadata"]["memory_count"] == 1
+    assert stages["memory_search"]["metadata"]["memories"] == [
+        {"memory": "User likes concise answers.", "score": 0.82}
+    ]
+    assert stages["llm_response_stream"]["metadata"]["characters"] == len("Saved.")
+    assert stages["tts_synthesis"]["metadata"]["chunk_count"] == 1
+    assert stages["mem0_persist_background"]["metadata"] == {"persisted": True}
+
+
+def test_voice_assistant_stream_records_memory_persist_actions(monkeypatch) -> None:
+    def transcribe(audio: bytes, language: str | None) -> AsrResult:
+        return AsrResult(text="Remember this", language="English", model="test")
+
+    def stream_response(query: str, memories: list[str]):
+        yield "Saved."
+
+    def synthesize(text: str, voice: object | None) -> TtsResult:
+        return TtsResult(audio=b"wav-chunk", media_type="audio/wav")
+
+    persist_result = MemoryPersistResult(
+        actions=[
+            {
+                "id": "memory-id",
+                "memory": "Nguyên nợ tôi năm mươi ngàn.",
+                "event": "UPDATE",
+                "previous_memory": "Nguyên nợ tôi tiền.",
+            },
+            {
+                "id": "1",
+                "memory": "Đang dự định in lại tài liệu",
+                "event": "NONE",
+            },
+        ],
+        action_counts={"UPDATE": 1, "NONE": 1},
+        raw_result=None,
+    )
+
+    monkeypatch.setattr(routes.assistant_service.asr, "transcribe", transcribe)
+    monkeypatch.setattr(
+        routes.assistant_service.memory,
+        "search_memory_results",
+        lambda *_: [],
+    )
+    monkeypatch.setattr(routes.assistant_service.memory, "stream_response", stream_response)
+    monkeypatch.setattr(routes.assistant_service.tts, "synthesize", synthesize)
+    monkeypatch.setattr(
+        routes.assistant_service.memory,
+        "persist_conversation",
+        lambda *_: persist_result,
+    )
+
+    response = create_client().post(
+        "/v1/voice/assistant/stream",
+        data={"language": "en"},
+        files={"file": ("speech.wav", b"audio-bytes", "audio/wav")},
+    )
+
+    assert response.status_code == 200
+
+    payload = create_client().get("/v1/voice/assistant/telemetry").json()
+    run = payload["recent_runs"][0]
+    stages = {stage["name"]: stage for stage in run["stages"]}
+    persist_metadata = stages["mem0_persist_background"]["metadata"]
+
+    assert persist_metadata["persisted"] is True
+    assert persist_metadata["action_counts"] == {"UPDATE": 1, "NONE": 1}
+    assert persist_metadata["memory_actions"] == persist_result.actions
+
+
+def test_voice_assistant_telemetry_endpoint_returns_service_metadata() -> None:
+    response = create_client().get("/v1/voice/assistant/telemetry")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["summary"] == {"active_count": 0, "recent_count": 0}
+    assert payload["services"]["llm_model"] == "deepseek-v4-flash"
+    assert payload["services"]["asr_model"] == "Qwen/Qwen3-ASR-0.6B"
+
+
+def test_voice_assistant_telemetry_stream_returns_sse_event() -> None:
+    response = routes.voice_assistant_telemetry_stream()
+    assert response.media_type == "text/event-stream"
+    assert response.headers["cache-control"] == "no-cache"
+    assert response.headers["x-accel-buffering"] == "no"
+
+    event = assistant_telemetry.sse_event(assistant_telemetry.snapshot())
+    lines = event.splitlines()
+    assert lines[0] == "event: telemetry"
+    data_line = lines[1]
+    assert data_line.startswith("data: ")
+    payload = json.loads(data_line.removeprefix("data: "))
+    assert payload["summary"] == {"active_count": 0, "recent_count": 0}
+    assert payload["services"]["llm_model"] == "deepseek-v4-flash"
+
+
 def test_voice_assistant_stream_emits_known_service_errors(monkeypatch) -> None:
     def transcribe(audio: bytes, language: str | None) -> AsrResult:
         raise UnsupportedAsrLanguageError("Unsupported language.")
@@ -193,4 +353,3 @@ def test_voice_assistant_stream_emits_known_service_errors(monkeypatch) -> None:
     assert [json.loads(line) for line in response.text.strip().splitlines()] == [
         {"type": "error", "message": "Unsupported language."}
     ]
-

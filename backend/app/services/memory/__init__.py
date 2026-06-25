@@ -1,6 +1,8 @@
 from app.services.memory.service import (
     DEFAULT_USER_ID,
+    MemoryPersistResult,
     MemoryReply,
+    MemorySearchResult,
     MemoryService,
     MemoryServiceError,
     memory_service,
@@ -8,7 +10,9 @@ from app.services.memory.service import (
 
 __all__ = [
     "DEFAULT_USER_ID",
+    "MemoryPersistResult",
     "MemoryReply",
+    "MemorySearchResult",
     "MemoryService",
     "MemoryServiceError",
     "memory_service",
