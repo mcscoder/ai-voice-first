@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import av
 import numpy as np
-from app.core.config import AsrDevice, QuantizationConfig, config
+from app.core.config import AsrDevice, QuantizationConfig, QuantizationLevel, config
 from qwen_asr import Qwen3ASRModel
 
 if TYPE_CHECKING:
@@ -36,12 +36,12 @@ class AsrService:
         self,
         model_name: str = config.asr.model_name,
         device: AsrDevice = config.asr.device,
-        quantization: QuantizationConfig = config.asr.quantization,
+        quantization_level: QuantizationLevel = config.asr.quantization_level,
         language_map: dict[str, str] | None = None,
     ) -> None:
         self.model_name = model_name
         self.device = device
-        self.quantization = quantization
+        self.quantization_level = quantization_level
         self.language_map = language_map or config.asr.language_map
 
         self._model: Qwen3ASRModel | None = None
@@ -53,7 +53,9 @@ class AsrService:
                 self._model = Qwen3ASRModel.from_pretrained(
                     self.model_name,
                     device_map=self.device,
-                    **self.quantization.to_transformers_kwargs(),
+                    **QuantizationConfig(
+                        self.quantization_level
+                    ).to_transformers_kwargs(),
                 )
             return self._model
 

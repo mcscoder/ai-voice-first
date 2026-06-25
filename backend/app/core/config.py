@@ -28,26 +28,35 @@ TtsVoice = Literal[
     "Ngọc Linh",
 ]
 
+QuantizationLevel = Literal["none", "int8", "int4-nf4", "int4-fp4"]
+
 
 @dataclass(frozen=True)
 class QuantizationConfig:
-    """Shared 4-bit model loading settings for Qwen models."""
+    """Model loading quantization settings for Transformer-backed models."""
 
-    load_in_4bit: bool = True
-    bnb_4bit_compute_dtype: str = "float16"
-    bnb_4bit_quant_type: str = "nf4"
-    bnb_4bit_use_double_quant: bool = True
+    level: QuantizationLevel
 
-    def to_bitsandbytes_config(self) -> BitsAndBytesConfig:
+    def to_bitsandbytes_config(self) -> BitsAndBytesConfig | None:
+        if self.level == "none":
+            return None
+        if self.level == "int8":
+            return BitsAndBytesConfig(load_in_8bit=True)
+        if self.level not in ("int4-nf4", "int4-fp4"):
+            raise ValueError(f"Unsupported quantization level: {self.level}")
+
+        quant_type = self.level.removeprefix("int4-")
         return BitsAndBytesConfig(
-            load_in_4bit=self.load_in_4bit,
-            bnb_4bit_compute_dtype=self.bnb_4bit_compute_dtype,
-            bnb_4bit_quant_type=self.bnb_4bit_quant_type,
-            bnb_4bit_use_double_quant=self.bnb_4bit_use_double_quant,
+            load_in_4bit=True,
+            bnb_4bit_compute_dtype="float16",
+            bnb_4bit_quant_type=quant_type,
         )
 
     def to_transformers_kwargs(self) -> dict[str, BitsAndBytesConfig]:
-        return {"quantization_config": self.to_bitsandbytes_config()}
+        quantization_config = self.to_bitsandbytes_config()
+        if quantization_config is None:
+            return {}
+        return {"quantization_config": quantization_config}
 
 
 @dataclass(frozen=True)
@@ -56,7 +65,7 @@ class AsrConfig:
 
     model_name: str = "Qwen/Qwen3-ASR-0.6B"
     device: AsrDevice = "auto"
-    quantization: QuantizationConfig = field(default_factory=QuantizationConfig)
+    quantization_level: QuantizationLevel = "int8"
     load_on_startup: bool = True
 
     default_language: str = "English"
@@ -99,9 +108,7 @@ class MemoryConfig:
     embedder_provider: str = "huggingface"
     embedder_model: str = "Qwen/Qwen3-Embedding-0.6B"
     embedding_dims: int = 1024
-    embedding_quantization: QuantizationConfig = field(
-        default_factory=QuantizationConfig
-    )
+    embedding_quantization_level: QuantizationLevel = "int8"
 
     vector_store_provider: str = "qdrant"
     vector_store_collection_name: str = "ai_voice_first_memories"
@@ -138,7 +145,9 @@ class MemoryConfig:
                     "embedding_dims": self.embedding_dims,
                     "model_kwargs": {
                         "model_kwargs": {
-                            **self.embedding_quantization.to_transformers_kwargs(),
+                            **QuantizationConfig(
+                                self.embedding_quantization_level
+                            ).to_transformers_kwargs(),
                             "device_map": "auto",
                         },
                     },

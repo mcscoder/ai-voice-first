@@ -2,7 +2,7 @@ from app.core.config import MemoryConfig
 from app.services.asr.service import AsrService
 
 
-def test_asr_loads_qwen_with_4bit_quantization(monkeypatch) -> None:
+def load_asr_model_kwargs(monkeypatch, quantization_level: str) -> dict[str, object]:
     calls: dict[str, object] = {}
     loaded_model = object()
 
@@ -16,33 +16,85 @@ def test_asr_loads_qwen_with_4bit_quantization(monkeypatch) -> None:
         from_pretrained,
     )
 
-    model = AsrService(model_name="test-qwen-asr", device="auto").load_model()
+    model = AsrService(
+        model_name="test-qwen-asr",
+        device="auto",
+        quantization_level=quantization_level,
+    ).load_model()
 
     assert model is loaded_model
     assert calls["model_name"] == "test-qwen-asr"
     kwargs = calls["kwargs"]
     assert isinstance(kwargs, dict)
     assert kwargs["device_map"] == "auto"
-    quantization_config = kwargs["quantization_config"]
-    assert quantization_config.load_in_4bit is True
-    assert str(quantization_config.bnb_4bit_compute_dtype) == "torch.float16"
-    assert quantization_config.bnb_4bit_quant_type == "nf4"
-    assert quantization_config.bnb_4bit_use_double_quant is True
+    return kwargs
 
 
-def test_memory_config_passes_4bit_quantization_to_huggingface_embedder() -> None:
-    mem0_config = MemoryConfig().to_mem0_config()
+def get_memory_model_kwargs(quantization_level: str) -> dict[str, object]:
+    mem0_config = MemoryConfig(
+        embedding_quantization_level=quantization_level
+    ).to_mem0_config()
 
     embedder_config = mem0_config["embedder"]["config"]
     sentence_transformer_kwargs = embedder_config["model_kwargs"]
     model_kwargs = sentence_transformer_kwargs["model_kwargs"]
 
     assert model_kwargs["device_map"] == "auto"
-    quantization_config = model_kwargs["quantization_config"]
+    return model_kwargs
+
+
+def assert_4bit_quantization(quantization_config: object, quant_type: str) -> None:
     assert quantization_config.load_in_4bit is True
     assert str(quantization_config.bnb_4bit_compute_dtype) == "torch.float16"
-    assert quantization_config.bnb_4bit_quant_type == "nf4"
-    assert quantization_config.bnb_4bit_use_double_quant is True
+    assert quantization_config.bnb_4bit_quant_type == quant_type
+
+
+def test_asr_loads_qwen_with_default_8bit_quantization(monkeypatch) -> None:
+    kwargs = load_asr_model_kwargs(monkeypatch, quantization_level="int8")
+
+    quantization_config = kwargs["quantization_config"]
+    assert quantization_config.load_in_8bit is True
+
+
+def test_asr_can_disable_quantization(monkeypatch) -> None:
+    kwargs = load_asr_model_kwargs(monkeypatch, quantization_level="none")
+
+    assert "quantization_config" not in kwargs
+
+
+def test_asr_supports_4bit_quantization_levels(monkeypatch) -> None:
+    nf4_kwargs = load_asr_model_kwargs(monkeypatch, quantization_level="int4-nf4")
+    fp4_kwargs = load_asr_model_kwargs(monkeypatch, quantization_level="int4-fp4")
+
+    assert_4bit_quantization(nf4_kwargs["quantization_config"], quant_type="nf4")
+    assert_4bit_quantization(fp4_kwargs["quantization_config"], quant_type="fp4")
+
+
+def test_memory_config_passes_default_8bit_quantization_to_huggingface_embedder() -> None:
+    model_kwargs = get_memory_model_kwargs(quantization_level="int8")
+
+    quantization_config = model_kwargs["quantization_config"]
+    assert quantization_config.load_in_8bit is True
+
+
+def test_memory_config_can_disable_embedding_quantization() -> None:
+    model_kwargs = get_memory_model_kwargs(quantization_level="none")
+
+    assert "quantization_config" not in model_kwargs
+
+
+def test_memory_config_supports_4bit_embedding_quantization_levels() -> None:
+    nf4_model_kwargs = get_memory_model_kwargs(quantization_level="int4-nf4")
+    fp4_model_kwargs = get_memory_model_kwargs(quantization_level="int4-fp4")
+
+    assert_4bit_quantization(
+        nf4_model_kwargs["quantization_config"],
+        quant_type="nf4",
+    )
+    assert_4bit_quantization(
+        fp4_model_kwargs["quantization_config"],
+        quant_type="fp4",
+    )
 
 
 def test_memory_config_uses_deepseek_llm() -> None:

@@ -26,17 +26,24 @@ curl -F "file=@speech.wav" -F "language=English" http://127.0.0.1:8000/asr
 ```
 
 The ASR endpoint uses `Qwen/Qwen3-ASR-0.6B`, loads the model on app startup
-with 4-bit bitsandbytes quantization, and supports English (`en`) and
+with 8-bit bitsandbytes quantization, and supports English (`en`) and
 Vietnamese (`vi`).
+
+Change `app.core.config.AsrConfig.quantization_level` to adjust ASR
+quantization. Supported values are `none`, `int8`, `int4-nf4`, and `int4-fp4`.
 
 ## Memory
 
 The memory service uses Mem0 with:
 
 - DeepSeek as the LLM provider
-- `Qwen/Qwen3-Embedding-0.6B` through the Hugging Face embedder with 4-bit
+- `Qwen/Qwen3-Embedding-0.6B` through the Hugging Face embedder with 8-bit
   bitsandbytes quantization
 - Local Qdrant storage under `backend/app/data/mem0`
+
+Change `app.core.config.MemoryConfig.embedding_quantization_level` to adjust
+embedding model quantization independently. Supported values are `none`,
+`int8`, `int4-nf4`, and `int4-fp4`.
 
 Set `DEEPSEEK_API_KEY` before starting the backend:
 
