@@ -89,23 +89,137 @@ def test_memory_response_cleans_markdown_before_saving_and_returning() -> None:
 
 
 def test_memory_search_results_include_scores() -> None:
+    first_result = {
+        "id": "memory-id",
+        "memory": "User likes short answers.",
+        "score": 0.87321,
+        "user_id": "test-user",
+        "categories": ["personal_info"],
+        "created_at": "2026-06-25T04:08:26+00:00",
+        "updated_at": "2026-06-25T05:40:29+00:00",
+        "metadata": {"topic": "preferences"},
+    }
     memory = FakeMemory(
         "unused",
         search_results=[
-            {"memory": "User likes short answers.", "score": 0.87321},
+            first_result,
             {"memory": "Invalid score is still shown.", "score": "bad"},
         ],
     )
     service = FakeMemoryService(memory)
 
-    assert service.search_memory_results("Hello", "test-user") == [
-        MemorySearchResult(memory="User likes short answers.", score=0.87321),
-        MemorySearchResult(memory="Invalid score is still shown.", score=None),
+    results = service.search_memory_results("Hello", "test-user")
+    assert results == [
+        MemorySearchResult(
+            id="memory-id",
+            memory="User likes short answers.",
+            score=0.87321,
+            user_id="test-user",
+            categories=["personal_info"],
+            created_at="2026-06-25T04:08:26+00:00",
+            updated_at="2026-06-25T05:40:29+00:00",
+            metadata={"topic": "preferences"},
+        ),
+        MemorySearchResult(
+            memory="Invalid score is still shown.",
+            score=None,
+        ),
     ]
-    assert service.search_memories("Hello", "test-user") == [
+    assert [item.memory for item in results] == [
         "User likes short answers.",
         "Invalid score is still shown.",
     ]
+
+
+def test_memory_search_result_from_mem0_preserves_fields_for_telemetry() -> None:
+    result = MemorySearchResult.from_mem0(
+        {
+            "id": "mem_123abc",
+            "memory": "Name is Alex. Enjoys basketball and gaming.",
+            "user_id": "alex",
+            "categories": ["personal_info"],
+            "created_at": "2025-10-22T04:40:22.864647-07:00",
+            "score": 0.89,
+            "metadata": {"source": "mem0"},
+            "custom_field": "custom-value",
+        }
+    )
+
+    assert result.as_telemetry() == {
+        "id": "mem_123abc",
+        "memory": "Name is Alex. Enjoys basketball and gaming.",
+        "user_id": "alex",
+        "categories": ["personal_info"],
+        "created_at": "2025-10-22T04:40:22.864647-07:00",
+        "score": 0.89,
+        "metadata": {"source": "mem0"},
+        "custom_field": "custom-value",
+    }
+
+
+def test_memory_prompt_uses_compact_csv_context() -> None:
+    memory = FakeMemory(
+        "Tôi nhớ rồi.",
+        search_results=[
+            {
+                "id": "memory-id",
+                "memory": "Nguyên nợ tôi năm mươi ngàn hôm qua chưa trả.",
+                "score": 0.82,
+                "user_id": "test-user",
+                "categories": ["finance", "debt"],
+                "created_at": "2026-06-25T04:08:26+00:00",
+                "updated_at": "2026-06-25T05:40:29+00:00",
+                "metadata": {"topic": "debt"},
+            }
+        ],
+    )
+    service = FakeMemoryService(memory)
+
+    service.respond("Hôm nay Nguyên trả chưa?", "test-user")
+
+    assert memory.llm.messages is not None
+    user_prompt = memory.llm.messages[1]["content"]
+    assert "Current local time:" in user_prompt
+    assert "Current UTC time:" in user_prompt
+    assert "Relevant memories CSV:" in user_prompt
+    assert "memory,created_at,updated_at" in user_prompt
+    assert "id,memory,user_id,categories,created_at,updated_at,score" not in user_prompt
+    assert "hôm qua" in user_prompt
+    assert (
+        "Nguyên nợ tôi năm mươi ngàn hôm qua chưa trả.,"
+        "2026-06-25T04:08:26+00:00,2026-06-25T05:40:29+00:00"
+    ) in user_prompt
+    assert "memory-id" not in user_prompt
+    assert "test-user" not in user_prompt
+    assert "finance|debt" not in user_prompt
+    assert "0.82" not in user_prompt
+    assert "metadata:" not in user_prompt
+    assert "created_at:" not in user_prompt
+
+
+def test_memory_build_response_messages_quotes_csv_values() -> None:
+    memory = FakeMemory("unused")
+    service = FakeMemoryService(memory)
+
+    messages = service.build_response_messages(
+        "What changed?",
+        [
+            MemorySearchResult(
+                id="memory-id",
+                memory="User discussed a debt, with comma.",
+                score=0.91,
+                user_id="test-user",
+            )
+        ],
+    )
+
+    assert messages[0]["role"] == "system"
+    assert messages[1]["role"] == "user"
+    user_prompt = messages[1]["content"]
+    assert '"User discussed a debt, with comma.",,' in user_prompt
+    assert "memory-id" not in user_prompt
+    assert "test-user" not in user_prompt
+    assert "0.91" not in user_prompt
 
 
 def test_memory_persist_returns_structured_memory_actions() -> None:

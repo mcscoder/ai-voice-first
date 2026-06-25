@@ -145,7 +145,6 @@ class AssistantService:
         step_start = perf_counter()
         assistant_telemetry.start_stage(run_id, "memory_search")
         memory_results = self.memory.search_memory_results(query, self.user_id)
-        memories = [item.memory for item in memory_results]
         assistant_telemetry.finish_stage(
             run_id,
             "memory_search",
@@ -159,14 +158,22 @@ class AssistantService:
             (perf_counter() - step_start) * 1000,
         )
 
+        prompt_messages = self.memory.build_response_messages(query, memory_results)
         step_start = perf_counter()
         assistant_telemetry.start_stage(run_id, "llm_response_stream")
+        assistant_telemetry.update_stage(
+            run_id,
+            "llm_response_stream",
+            {"prompt_messages": prompt_messages},
+        )
         sequence = 0
         pending_tts = ""
         full_text = ""
         llm_duration_ms = 0.0
         tts_duration_ms = 0.0
-        stream = iter(self.memory.stream_response(query, memories))
+        stream = iter(
+            self.memory.stream_response(query, memory_results, prompt_messages)
+        )
         while True:
             delta_start = perf_counter()
             try:

@@ -245,7 +245,8 @@ def dashboard_component(base_url: str) -> str:
   }
 
   .memory-list,
-  .action-list {
+  .action-list,
+  .prompt-list {
     display: grid;
     gap: 8px;
     margin-top: 10px;
@@ -255,7 +256,8 @@ def dashboard_component(base_url: str) -> str:
   }
 
   .memory-item,
-  .action-item {
+  .action-item,
+  .prompt-item {
     border: 1px solid #e5e7eb;
     border-radius: 8px;
     padding: 10px;
@@ -279,6 +281,36 @@ def dashboard_component(base_url: str) -> str:
     font-size: 12px;
     font-weight: 800;
     white-space: nowrap;
+  }
+
+  .memory-meta {
+    margin-top: 8px;
+    color: #6b7280;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .memory-field {
+    display: grid;
+    grid-template-columns: 110px minmax(0, 1fr);
+    gap: 8px;
+    margin-top: 5px;
+  }
+
+  .memory-field span:first-child,
+  .prompt-role {
+    color: #374151;
+    font-weight: 800;
+  }
+
+  .prompt-content {
+    margin: 8px 0 0;
+    color: #111827;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
 
   .action-header {
@@ -449,6 +481,13 @@ def dashboard_component(base_url: str) -> str:
     return stage.name;
   }
 
+  function formatFieldValue(value) {
+    if (typeof value === "object" && value !== null) {
+      return JSON.stringify(value);
+    }
+    return value ?? "";
+  }
+
   function renderSearchedMemories(memory) {
     const memories = memory.memories || [];
     if (memories.length === 0) {
@@ -461,15 +500,46 @@ def dashboard_component(base_url: str) -> str:
           const memoryText = typeof item === "string" ? item : item.memory;
           const score = typeof item === "object" && item !== null ? item.score : null;
           const scoreText = typeof score === "number" ? score.toFixed(3) : "-";
+          let fieldRows = "";
+          if (typeof item === "object" && item !== null) {
+            fieldRows = Object.entries(item)
+              .filter(([key]) => key !== "memory" && key !== "score")
+              .map(([key, value]) => `
+                <div class="memory-field">
+                  <span>${escapeHtml(key)}</span>
+                  <span>${escapeHtml(formatFieldValue(value))}</span>
+                </div>
+              `)
+              .join("");
+          }
           return `
             <div class="memory-item">
               <div class="memory-item-header">
                 <div>${escapeHtml(memoryText)}</div>
                 <span class="score-badge">score ${escapeHtml(scoreText)}</span>
               </div>
+              ${fieldRows ? `<div class="memory-meta">${fieldRows}</div>` : ""}
             </div>
           `;
         }).join("")}
+      </div>
+    `;
+  }
+
+  function renderPromptMessages(llm) {
+    const messages = llm.prompt_messages || [];
+    if (messages.length === 0) {
+      return '<div class="empty">Waiting for built LLM prompt...</div>';
+    }
+
+    return `
+      <div class="prompt-list">
+        ${messages.map((message) => `
+          <div class="prompt-item">
+            <div class="prompt-role">${escapeHtml(message.role || "unknown")}</div>
+            <pre class="prompt-content">${escapeHtml(message.content || "")}</pre>
+          </div>
+        `).join("")}
       </div>
     `;
   }
@@ -594,6 +664,10 @@ def dashboard_component(base_url: str) -> str:
       <div class="detail-card">
         <div class="detail-label">Retrieved Memory Context</div>
         ${renderSearchedMemories(memory)}
+      </div>
+      <div class="detail-card">
+        <div class="detail-label">Built LLM Prompt</div>
+        ${renderPromptMessages(llm)}
       </div>
       <div class="detail-card">
         <div class="detail-label">Mem0 Persistence Actions</div>

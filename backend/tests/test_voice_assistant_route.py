@@ -97,10 +97,27 @@ def test_voice_assistant_stream_returns_ordered_events(monkeypatch) -> None:
 
     def search_memory_results(query: str, user_id: str) -> list[MemorySearchResult]:
         calls["search"] = {"query": query, "user_id": user_id}
-        return [MemorySearchResult("User likes short answers.", 0.91)]
+        return [
+            MemorySearchResult.from_mem0(
+                {
+                    "id": "memory-id",
+                    "memory": "User likes short answers.",
+                    "score": 0.91,
+                    "created_at": "2026-06-25T04:08:26+00:00",
+                },
+            )
+        ]
 
-    def stream_response(query: str, memories: list[str]):
-        calls["stream"] = {"query": query, "memories": memories}
+    def stream_response(
+        query: str,
+        memories: list[MemorySearchResult],
+        messages: list[dict[str, str]],
+    ):
+        calls["stream"] = {
+            "query": query,
+            "memories": memories,
+            "messages": messages,
+        }
         yield "Hi there."
 
     def synthesize(text: str, voice: object | None) -> TtsResult:
@@ -142,10 +159,32 @@ def test_voice_assistant_stream_returns_ordered_events(monkeypatch) -> None:
     ]
     assert response.headers["content-type"].startswith("application/x-ndjson")
     assert calls["search"] == {"query": "Hello", "user_id": DEFAULT_USER_ID}
-    assert calls["stream"] == {
+    stream_call = calls["stream"]
+    assert isinstance(stream_call, dict)
+    messages = stream_call.pop("messages")
+    assert stream_call == {
         "query": "Hello",
-        "memories": ["User likes short answers."],
+        "memories": [
+            MemorySearchResult.from_mem0(
+                {
+                    "id": "memory-id",
+                    "memory": "User likes short answers.",
+                    "score": 0.91,
+                    "created_at": "2026-06-25T04:08:26+00:00",
+                },
+            )
+        ],
     }
+    assert isinstance(messages, list)
+    assert messages[0]["role"] == "system"
+    assert messages[1]["role"] == "user"
+    prompt = messages[1]["content"]
+    assert "Relevant memories CSV:" in prompt
+    assert "memory,created_at,updated_at" in prompt
+    assert "User likes short answers." in prompt
+    assert "2026-06-25T04:08:26+00:00" in prompt
+    assert "memory-id" not in prompt
+    assert "0.91" not in prompt
     assert calls["tts"] == {"text": "Hi there.", "voice": None}
 
 
@@ -155,7 +194,11 @@ def test_voice_assistant_stream_persists_after_done(monkeypatch) -> None:
     def transcribe(audio: bytes, language: str | None) -> AsrResult:
         return AsrResult(text="Remember this", language="English", model="test")
 
-    def stream_response(query: str, memories: list[str]):
+    def stream_response(
+        query: str,
+        memories: list[MemorySearchResult],
+        messages: list[dict[str, str]],
+    ):
         yield "Saved."
 
     def synthesize(text: str, voice: object | None) -> TtsResult:
@@ -205,7 +248,11 @@ def test_voice_assistant_stream_records_pipeline_telemetry(monkeypatch) -> None:
     def transcribe(audio: bytes, language: str | None) -> AsrResult:
         return AsrResult(text="Remember this", language="English", model="test")
 
-    def stream_response(query: str, memories: list[str]):
+    def stream_response(
+        query: str,
+        memories: list[MemorySearchResult],
+        messages: list[dict[str, str]],
+    ):
         yield "Saved."
 
     def synthesize(text: str, voice: object | None) -> TtsResult:
@@ -215,7 +262,18 @@ def test_voice_assistant_stream_records_pipeline_telemetry(monkeypatch) -> None:
     monkeypatch.setattr(
         routes.assistant_service.memory,
         "search_memory_results",
-        lambda *_: [MemorySearchResult("User likes concise answers.", 0.82)],
+        lambda *_: [
+            MemorySearchResult.from_mem0(
+                {
+                    "id": "memory-id",
+                    "memory": "User likes concise answers.",
+                    "score": 0.82,
+                    "created_at": "2026-06-25T04:08:26+00:00",
+                    "updated_at": "2026-06-25T05:40:29+00:00",
+                    "metadata": {"topic": "preferences"},
+                },
+            )
+        ],
     )
     monkeypatch.setattr(routes.assistant_service.memory, "stream_response", stream_response)
     monkeypatch.setattr(routes.assistant_service.tts, "synthesize", synthesize)
@@ -244,9 +302,28 @@ def test_voice_assistant_stream_records_pipeline_telemetry(monkeypatch) -> None:
     assert stages["asr"]["metadata"]["transcript"] == "Remember this"
     assert stages["memory_search"]["metadata"]["memory_count"] == 1
     assert stages["memory_search"]["metadata"]["memories"] == [
-        {"memory": "User likes concise answers.", "score": 0.82}
+        {
+            "id": "memory-id",
+            "memory": "User likes concise answers.",
+            "score": 0.82,
+            "created_at": "2026-06-25T04:08:26+00:00",
+            "updated_at": "2026-06-25T05:40:29+00:00",
+            "metadata": {"topic": "preferences"},
+        }
     ]
-    assert stages["llm_response_stream"]["metadata"]["characters"] == len("Saved.")
+    llm_metadata = stages["llm_response_stream"]["metadata"]
+    assert llm_metadata["characters"] == len("Saved.")
+    assert llm_metadata["prompt_messages"][0]["role"] == "system"
+    assert llm_metadata["prompt_messages"][1]["role"] == "user"
+    prompt = llm_metadata["prompt_messages"][1]["content"]
+    assert "Relevant memories CSV:" in prompt
+    assert "memory,created_at,updated_at" in prompt
+    assert "User likes concise answers." in prompt
+    assert "2026-06-25T04:08:26+00:00" in prompt
+    assert "2026-06-25T05:40:29+00:00" in prompt
+    assert "id,memory,user_id,categories,created_at,updated_at,score" not in prompt
+    assert "memory-id" not in prompt
+    assert "0.82" not in prompt
     assert stages["tts_synthesis"]["metadata"]["chunk_count"] == 1
     assert stages["mem0_persist_background"]["metadata"] == {"persisted": True}
 
@@ -255,7 +332,11 @@ def test_voice_assistant_stream_records_memory_persist_actions(monkeypatch) -> N
     def transcribe(audio: bytes, language: str | None) -> AsrResult:
         return AsrResult(text="Remember this", language="English", model="test")
 
-    def stream_response(query: str, memories: list[str]):
+    def stream_response(
+        query: str,
+        memories: list[MemorySearchResult],
+        messages: list[dict[str, str]],
+    ):
         yield "Saved."
 
     def synthesize(text: str, voice: object | None) -> TtsResult:

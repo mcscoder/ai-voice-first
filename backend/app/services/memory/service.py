@@ -4,8 +4,11 @@ import os
 import re
 import threading
 import logging
-from dataclasses import dataclass
+import csv
+from dataclasses import dataclass, field
 from collections.abc import Iterator
+from datetime import datetime, timezone
+from io import StringIO
 
 from app.core.config import MemoryConfig, config
 from mem0 import Memory
@@ -36,9 +39,83 @@ class MemoryReply:
 class MemorySearchResult:
     memory: str
     score: float | None
+    id: str | None = None
+    user_id: str | None = None
+    categories: list[str] = field(default_factory=list)
+    created_at: str | None = None
+    updated_at: str | None = None
+    agent_id: str | None = None
+    run_id: str | None = None
+    actor_id: str | None = None
+    role: str | None = None
+    metadata: dict[str, object] | None = None
+    extra_fields: dict[str, object] = field(default_factory=dict)
+
+    @classmethod
+    def from_mem0(cls, item: dict[str, object]) -> MemorySearchResult:
+        memory_text = item.get("memory")
+        if not isinstance(memory_text, str):
+            raise ValueError("Mem0 search result is missing memory text.")
+
+        known_keys = {
+            "id",
+            "memory",
+            "score",
+            "user_id",
+            "categories",
+            "created_at",
+            "updated_at",
+            "agent_id",
+            "run_id",
+            "actor_id",
+            "role",
+            "metadata",
+        }
+        score = item.get("score")
+        raw_categories = item.get("categories")
+        categories = raw_categories if isinstance(raw_categories, list) else []
+        metadata = item.get("metadata")
+
+        return cls(
+            id=str(item["id"]) if item.get("id") is not None else None,
+            memory=memory_text,
+            score=float(score) if isinstance(score, (int, float)) else None,
+            user_id=str(item["user_id"]) if item.get("user_id") is not None else None,
+            categories=[str(category) for category in categories],
+            created_at=str(item["created_at"])
+            if item.get("created_at") is not None
+            else None,
+            updated_at=str(item["updated_at"])
+            if item.get("updated_at") is not None
+            else None,
+            agent_id=str(item["agent_id"]) if item.get("agent_id") is not None else None,
+            run_id=str(item["run_id"]) if item.get("run_id") is not None else None,
+            actor_id=str(item["actor_id"]) if item.get("actor_id") is not None else None,
+            role=str(item["role"]) if item.get("role") is not None else None,
+            metadata=metadata if isinstance(metadata, dict) else None,
+            extra_fields={key: value for key, value in item.items() if key not in known_keys},
+        )
 
     def as_telemetry(self) -> dict[str, object]:
-        return {"memory": self.memory, "score": self.score}
+        telemetry = dict(self.extra_fields)
+        for key in (
+            "id",
+            "user_id",
+            "categories",
+            "created_at",
+            "updated_at",
+            "agent_id",
+            "run_id",
+            "actor_id",
+            "role",
+            "metadata",
+        ):
+            value = getattr(self, key)
+            if value:
+                telemetry[key] = value
+        telemetry["memory"] = self.memory
+        telemetry["score"] = self.score
+        return telemetry
 
 
 @dataclass(frozen=True)
@@ -85,31 +162,74 @@ class MemoryService:
             raise MemoryServiceError("Memory service received empty text.")
 
         memory = self.load_memory()
-        memories = self.search_memories(query, user_id)
-        response_text = self.generate_response(query, memories)
+        memories = self.search_memory_results(query, user_id)
+        response = memory.llm.generate_response(
+            self.build_response_messages(query, memories)
+        )
+
+        response_text = str(response).strip()
+        response_text = self._clean_response_for_speech(response_text)
+        if not response_text:
+            raise MemoryServiceError("Memory service returned an empty response.")
 
         self.persist_conversation(query, response_text, user_id)
 
         return MemoryReply(text=response_text, user_id=user_id)
 
-    def search_memories(self, query: str, user_id: str) -> list[str]:
-        return [item.memory for item in self.search_memory_results(query, user_id)]
-
     def search_memory_results(self, query: str, user_id: str) -> list[MemorySearchResult]:
         memory = self.load_memory()
-        return self._search_memories(memory, query, user_id)
+        result = memory.search(query, user_id=user_id, limit=5)
+        memories: list[MemorySearchResult] = []
+        for item in result.get("results", []):
+            if not isinstance(item, dict) or not isinstance(item.get("memory"), str):
+                continue
 
-    def generate_response(self, query: str, memories: list[str]) -> str:
-        memory = self.load_memory()
-        return self._generate_response(memory, query, memories)
+            memories.append(MemorySearchResult.from_mem0(item))
+        return memories
 
-    def stream_response(self, query: str, memories: list[str]) -> Iterator[str]:
+    def build_response_messages(
+        self,
+        query: str,
+        memories: list[MemorySearchResult],
+    ) -> list[dict[str, str]]:
+        local_now = datetime.now().astimezone().isoformat()
+        utc_now = datetime.now(timezone.utc).isoformat()
+        memory_context = self._format_memory_context_csv(memories)
+        if not memory_context:
+            memory_context = "No relevant memories yet."
+
+        return [
+            {
+                "role": "system",
+                "content": VOICE_ASSISTANT_SYSTEM_PROMPT,
+            },
+            {
+                "role": "system",
+                "content": (
+                    f"Current local time: {local_now}\n"
+                    f"Current UTC time: {utc_now}\n"
+                    "Use timestamps to interpret relative time phrases.\n\n"
+                    f"Relevant memories CSV:\n{memory_context}"
+                ),
+            },
+            {
+                "role": "user",
+                "content": query,
+            },
+        ]
+
+    def stream_response(
+        self,
+        query: str,
+        memories: list[MemorySearchResult],
+        messages: list[dict[str, str]] | None = None,
+    ) -> Iterator[str]:
         memory = self.load_memory()
-        messages = self._response_messages(query, memories)
+        response_messages = messages or self.build_response_messages(query, memories)
         try:
             stream = memory.llm.client.chat.completions.create(
                 model=self.memory_config.llm_model,
-                messages=messages,
+                messages=response_messages,
                 temperature=self.memory_config.llm_temperature,
                 max_tokens=self.memory_config.llm_max_tokens,
                 stream=True,
@@ -171,7 +291,12 @@ class MemoryService:
             if not isinstance(event, str):
                 continue
             normalized = self._normalize_memory_action(item)
-            if event == "NONE" or not self._has_memory_action(actions, normalized):
+            has_matching_action = any(
+                action.get("event") == normalized.get("event")
+                and action.get("memory") == normalized.get("memory")
+                for action in actions
+            )
+            if event == "NONE" or not has_matching_action:
                 actions.append(normalized)
 
         return actions
@@ -188,17 +313,6 @@ class MemoryService:
             normalized["previous_memory"] = str(previous_memory)
         return normalized
 
-    def _has_memory_action(
-        self,
-        actions: list[dict[str, object]],
-        candidate: dict[str, object],
-    ) -> bool:
-        return any(
-            action.get("event") == candidate.get("event")
-            and action.get("memory") == candidate.get("memory")
-            for action in actions
-        )
-
     def _memory_action_counts(
         self,
         actions: list[dict[str, object]],
@@ -209,57 +323,30 @@ class MemoryService:
             counts[event] = counts.get(event, 0) + 1
         return counts
 
-    def _search_memories(
+    def _format_memory_context_csv(
         self,
-        memory: Memory,
-        query: str,
-        user_id: str,
-    ) -> list[MemorySearchResult]:
-        result = memory.search(query, user_id=user_id, limit=5)
-        memories: list[MemorySearchResult] = []
-        for item in result.get("results", []):
-            if not isinstance(item, dict) or not isinstance(item.get("memory"), str):
-                continue
-
-            score = item.get("score")
-            memories.append(
-                MemorySearchResult(
-                    memory=item["memory"],
-                    score=float(score) if isinstance(score, (int, float)) else None,
-                )
-            )
-        return memories
-
-    def _generate_response(
-        self,
-        memory: Memory,
-        query: str,
-        memories: list[str],
+        memories: list[MemorySearchResult],
     ) -> str:
-        response = memory.llm.generate_response(self._response_messages(query, memories))
+        if not memories:
+            return ""
 
-        response_text = str(response).strip()
-        response_text = self._clean_response_for_speech(response_text)
-        if not response_text:
-            raise MemoryServiceError("Memory service returned an empty response.")
-
-        return response_text
-
-    def _response_messages(self, query: str, memories: list[str]) -> list[dict[str, str]]:
-        memory_context = "\n".join(f"- {item}" for item in memories)
-        if not memory_context:
-            memory_context = "No relevant memories yet."
-
-        return [
-            {
-                "role": "system",
-                "content": VOICE_ASSISTANT_SYSTEM_PROMPT,
-            },
-            {
-                "role": "user",
-                "content": f"Relevant memories:\n{memory_context}\n\nUser said:\n{query}",
-            },
+        output = StringIO()
+        fieldnames = [
+            "memory",
+            "created_at",
+            "updated_at",
         ]
+        writer = csv.DictWriter(output, fieldnames=fieldnames, lineterminator="\n")
+        writer.writeheader()
+        for item in memories:
+            writer.writerow(
+                {
+                    "memory": item.memory,
+                    "created_at": item.created_at or "",
+                    "updated_at": item.updated_at or "",
+                }
+            )
+        return output.getvalue().strip()
 
     def _clean_response_for_speech(self, text: str) -> str:
         spoken_text = text.strip()
