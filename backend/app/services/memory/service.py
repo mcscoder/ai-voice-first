@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import threading
 from dataclasses import dataclass
 
@@ -9,6 +10,16 @@ from mem0 import Memory
 
 
 DEFAULT_USER_ID = "default-user"
+
+VOICE_ASSISTANT_SYSTEM_PROMPT = (
+    "You are a helpful voice assistant speaking directly with the user. "
+    "Answer like a real human assistant in a natural conversation. "
+    "Use plain spoken text only because your answer will be read aloud by TTS. "
+    "Do not use Markdown, headings, bullet points, numbered lists, code blocks, "
+    "tables, links, or bold and italic markers. Keep replies concise, usually "
+    "one or two sentences unless the user asks for detail. Use the provided "
+    "memories naturally when they are relevant."
+)
 
 
 @dataclass(frozen=True)
@@ -84,10 +95,7 @@ class MemoryService:
             [
                 {
                     "role": "system",
-                    "content": (
-                        "You are a helpful voice assistant. Answer naturally and "
-                        "concisely. Use the provided memories when they are relevant."
-                    ),
+                    "content": VOICE_ASSISTANT_SYSTEM_PROMPT,
                 },
                 {
                     "role": "user",
@@ -100,10 +108,29 @@ class MemoryService:
         )
 
         response_text = str(response).strip()
+        response_text = self._clean_response_for_speech(response_text)
         if not response_text:
             raise MemoryServiceError("Memory service returned an empty response.")
 
         return response_text
+
+    def _clean_response_for_speech(self, text: str) -> str:
+        spoken_text = text.strip()
+        spoken_text = re.sub(r"```[^\n`]*\n?", "", spoken_text)
+        spoken_text = spoken_text.replace("```", "")
+        spoken_text = re.sub(r"\[([^\]]+)]\([^)]+\)", r"\1", spoken_text)
+        spoken_text = re.sub(r"`([^`]+)`", r"\1", spoken_text)
+        spoken_text = re.sub(r"(?m)^\s{0,3}#{1,6}\s+", "", spoken_text)
+        spoken_text = re.sub(r"(?m)^\s*>\s?", "", spoken_text)
+        spoken_text = re.sub(r"(?m)^\s*[-*+]\s+", "", spoken_text)
+        spoken_text = re.sub(r"(?m)^\s*\d+[.)]\s+", "", spoken_text)
+        spoken_text = re.sub(r"(?m)^\s*-{3,}\s*$", "", spoken_text)
+        spoken_text = re.sub(r"([*_~]{1,3})(\S.*?\S|\S)\1", r"\2", spoken_text)
+        spoken_text = re.sub(r"[*_~]{2,}", "", spoken_text)
+        spoken_text = re.sub(r"[ \t]+", " ", spoken_text)
+        spoken_text = re.sub(r"\s*\n+\s*", " ", spoken_text)
+        spoken_text = re.sub(r"\s{2,}", " ", spoken_text)
+        return spoken_text.strip()
 
 
 memory_service = MemoryService()
