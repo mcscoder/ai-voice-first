@@ -38,7 +38,21 @@ When your changes create orphans:
 
 The test: Every changed line should trace directly to the user's request.
 
-# 4. Goal-Driven Execution
+# 4. UI Layout Rules
+
+**No hardcoded fixed-size layout for UI. Padding-driven layout is mandatory.**
+
+- Do not hardcode sizes for UI containers, cards, drawers, footers, buttons, icons, or gaps unless there is no other workable option.
+- Prefer padding, spacing, constraints, `Expanded`, `Flexible`, `Wrap`, and `LayoutBuilder` to make layout flow from available space.
+- If a UI element must size itself, derive it from surrounding constraints instead of fixed pixel numbers.
+- Use fixed sizes only for inherently bounded controls or when the design system already defines the size token.
+- Before adding any fixed size, ask whether the same result can be achieved with padding-driven layout first.
+- This rule is mandatory for all UI work.
+- If a UI change depends on hardcoded fixed sizes, treat that as a design bug and rework it.
+- Repeatedly prefer padding-driven layout over fixed dimensions, even when the first draft seems to work.
+- The default assumption for UI should be: no fixed sizes unless proven necessary.
+
+# 5. Goal-Driven Execution
 
 **Define success criteria. Loop until verified.**
 
@@ -54,7 +68,7 @@ For multi-step tasks, state a brief plan:
 3. [Step] → verify: [check]
 ```
 
-# 5. Test Real Production Code
+# 6. Test Real Production Code
 
 **A test must exercise the implementation it claims to verify.**
 
@@ -73,7 +87,7 @@ For multi-step tasks, state a brief plan:
 - Prefer testing the public interface. Test private helpers only when they contain meaningful behavior that cannot be verified through the public interface.
 - A regression test must fail when the relevant production code is reverted or deliberately broken. If it still passes, it is not testing the requested behavior.
 
-# 6. Python Package Management
+# 7. Python Package Management
 
 **Use `uv` only.**
 

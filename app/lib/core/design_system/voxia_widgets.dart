@@ -28,11 +28,13 @@ final class VoxiaScaffold extends StatelessWidget {
     required this.child,
     super.key,
     this.bottomNavigationBar,
+    this.endDrawer,
     this.safeArea = true,
   });
 
   final Widget child;
   final Widget? bottomNavigationBar;
+  final Widget? endDrawer;
   final bool safeArea;
 
   @override
@@ -46,6 +48,7 @@ final class VoxiaScaffold extends StatelessWidget {
       backgroundColor: VoxiaColors.background,
       body: content,
       bottomNavigationBar: bottomNavigationBar,
+      endDrawer: endDrawer,
     );
   }
 }

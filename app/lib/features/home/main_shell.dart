@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -22,40 +24,357 @@ final class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     final pages = <Widget>[
       VoiceScreen(cubit: widget.voiceCubit, isShellMode: true),
-      const _HistoryScreen(),
-      const _MemoryScreen(),
-      const _ProfileScreen(),
+      _HistoryScreen(onBack: _returnHome),
+      _MemoryScreen(onBack: _returnHome),
+      _ProfileScreen(onBack: _returnHome),
     ];
 
     return VoxiaScaffold(
       safeArea: false,
-      bottomNavigationBar: VoxiaTabBar(
-        currentIndex: _currentIndex,
-        onChanged: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-      ),
-      child: IndexedStack(
-        index: _currentIndex,
+      endDrawer: _currentIndex == 0
+          ? _NavigationSidebar(onChanged: _selectScreen)
+          : null,
+      child: Stack(
         children: [
-          for (var index = 0; index < pages.length; index += 1)
-            TickerMode(enabled: index == _currentIndex, child: pages[index]),
+          IndexedStack(
+            index: _currentIndex,
+            children: [
+              for (var index = 0; index < pages.length; index += 1)
+                TickerMode(
+                  enabled: index == _currentIndex,
+                  child: pages[index],
+                ),
+            ],
+          ),
+          if (_currentIndex == 0)
+            const Positioned(
+              top: AppSpacing.sm,
+              right: AppSpacing.md,
+              child: SafeArea(child: _MenuButton()),
+            ),
         ],
+      ),
+    );
+  }
+
+  void _selectScreen(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
+
+  void _returnHome() {
+    _selectScreen(0);
+  }
+}
+
+final class _MenuButton extends StatelessWidget {
+  const _MenuButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: 'Menu',
+      onPressed: Scaffold.of(context).openEndDrawer,
+      style: IconButton.styleFrom(
+        backgroundColor: Colors.transparent,
+        foregroundColor: VoxiaColors.text.withValues(alpha: 0.86),
+        minimumSize: const Size.square(44),
+        shape: const CircleBorder(),
+      ),
+      icon: const Icon(Icons.menu_rounded, size: 28),
+    );
+  }
+}
+
+final class _NavigationSidebar extends StatelessWidget {
+  const _NavigationSidebar({required this.onChanged});
+
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final drawerWidth = width * 0.76 > 390 ? 390.0 : width * 0.76;
+
+    return Drawer(
+      width: drawerWidth,
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: ClipRRect(
+        borderRadius: const BorderRadius.horizontal(left: Radius.circular(16)),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  VoxiaColors.backgroundAlt.withValues(alpha: 0.96),
+                  VoxiaColors.background.withValues(alpha: 0.98),
+                ],
+              ),
+              border: Border(
+                left: BorderSide(
+                  color: VoxiaColors.text.withValues(alpha: 0.12),
+                ),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.42),
+                  blurRadius: 42,
+                  offset: const Offset(-18, 0),
+                ),
+              ],
+            ),
+            child: SafeArea(
+              child: Column(
+                children: [
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.md,
+                        0,
+                        AppSpacing.md,
+                        AppSpacing.sm,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(top: AppSpacing.sm),
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: _DrawerCloseButton(
+                                onPressed: Navigator.of(context).pop,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.lg),
+                          const _DrawerHeader(),
+                          const SizedBox(height: AppSpacing.lg),
+                          for (
+                            var index = 1;
+                            index < _navigationItems.length;
+                            index += 1
+                          ) ...[
+                            _NavigationSidebarItem(
+                              item: _navigationItems[index],
+                              onTap: () {
+                                Navigator.of(context).pop();
+                                onChanged(index);
+                              },
+                            ),
+                            if (index < _navigationItems.length - 1)
+                              const SizedBox(height: AppSpacing.sm),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
 }
 
+final class _NavigationSidebarItem extends StatelessWidget {
+  const _NavigationSidebarItem({required this.item, required this.onTap});
+
+  final _NavigationItem item;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: AppRadius.borderMd,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.borderMd,
+        child: Container(
+          height: 70,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            borderRadius: AppRadius.borderMd,
+            color: VoxiaColors.panelStrong.withValues(alpha: 0.74),
+            border: Border.all(color: VoxiaColors.text.withValues(alpha: 0.06)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.18),
+                blurRadius: 22,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                height: 46,
+                width: 46,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: VoxiaColors.cyan.withValues(alpha: 0.14),
+                ),
+                child: Icon(
+                  item.icon,
+                  color: VoxiaColors.cyan.withValues(alpha: 0.95),
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 18),
+              Expanded(
+                child: Text(
+                  item.label,
+                  style: TextStyle(
+                    fontSize: 18,
+                    height: 1,
+                    color: VoxiaColors.text.withValues(alpha: 0.95),
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: VoxiaColors.muted.withValues(alpha: 0.82),
+                size: 28,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+final class _DrawerHeader extends StatelessWidget {
+  const _DrawerHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          height: 58,
+          width: 58,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: VoxiaColors.panel.withValues(alpha: 0.56),
+            border: Border.all(color: VoxiaColors.text.withValues(alpha: 0.08)),
+          ),
+          child: const Icon(
+            Icons.graphic_eq,
+            color: VoxiaColors.cyan,
+            size: 28,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Hello!',
+                style: const TextStyle(
+                  fontSize: 19,
+                  height: 1.05,
+                  color: VoxiaColors.text,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Welcome back',
+                style: const TextStyle(
+                  fontSize: 13,
+                  height: 1.15,
+                  color: VoxiaColors.muted,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+final class _DrawerCloseButton extends StatelessWidget {
+  const _DrawerCloseButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: 'Close',
+      onPressed: onPressed,
+      style: IconButton.styleFrom(
+        backgroundColor: VoxiaColors.panelStrong.withValues(alpha: 0.82),
+        foregroundColor: VoxiaColors.muted,
+        minimumSize: const Size.square(44),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.borderLg),
+      ),
+      icon: const Icon(Icons.close_rounded, size: 28),
+    );
+  }
+}
+
+const _navigationItems = <_NavigationItem>[
+  _NavigationItem(Icons.mic_none, 'Talk'),
+  _NavigationItem(Icons.history, 'History'),
+  _NavigationItem(Icons.psychology_outlined, 'Memory'),
+  _NavigationItem(Icons.person_outline, 'Profile'),
+];
+
+final class _NavigationItem {
+  const _NavigationItem(this.icon, this.label);
+
+  final IconData icon;
+  final String label;
+}
+
+final class _BackToTalkButton extends StatelessWidget {
+  const _BackToTalkButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: 'Back to talk',
+      onPressed: onPressed,
+      style: IconButton.styleFrom(
+        backgroundColor: Colors.transparent,
+        foregroundColor: VoxiaColors.text,
+        minimumSize: const Size.square(44),
+        shape: const CircleBorder(),
+      ),
+      icon: const Icon(Icons.arrow_back_rounded, size: 26),
+    );
+  }
+}
+
 final class _HistoryScreen extends StatelessWidget {
-  const _HistoryScreen();
+  const _HistoryScreen({required this.onBack});
+
+  final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
     return VoxiaScrollPage(
       title: 'History',
       subtitle: 'Recent conversations',
+      leading: _BackToTalkButton(onPressed: onBack),
       slivers: [
         const SizedBox(height: AppSpacing.sm),
         const _SummaryCard(
@@ -91,7 +410,9 @@ final class _HistoryScreen extends StatelessWidget {
 }
 
 final class _MemoryScreen extends StatelessWidget {
-  const _MemoryScreen();
+  const _MemoryScreen({required this.onBack});
+
+  final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -102,6 +423,7 @@ final class _MemoryScreen extends StatelessWidget {
           subtitle: setup.memoryEnabled
               ? 'Memory is enabled'
               : 'Memory is disabled',
+          leading: _BackToTalkButton(onPressed: onBack),
           trailing: Switch(
             value: setup.memoryEnabled,
             onChanged: context.read<SetupCubit>().setMemoryEnabled,
@@ -146,7 +468,9 @@ final class _MemoryScreen extends StatelessWidget {
 }
 
 final class _ProfileScreen extends StatelessWidget {
-  const _ProfileScreen();
+  const _ProfileScreen({required this.onBack});
+
+  final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -155,12 +479,7 @@ final class _ProfileScreen extends StatelessWidget {
 
     return VoxiaScrollPage(
       title: 'Profile',
-      leading: IconButton(
-        tooltip: 'Menu',
-        onPressed: () {},
-        icon: const Icon(Icons.menu),
-      ),
-      trailing: const _ProChip(),
+      leading: _BackToTalkButton(onPressed: onBack),
       slivers: [
         const SizedBox(height: AppSpacing.sm),
         Row(
@@ -394,33 +713,6 @@ final class _CircleIcon extends StatelessWidget {
         border: Border.all(color: VoxiaColors.blue.withValues(alpha: 0.42)),
       ),
       child: Icon(icon, color: VoxiaColors.violet, size: 28),
-    );
-  }
-}
-
-final class _ProChip extends StatelessWidget {
-  const _ProChip();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: AppSpacing.xs,
-      ),
-      decoration: BoxDecoration(
-        borderRadius: AppRadius.borderFull,
-        border: Border.all(color: VoxiaColors.violet),
-        color: VoxiaColors.violet.withValues(alpha: 0.12),
-      ),
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.star, color: VoxiaColors.violet, size: 18),
-          SizedBox(width: AppSpacing.xs),
-          Text('Pro', style: TextStyle(color: VoxiaColors.text)),
-        ],
-      ),
     );
   }
 }
