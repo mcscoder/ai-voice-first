@@ -17,7 +17,7 @@ lib/
 ## Current Runtime Shape
 
 - `lib/main.dart`, `lib/main_staging.dart`, and `lib/main_production.dart` select the active flavor.
-- `lib/app.dart` initializes Firebase, Hive, HydratedBloc, dependency injection, analytics, cache, connectivity, and global error handlers.
+- `lib/app.dart` initializes Hive, HydratedBloc, dependency injection, analytics, cache, connectivity, and global error handlers.
 - `lib/core/router/router.dart` exposes a single root route.
 - `lib/features/home/home_screen.dart` is a temporary landing screen for the renamed app.
 
@@ -26,7 +26,7 @@ lib/
 - `core/network/`: Dio client, interceptors, network configuration
 - `core/cache/`: memory and disk cache services
 - `core/connectivity/`: connectivity state and offline queue support
-- `core/firebase/`: Firebase bootstrap and service wrappers
+- `core/auth/`: token storage and session helpers
 - `core/analytics/`: analytics abstraction
 - `core/permissions/`: runtime permission handling
 - `core/lifecycle/`: lifecycle observers and update checks

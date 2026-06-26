@@ -10,7 +10,6 @@ from app.services.assistant.telemetry import assistant_telemetry
 from app.services.assistant.types import AssistantResult, ResponseHolder, StreamEvent
 from app.services.memory import (
     ConversationHistory,
-    DEFAULT_USER_ID,
     MemoryService,
     MemoryServiceError,
     conversation_history,
@@ -31,34 +30,31 @@ class AssistantService:
         memory: MemoryService = memory_service,
         tts: TtsService = tts_service,
         history: ConversationHistory = conversation_history,
-        user_id: str = DEFAULT_USER_ID,
     ) -> None:
         self.asr = asr
         self.memory = memory
         self.tts = tts
         self.history = history
-        self.user_id = user_id
         self.response_streamer = AssistantResponseStreamer(
             memory=self.memory,
             tts=self.tts,
             telemetry=assistant_telemetry,
             history=self.history,
-            user_id=self.user_id,
         )
         self.stream_persistence = StreamPersistence(
             memory=self.memory,
             telemetry=assistant_telemetry,
             history=self.history,
-            user_id=self.user_id,
         )
 
     def respond(
         self,
         audio: bytes | AudioLike,
         language: str | None = None,
+        user_id: str = "",
     ) -> AssistantResult:
         transcription = self.asr.transcribe(audio, language)
-        assistant_reply = self.memory.respond(transcription.text, self.user_id)
+        assistant_reply = self.memory.respond(transcription.text, user_id)
         speech = self.tts.synthesize(assistant_reply.text, None)
 
         return AssistantResult(
@@ -71,9 +67,11 @@ class AssistantService:
         audio: bytes | AudioLike,
         language: str | None,
         response_holder: ResponseHolder,
+        user_id: str,
     ) -> Iterator[StreamEvent]:
-        run_id = assistant_telemetry.start_run(language)
+        run_id = assistant_telemetry.start_run(language, user_id)
         response_holder["run_id"] = run_id
+        response_holder["user_id"] = user_id
 
         try:
             assistant_telemetry.start_stage(run_id, "asr")
@@ -98,6 +96,7 @@ class AssistantService:
             yield from self.response_streamer.stream_response_events(
                 transcription.text,
                 response_holder,
+                user_id,
             )
             assistant_telemetry.start_stage(run_id, "client_stream_done")
             assistant_telemetry.finish_stage(

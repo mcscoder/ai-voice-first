@@ -25,7 +25,7 @@ class AssistantTelemetry:
         self._subscribers: set[Queue[dict[str, object]]] = set()
         self._lock = RLock()
 
-    def start_run(self, language: str | None = None) -> str:
+    def start_run(self, language: str | None = None, user_id: str | None = None) -> str:
         run_id = uuid4().hex[:12]
         now = perf_counter()
         stages = {
@@ -40,6 +40,10 @@ class AssistantTelemetry:
                 ("mem0_persist_background", "Mem0 background persist"),
             )
         }
+        metadata = {"language": language or "auto"}
+        if user_id is not None:
+            metadata["user_id"] = user_id
+
         run = PipelineRun(
             run_id=run_id,
             status="running",
@@ -48,7 +52,7 @@ class AssistantTelemetry:
             completed_at=None,
             current_stage="request_received",
             stages=stages,
-            metadata={"language": language or "auto"},
+            metadata=metadata,
         )
         run.stages["request_received"].status = "done"
         run.stages["request_received"].duration_ms = 0.0
@@ -182,9 +186,9 @@ class AssistantTelemetry:
             self._complete_locked(run)
             self._publish_locked()
 
-    def snapshot(self) -> dict[str, object]:
+    def snapshot(self, user_id: str | None = None) -> dict[str, object]:
         with self._lock:
-            return self._snapshot_locked()
+            return self._snapshot_locked(user_id)
 
     def reset(self) -> None:
         with self._lock:
@@ -195,16 +199,20 @@ class AssistantTelemetry:
     def subscribe(
         self,
         keepalive_seconds: float = 15.0,
+        user_id: str | None = None,
     ) -> Iterator[dict[str, object] | None]:
         queue: Queue[dict[str, object]] = Queue(maxsize=1)
         with self._lock:
             self._subscribers.add(queue)
 
         try:
-            yield self.snapshot()
+            yield self.snapshot(user_id)
             while True:
                 try:
-                    yield queue.get(timeout=keepalive_seconds)
+                    yield self._filter_snapshot(
+                        queue.get(timeout=keepalive_seconds),
+                        user_id,
+                    )
                 except Empty:
                     yield None
         finally:
@@ -226,9 +234,17 @@ class AssistantTelemetry:
         for subscriber in list(self._subscribers):
             self._send_latest(subscriber, snapshot)
 
-    def _snapshot_locked(self) -> dict[str, object]:
-        active_runs = [run.to_dict() for run in self._active_runs.values()]
-        recent_runs = [run.to_dict() for run in self._recent_runs]
+    def _snapshot_locked(self, user_id: str | None = None) -> dict[str, object]:
+        active_runs = [
+            run.to_dict()
+            for run in self._active_runs.values()
+            if self._run_matches_user(run, user_id)
+        ]
+        recent_runs = [
+            run.to_dict()
+            for run in self._recent_runs
+            if self._run_matches_user(run, user_id)
+        ]
         return {
             "active_runs": active_runs,
             "recent_runs": recent_runs,
@@ -237,6 +253,40 @@ class AssistantTelemetry:
                 "recent_count": len(recent_runs),
             },
         }
+
+    def _filter_snapshot(
+        self,
+        snapshot: dict[str, object],
+        user_id: str | None,
+    ) -> dict[str, object]:
+        if user_id is None:
+            return snapshot
+
+        active_runs = [
+            run
+            for run in snapshot.get("active_runs", [])
+            if isinstance(run, dict)
+            and isinstance(run.get("metadata"), dict)
+            and run["metadata"].get("user_id") == user_id
+        ]
+        recent_runs = [
+            run
+            for run in snapshot.get("recent_runs", [])
+            if isinstance(run, dict)
+            and isinstance(run.get("metadata"), dict)
+            and run["metadata"].get("user_id") == user_id
+        ]
+        return {
+            "active_runs": active_runs,
+            "recent_runs": recent_runs,
+            "summary": {
+                "active_count": len(active_runs),
+                "recent_count": len(recent_runs),
+            },
+        }
+
+    def _run_matches_user(self, run: PipelineRun, user_id: str | None) -> bool:
+        return user_id is None or run.metadata.get("user_id") == user_id
 
     def _send_latest(
         self,

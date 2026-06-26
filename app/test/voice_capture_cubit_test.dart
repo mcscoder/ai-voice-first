@@ -143,32 +143,35 @@ void main() {
       await cubit.close();
     });
 
-    test('keeps cancelled streaming request idle after late done event', () async {
-      final api = FakeStreamingTranscriptionApi();
-      final cubit = VoiceCaptureCubit(
-        FakePermissionService(checkStatus: AppPermissionStatus.granted),
-        FakeAudioRecorderService(stopPath: '/tmp/audio.m4a'),
-        api,
-        playAssistantSpeech: _noopPlayback,
-      );
+    test(
+      'keeps cancelled streaming request idle after late done event',
+      () async {
+        final api = FakeStreamingTranscriptionApi();
+        final cubit = VoiceCaptureCubit(
+          FakePermissionService(checkStatus: AppPermissionStatus.granted),
+          FakeAudioRecorderService(stopPath: '/tmp/audio.m4a'),
+          api,
+          playAssistantSpeech: _noopPlayback,
+        );
 
-      await cubit.startRecording();
-      final stopFuture = cubit.stopRecording();
-      await api.firstAudioSent;
+        await cubit.startRecording();
+        final stopFuture = cubit.stopRecording();
+        await api.firstAudioSent;
 
-      expect(cubit.state.status, VoiceCaptureStatus.speaking);
+        expect(cubit.state.status, VoiceCaptureStatus.speaking);
 
-      cubit.cancelRequest();
+        cubit.cancelRequest();
 
-      expect(cubit.state.status, VoiceCaptureStatus.idle);
-      expect(api.lastCancelToken?.isCancelled, isTrue);
+        expect(cubit.state.status, VoiceCaptureStatus.idle);
+        expect(api.lastCancelToken?.isCancelled, isTrue);
 
-      api.complete();
-      await stopFuture;
+        api.complete();
+        await stopFuture;
 
-      expect(cubit.state.status, VoiceCaptureStatus.idle);
-      await cubit.close();
-    });
+        expect(cubit.state.status, VoiceCaptureStatus.idle);
+        await cubit.close();
+      },
+    );
 
     test('updates selected language when idle', () async {
       final cubit = VoiceCaptureCubit(

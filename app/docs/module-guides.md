@@ -5,7 +5,7 @@
 - `analytics/`: product analytics abstraction
 - `cache/`: in-memory and disk-backed caching
 - `connectivity/`: online state and offline queue handling
-- `firebase/`: Firebase initialization and service wrappers
+- `auth/`: token storage and session helpers
 - `network/`: Dio client and request interceptors
 - `permissions/`: runtime permission management
 - `router/`: route definitions and router configuration

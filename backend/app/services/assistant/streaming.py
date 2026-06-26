@@ -70,22 +70,21 @@ class AssistantResponseStreamer:
         tts: AssistantTts,
         telemetry: AssistantTelemetry,
         history: ConversationHistory,
-        user_id: str,
     ) -> None:
         self.memory = memory
         self.tts = tts
         self.telemetry = telemetry
         self.history = history
-        self.user_id = user_id
 
     def stream_response_events(
         self,
         query: str,
         response_holder: ResponseHolder,
+        user_id: str,
     ):
         run_id = response_holder.get("run_id")
         self.telemetry.start_stage(run_id, "memory_search")
-        memory_results = self.memory.search_memory_results(query, self.user_id)
+        memory_results = self.memory.search_memory_results(query, user_id)
         self.telemetry.finish_stage(
             run_id,
             "memory_search",
@@ -95,7 +94,7 @@ class AssistantResponseStreamer:
             },
         )
 
-        recent_messages = self.history.messages_for(self.user_id)
+        recent_messages = self.history.messages_for(user_id)
         response_holder["recent_messages"] = recent_messages
         response_holder["candidate_memories"] = memory_results
         prompt_messages = build_response_messages(

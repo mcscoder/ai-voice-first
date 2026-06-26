@@ -1,7 +1,7 @@
 import 'package:go_router/go_router.dart';
 
 import '../error_screen.dart';
-import '../../features/voice/voice.dart';
+import '../../features/auth/auth.dart';
 
 abstract class AppRoutes {
   AppRoutes._();
@@ -15,7 +15,7 @@ abstract class AppRouter {
     debugLogDiagnostics: true,
     initialLocation: AppRoutes.home,
     routes: [
-      GoRoute(path: AppRoutes.home, builder: (_, _) => const VoiceScreen()),
+      GoRoute(path: AppRoutes.home, builder: (_, _) => const AuthGate()),
     ],
     errorBuilder: (_, _) => const ErrorScreen(),
   );

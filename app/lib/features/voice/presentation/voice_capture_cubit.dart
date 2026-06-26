@@ -2,7 +2,6 @@ import 'dart:typed_data';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:hydrated_bloc/hydrated_bloc.dart';
-import 'package:injectable/injectable.dart';
 
 import '../../../core/error.dart';
 import '../../../core/network/request_cancellation_mixin.dart';
@@ -12,14 +11,15 @@ import '../data/transcription_api.dart';
 import '../data/voice_language.dart';
 import 'voice_capture_state.dart';
 
-@injectable
+typedef PlayAssistantSpeech = Future<void> Function(Uint8List audioBytes);
+
 class VoiceCaptureCubit extends HydratedCubit<VoiceCaptureState>
     with RequestCancellationMixin<VoiceCaptureState> {
   VoiceCaptureCubit(
     this._permissionService,
     this._audioRecorderService,
     this._transcriptionApi, {
-    Future<void> Function(Uint8List audioBytes)? playAssistantSpeech,
+    PlayAssistantSpeech? playAssistantSpeech,
     Storage? storage,
   }) : super(const VoiceCaptureState(), storage: _resolveStorage(storage)) {
     if (playAssistantSpeech != null) {
@@ -44,7 +44,7 @@ class VoiceCaptureCubit extends HydratedCubit<VoiceCaptureState>
   final AudioRecorderService _audioRecorderService;
   final TranscriptionApi _transcriptionApi;
   late final AudioPlayer? _audioPlayer;
-  late final Future<void> Function(Uint8List audioBytes) _playAssistantSpeech;
+  late final PlayAssistantSpeech _playAssistantSpeech;
   int _requestGeneration = 0;
 
   void selectLanguage(VoiceLanguage language) {

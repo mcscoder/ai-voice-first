@@ -11,6 +11,16 @@ uv run python main.py
 
 Open `http://127.0.0.1:8000/docs` for the generated API docs.
 
+Set a JWT signing secret before using auth-protected routes:
+
+```bash
+export AUTH_SECRET_KEY=replace_with_at_least_32_random_bytes
+```
+
+Create a user with `POST /auth/register`, then pass the returned access token
+as `Authorization: Bearer <token>` on ASR, TTS, voice assistant, and telemetry
+requests.
+
 ## Dashboard
 
 Run the live Streamlit dashboard in a second terminal:
@@ -24,6 +34,17 @@ The dashboard uses `GET /v1/voice/assistant/telemetry/stream` with
 Server-Sent Events and visualizes the current assistant pipeline: request
 intake, ASR, memory retrieval, DeepSeek streaming, VieNeu TTS chunks, client
 stream completion, and Mem0 background persistence.
+
+By default, the telemetry stream is authenticated. Paste a user access token
+into the dashboard sidebar to track that user's runs. For local development
+only, you can make telemetry public and track all runs:
+
+```bash
+export TELEMETRY_PUBLIC_STREAM=enabled
+```
+
+Do not enable public telemetry on an internet-exposed backend; transcripts and
+memory snippets can appear in pipeline metadata.
 
 ## Development Principles
 

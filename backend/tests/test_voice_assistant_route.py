@@ -1,19 +1,21 @@
 import base64
 import json
+from types import SimpleNamespace
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 import pytest
 
 from app.api import routes
+from app.api.auth import current_user
 from app.services.assistant.telemetry import assistant_telemetry
 from app.services.assistant.telemetry_payload import (
     telemetry_sse_event,
     with_service_metadata,
 )
 from app.services.asr import AsrResult, UnsupportedAsrLanguageError
+from app.services.auth import AuthenticatedUser
 from app.services.memory import (
-    DEFAULT_USER_ID,
     MemoryAction,
     MemoryPersistResult,
     MemoryReply,
@@ -30,6 +32,17 @@ def reset_assistant_telemetry() -> None:
 
 
 def create_client() -> TestClient:
+    app = FastAPI()
+    app.include_router(routes.router)
+    app.dependency_overrides[current_user] = lambda: AuthenticatedUser(
+        id="test-user",
+        email="test@example.com",
+    )
+    app.dependency_overrides[routes.telemetry_user_id] = lambda: "test-user"
+    return TestClient(app)
+
+
+def create_unauthenticated_client() -> TestClient:
     app = FastAPI()
     app.include_router(routes.router)
     return TestClient(app)
@@ -66,7 +79,7 @@ def test_voice_assistant_returns_generated_audio(monkeypatch) -> None:
     assert calls["asr"] == {"audio": b"audio-bytes", "language": "en"}
     assert calls["memory"] == {
         "text": "What should I do today?",
-        "user_id": DEFAULT_USER_ID,
+        "user_id": "test-user",
     }
     assert calls["tts"] == {"text": "You should review your plan.", "voice": None}
 
@@ -80,6 +93,17 @@ def test_voice_assistant_rejects_empty_upload() -> None:
 
     assert response.status_code == 400
     assert response.json() == {"detail": "Uploaded file is empty."}
+
+
+def test_voice_assistant_requires_authentication() -> None:
+    response = create_unauthenticated_client().post(
+        "/v1/voice/assistant",
+        data={"language": "en"},
+        files={"file": ("speech.wav", b"audio-bytes", "audio/wav")},
+    )
+
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Invalid or expired credentials."}
 
 
 def test_voice_assistant_propagates_service_errors(monkeypatch) -> None:
@@ -165,7 +189,7 @@ def test_voice_assistant_stream_returns_ordered_events(monkeypatch) -> None:
         {"type": "done", "text": "Hi there."},
     ]
     assert response.headers["content-type"].startswith("application/x-ndjson")
-    assert calls["search"] == {"query": "Hello", "user_id": DEFAULT_USER_ID}
+    assert calls["search"] == {"query": "Hello", "user_id": "test-user"}
     stream_call = calls["stream"]
     assert isinstance(stream_call, dict)
     messages = stream_call.pop("messages")
@@ -259,7 +283,7 @@ def test_voice_assistant_stream_persists_after_done(monkeypatch) -> None:
         {
             "query": "Remember this",
             "response_text": "Saved.",
-            "user_id": DEFAULT_USER_ID,
+            "user_id": "test-user",
             "recent_messages": [],
             "candidate_memories": [],
         }
@@ -431,7 +455,7 @@ def test_voice_assistant_stream_records_memory_persist_actions(monkeypatch) -> N
 
 
 def test_voice_assistant_telemetry_stream_returns_sse_event() -> None:
-    response = routes.voice_assistant_telemetry_stream()
+    response = routes.voice_assistant_telemetry_stream("test-user")
     assert response.media_type == "text/event-stream"
     assert response.headers["cache-control"] == "no-cache"
     assert response.headers["x-accel-buffering"] == "no"
@@ -448,10 +472,11 @@ def test_voice_assistant_telemetry_stream_returns_sse_event() -> None:
 
 
 def test_voice_assistant_telemetry_stream_uses_short_keepalive(monkeypatch) -> None:
-    calls: dict[str, float] = {}
+    calls: dict[str, object] = {}
 
-    def subscribe(keepalive_seconds: float = 15.0):
+    def subscribe(keepalive_seconds: float = 15.0, user_id: str | None = None):
         calls["keepalive_seconds"] = keepalive_seconds
+        calls["user_id"] = user_id
         yield assistant_telemetry.snapshot()
 
     monkeypatch.setattr(routes.assistant_telemetry, "subscribe", subscribe)
@@ -459,7 +484,42 @@ def test_voice_assistant_telemetry_stream_uses_short_keepalive(monkeypatch) -> N
     response = create_client().get("/v1/voice/assistant/telemetry/stream")
 
     assert response.status_code == 200
-    assert calls == {"keepalive_seconds": 1.0}
+    assert calls == {"keepalive_seconds": 1.0, "user_id": "test-user"}
+
+
+def test_voice_assistant_telemetry_stream_requires_authentication() -> None:
+    response = create_unauthenticated_client().get(
+        "/v1/voice/assistant/telemetry/stream"
+    )
+
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Invalid or expired credentials."}
+
+
+def test_voice_assistant_telemetry_stream_can_be_public(monkeypatch) -> None:
+    monkeypatch.setattr(
+        routes,
+        "config",
+        SimpleNamespace(telemetry=SimpleNamespace(public_stream="enabled")),
+    )
+    calls: dict[str, object] = {}
+
+    def subscribe(keepalive_seconds: float = 15.0, user_id: str | None = None):
+        calls["keepalive_seconds"] = keepalive_seconds
+        calls["user_id"] = user_id
+        yield assistant_telemetry.snapshot()
+
+    monkeypatch.setattr(routes.assistant_telemetry, "subscribe", subscribe)
+
+    assert routes.telemetry_user_id(None) is None
+    response = create_unauthenticated_client().get(
+        "/v1/voice/assistant/telemetry/stream"
+    )
+
+    assert response.status_code == 200
+    payload = json.loads(response.text.splitlines()[1].removeprefix("data: "))
+    assert payload["summary"] == {"active_count": 0, "recent_count": 0}
+    assert calls == {"keepalive_seconds": 1.0, "user_id": None}
 
 
 def test_voice_assistant_stream_emits_known_service_errors(monkeypatch) -> None:

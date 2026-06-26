@@ -4,7 +4,6 @@ import 'package:injectable/injectable.dart';
 
 import '../analytics/analytics_service.dart';
 import '../analytics/composite_analytics_provider.dart';
-import '../analytics/firebase_analytics_provider.dart';
 import '../analytics/posthog_analytics_provider.dart';
 import '../auth/secure_storage_service.dart';
 import '../auth/session_manager.dart';
@@ -12,7 +11,11 @@ import '../cache/cache_manager.dart';
 import '../connectivity/connectivity_service.dart';
 import '../flavor_configurations.dart';
 import '../network/remote.dart';
+import '../permissions/permission_service.dart';
 import '../router/deep_link_handler.dart';
+import '../../features/voice/data/audio_recorder_service.dart';
+import '../../features/voice/data/transcription_api.dart';
+import '../../features/voice/presentation/voice_capture_cubit.dart';
 import 'get_it.config.dart';
 
 final getIt = GetIt.instance;
@@ -63,17 +66,24 @@ abstract class RegisterModule {
   /// Override auto-registration to use no-arg constructor (default hosts/schemes).
   @lazySingleton
   DeepLinkHandler get deepLinkHandler => DeepLinkHandler();
+
+  VoiceCaptureCubit voiceCaptureCubit(
+    PermissionService permissionService,
+    AudioRecorderService audioRecorderService,
+    TranscriptionApi transcriptionApi,
+  ) => VoiceCaptureCubit(
+    permissionService,
+    audioRecorderService,
+    transcriptionApi,
+  );
 }
 
 /// Registers [CompositeAnalyticsProvider] as the [AnalyticsService] singleton.
 ///
-/// Must be called after [configureDependencies] so Firebase/PostHog providers
-/// are already registered as lazySingletons.
+/// Must be called after [configureDependencies] so analytics providers are
+/// already registered as lazySingletons.
 void registerCompositeAnalytics() {
   getIt.registerLazySingleton<AnalyticsService>(
-    () => CompositeAnalyticsProvider([
-      getIt<FirebaseAnalyticsProvider>(),
-      getIt<PostHogAnalyticsProvider>(),
-    ]),
+    () => CompositeAnalyticsProvider([getIt<PostHogAnalyticsProvider>()]),
   );
 }

@@ -7,7 +7,7 @@ AI Voice First uses a layered Flutter architecture with reusable infrastructure 
 ## Startup Flow
 
 1. Entry point selects a flavor in `lib/main*.dart`.
-2. `initializeFlutterApp()` prepares Firebase, Hive, HydratedBloc, dependency injection, cache, connectivity, analytics, and global error handling.
+2. `initializeFlutterApp()` prepares Hive, HydratedBloc, dependency injection, cache, connectivity, analytics, and global error handling.
 3. `App` mounts shared providers.
 4. `MaterialApp.router` uses `AppRouter.routerConfig`.
 

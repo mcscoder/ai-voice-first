@@ -1,10 +1,10 @@
 import os
 from dataclasses import dataclass, field
+from datetime import timedelta
 from pathlib import Path
 from typing import Literal
 
 from transformers import BitsAndBytesConfig
-
 
 # ASR runs on Qwen/Transformers; use "cuda:0" to require GPU 0.
 AsrDevice = Literal["auto", "cuda:0", "cpu"]
@@ -31,12 +31,20 @@ TtsVoice = Literal[
 
 QuantizationLevel = Literal["none", "int8", "int4-nf4", "int4-fp4"]
 DeepSeekThinking = Literal["enabled", "disabled"]
+TelemetryPublicStream = Literal["enabled", "disabled"]
 
 
 def _deepseek_thinking_from_env() -> DeepSeekThinking:
     value = os.getenv("DEEPSEEK_THINKING", "disabled").strip().lower()
     if value not in ("enabled", "disabled"):
         raise ValueError("DEEPSEEK_THINKING must be 'enabled' or 'disabled'.")
+    return value
+
+
+def _telemetry_public_stream_from_env() -> TelemetryPublicStream:
+    value = os.getenv("TELEMETRY_PUBLIC_STREAM", "enabled").strip().lower()
+    if value not in ("enabled", "disabled"):
+        raise ValueError("TELEMETRY_PUBLIC_STREAM must be 'enabled' or 'disabled'.")
     return value
 
 
@@ -188,6 +196,30 @@ class MemoryConfig:
 
 
 @dataclass(frozen=True)
+class AuthConfig:
+    """Runtime settings for first-party authentication."""
+
+    secret_key: str | None = field(
+        default_factory=lambda: os.getenv(
+            "AUTH_SECRET_KEY", "replace_with_at_least_32_random_bytes"
+        ),
+    )
+    algorithm: str = "HS256"
+    access_token_ttl: timedelta = timedelta(minutes=15)
+    refresh_token_ttl: timedelta = timedelta(days=30)
+    db_path: Path = Path(__file__).resolve().parents[2] / "data" / "auth.sqlite3"
+
+
+@dataclass(frozen=True)
+class TelemetryConfig:
+    """Runtime settings for assistant telemetry diagnostics."""
+
+    public_stream: TelemetryPublicStream = field(
+        default_factory=_telemetry_public_stream_from_env,
+    )
+
+
+@dataclass(frozen=True)
 class AppConfig:
     """Runtime settings for the FastAPI service."""
 
@@ -199,6 +231,8 @@ class AppConfig:
     asr: AsrConfig = field(default_factory=AsrConfig)
     tts: TtsConfig = field(default_factory=TtsConfig)
     memory: MemoryConfig = field(default_factory=MemoryConfig)
+    auth: AuthConfig = field(default_factory=lambda: AuthConfig())
+    telemetry: TelemetryConfig = field(default_factory=lambda: TelemetryConfig())
 
 
 config = AppConfig()

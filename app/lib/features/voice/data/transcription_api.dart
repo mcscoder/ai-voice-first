@@ -93,7 +93,7 @@ final class VoiceAssistantRequestErrorEvent extends VoiceAssistantStreamEvent {
 
 @lazySingleton
 base class TranscriptionApi extends Api {
-  TranscriptionApi(@nonAuthDio super.dio);
+  TranscriptionApi(@authDio super.dio);
 
   Future<({NetworkError? error, Uint8List? audio})> respond({
     required String filePath,

@@ -108,7 +108,6 @@ def create_streamer(
         tts=tts,
         telemetry=assistant_telemetry,
         history=history or ConversationHistory(),
-        user_id="test-user",
     )
 
 
@@ -117,10 +116,9 @@ def test_assistant_responds_with_synthesized_memory_reply() -> None:
         asr=StubAsr(),
         memory=StubMemory(),
         tts=StubTts(),
-        user_id="test-user",
     )
 
-    result = service.respond(b"audio-bytes", "English")
+    result = service.respond(b"audio-bytes", "English", "test-user")
 
     assert result.audio == b"assistant-audio"
     assert result.media_type == "audio/wav"
@@ -130,7 +128,7 @@ def test_stream_response_keeps_synthesizing_after_audio_event_is_yielded() -> No
     tts = RecordingTts()
     streamer = create_streamer(StreamingMemory(), tts)
 
-    events = streamer.stream_response_events("Hello", {"run_id": None})
+    events = streamer.stream_response_events("Hello", {"run_id": None}, "test-user")
     try:
         while True:
             event = next(events)
@@ -153,7 +151,7 @@ def test_stream_response_records_current_tts_chunk_while_synthesizing() -> None:
         BlockingFirstTts(release_first_audio, first_started),
     )
 
-    events = streamer.stream_response_events("Hello", {"run_id": run_id})
+    events = streamer.stream_response_events("Hello", {"run_id": run_id}, "test-user")
     try:
         assert next(events) == {"type": "text_delta", "text": "One. "}
         assert first_started.wait(timeout=1.0)
@@ -179,7 +177,7 @@ def test_stream_response_yields_ready_audio_before_later_text() -> None:
         BlockingFirstTts(release_first_audio),
     )
 
-    events = streamer.stream_response_events("Hello", {"run_id": None})
+    events = streamer.stream_response_events("Hello", {"run_id": None}, "test-user")
     try:
         first = next(events)
         assert first == {"type": "text_delta", "text": "One. "}
@@ -198,7 +196,7 @@ def test_stream_response_splits_long_tts_chunk_at_comma() -> None:
         StreamingMemory(["Xin chào bạn, rất vui được gặp bạn hôm nay, bạn khỏe không?"]),
         tts,
     )
-    events = streamer.stream_response_events("Hello", {"run_id": None})
+    events = streamer.stream_response_events("Hello", {"run_id": None}, "test-user")
 
     try:
         while True:
@@ -217,7 +215,7 @@ def test_stream_response_splits_long_tts_chunk_at_comma() -> None:
 def test_stream_response_does_not_split_short_tts_chunk_at_comma() -> None:
     tts = RecordingTts()
     streamer = create_streamer(StreamingMemory(["Xin chào bạn, bạn khỏe không?"]), tts)
-    events = streamer.stream_response_events("Hello", {"run_id": None})
+    events = streamer.stream_response_events("Hello", {"run_id": None}, "test-user")
 
     try:
         while True:
@@ -235,7 +233,11 @@ def test_stream_response_injects_recent_conversation_messages() -> None:
     history = ConversationHistory()
     history.record_turn("test-user", "I need to call Lan.", "I will remember that.")
     streamer = create_streamer(memory, RecordingTts(), history)
-    events = streamer.stream_response_events("What did I mention?", {"run_id": None})
+    events = streamer.stream_response_events(
+        "What did I mention?",
+        {"run_id": None},
+        "test-user",
+    )
 
     try:
         while True:
@@ -263,11 +265,10 @@ def test_stream_persistence_records_short_term_history_after_done() -> None:
         memory=memory,
         tts=RecordingTts(),
         history=history,
-        user_id="test-user",
     )
     response_holder: dict[str, object] = {}
 
-    events = list(service.stream_events(b"audio-bytes", None, response_holder))
+    events = list(service.stream_events(b"audio-bytes", None, response_holder, "test-user"))
     service.stream_persistence.persist_streamed_response(response_holder)
 
     assert events[-1] == {"type": "done", "text": "Done."}
@@ -307,11 +308,10 @@ def test_cancelled_stream_skips_memory_persist_and_completes_telemetry() -> None
         memory=memory,
         tts=RecordingTts(),
         history=history,
-        user_id="test-user",
     )
     response_holder: dict[str, object] = {}
 
-    events = service.stream_events(b"audio-bytes", None, response_holder)
+    events = service.stream_events(b"audio-bytes", None, response_holder, "test-user")
     assert next(events)["type"] == "asr"
     assert next(events) == {"type": "text_delta", "text": "One. "}
     events.close()
@@ -344,10 +344,9 @@ def test_stream_closed_after_done_event_does_not_persist() -> None:
         memory=memory,
         tts=RecordingTts(),
         history=history,
-        user_id="test-user",
     )
     response_holder: dict[str, object] = {"run_id": None}
-    events = streamer.stream_response_events("Hello", response_holder)
+    events = streamer.stream_response_events("Hello", response_holder, "test-user")
 
     try:
         event_types = []

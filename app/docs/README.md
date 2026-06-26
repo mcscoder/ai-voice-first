@@ -22,7 +22,7 @@ flutter run -t lib/main.dart
 
 - Routing with `go_router`
 - Dependency injection with `get_it` and `injectable`
-- Analytics, Firebase, permissions, connectivity, cache, logger, lifecycle, and theme modules under `lib/core/`
+- Analytics, auth, permissions, connectivity, cache, logger, lifecycle, and theme modules under `lib/core/`
 - Shared forms, widgets, and localization support under `lib/shared/`
 
 ## Current Product State

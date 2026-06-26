@@ -13,10 +13,12 @@ import 'package:dio/dio.dart' as _i361;
 import 'package:get_it/get_it.dart' as _i174;
 import 'package:injectable/injectable.dart' as _i526;
 
+import '../../features/auth/data/auth_api.dart' as _i936;
+import '../../features/auth/data/auth_repository.dart' as _i726;
+import '../../features/auth/presentation/auth_cubit.dart' as _i731;
 import '../../features/voice/data/audio_recorder_service.dart' as _i495;
 import '../../features/voice/data/transcription_api.dart' as _i763;
 import '../../features/voice/presentation/voice_capture_cubit.dart' as _i221;
-import '../analytics/firebase_analytics_provider.dart' as _i506;
 import '../analytics/posthog_analytics_provider.dart' as _i382;
 import '../app_bloc_observer.dart' as _i744;
 import '../auth/secure_storage_service.dart' as _i921;
@@ -26,12 +28,7 @@ import '../cache/cache_manager.dart' as _i326;
 import '../connectivity/connectivity_cubit.dart' as _i690;
 import '../connectivity/connectivity_service.dart' as _i528;
 import '../connectivity/offline_queue_service.dart' as _i1052;
-import '../firebase/app_check_service.dart' as _i399;
-import '../firebase/crashlytics_service.dart' as _i364;
-import '../firebase/push_notification_service.dart' as _i511;
-import '../firebase/remote_config_service.dart' as _i130;
 import '../lifecycle/app_lifecycle_observer.dart' as _i947;
-import '../lifecycle/app_update_checker.dart' as _i866;
 import '../logger/impl/debug_logger.dart' as _i803;
 import '../logger/impl/production_logger.dart' as _i67;
 import '../logger/logger.dart' as _i512;
@@ -53,9 +50,6 @@ extension GetItInjectableX on _i174.GetIt {
   }) {
     final gh = _i526.GetItHelper(this, environment, environmentFilter);
     final registerModule = _$RegisterModule();
-    gh.lazySingleton<_i506.FirebaseAnalyticsProvider>(
-      () => _i506.FirebaseAnalyticsProvider(),
-    );
     gh.lazySingleton<_i382.PostHogAnalyticsProvider>(
       () => _i382.PostHogAnalyticsProvider(),
     );
@@ -71,16 +65,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i605.DeepLinkHandler>(
       () => registerModule.deepLinkHandler,
     );
-    gh.lazySingleton<_i399.AppCheckService>(() => _i399.AppCheckService());
-    gh.lazySingleton<_i364.CrashlyticsService>(
-      () => _i364.CrashlyticsService(),
-    );
-    gh.lazySingleton<_i511.PushNotificationService>(
-      () => _i511.PushNotificationService(),
-    );
-    gh.lazySingleton<_i130.RemoteConfigService>(
-      () => _i130.RemoteConfigService(),
-    );
     gh.lazySingleton<_i947.AppLifecycleObserver>(
       () => _i947.AppLifecycleObserver(),
     );
@@ -94,9 +78,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i428.TokenManager>(
       () => _i428.TokenManager(gh<_i921.SecureStorageService>()),
     );
-    gh.lazySingleton<_i866.AppUpdateChecker>(
-      () => _i866.AppUpdateChecker(gh<_i130.RemoteConfigService>()),
-    );
     gh.factory<_i361.Dio>(
       () => registerModule.dioNonAuth,
       instanceName: 'NonAuthDio',
@@ -107,26 +88,28 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i690.ConnectivityCubit>(
       () => _i690.ConnectivityCubit(gh<_i528.ConnectivityService>()),
     );
+    gh.lazySingleton<_i763.TranscriptionApi>(
+      () => _i763.TranscriptionApi(gh<_i361.Dio>(instanceName: 'AuthDio')),
+    );
     gh.singleton<_i512.Logger>(
       () => _i67.ProductionLogger(),
       registerFor: {_production},
+    );
+    gh.lazySingleton<_i936.AuthApi>(
+      () => _i936.AuthApi(
+        gh<_i361.Dio>(instanceName: 'NonAuthDio'),
+        gh<_i361.Dio>(instanceName: 'AuthDio'),
+      ),
     );
     gh.singleton<_i512.Logger>(
       () => _i803.DebugLogger(),
       registerFor: {_development},
     );
-    gh.lazySingleton<_i763.TranscriptionApi>(
-      () => _i763.TranscriptionApi(gh<_i361.Dio>(instanceName: 'NonAuthDio')),
+    gh.lazySingleton<_i726.AuthRepository>(
+      () => _i726.AuthRepository(gh<_i936.AuthApi>(), gh<_i428.TokenManager>()),
     );
     gh.factory<_i835.PermissionCubit>(
       () => _i835.PermissionCubit(gh<_i271.PermissionService>()),
-    );
-    gh.factory<_i221.VoiceCaptureCubit>(
-      () => _i221.VoiceCaptureCubit(
-        gh<_i271.PermissionService>(),
-        gh<_i495.AudioRecorderService>(),
-        gh<_i763.TranscriptionApi>(),
-      ),
     );
     gh.lazySingleton<_i1052.OfflineQueueService>(
       () => _i1052.OfflineQueueService(
@@ -134,8 +117,18 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i690.ConnectivityCubit>(),
       ),
     );
+    gh.factory<_i221.VoiceCaptureCubit>(
+      () => registerModule.voiceCaptureCubit(
+        gh<_i271.PermissionService>(),
+        gh<_i495.AudioRecorderService>(),
+        gh<_i763.TranscriptionApi>(),
+      ),
+    );
     gh.lazySingleton<_i744.AppBlocObserver>(
       () => _i744.AppBlocObserver(logger: gh<_i512.Logger>()),
+    );
+    gh.lazySingleton<_i731.AuthCubit>(
+      () => _i731.AuthCubit(gh<_i726.AuthRepository>()),
     );
     return this;
   }

@@ -6,8 +6,9 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 
-def dashboard_component(base_url: str) -> str:
+def dashboard_component(base_url: str, access_token: str) -> str:
     base_url_literal = json.dumps(base_url.rstrip("/"))
+    access_token_literal = json.dumps(access_token.strip())
     template = """
 <div id="app" class="dashboard">
   <div class="topbar">
@@ -489,6 +490,7 @@ def dashboard_component(base_url: str) -> str:
 
 <script>
   const baseUrl = __BASE_URL__;
+  const accessToken = __ACCESS_TOKEN__;
   const stageNames = [
     "request_received",
     "asr",
@@ -506,7 +508,7 @@ def dashboard_component(base_url: str) -> str:
     ["TTS voice", "tts_voice"],
   ];
 
-  let source = null;
+    let abortController = null;
 
   function escapeHtml(value) {
     return String(value ?? "")
@@ -869,29 +871,75 @@ def dashboard_component(base_url: str) -> str:
     renderRecent(recentRuns);
   }
 
-  function connect() {
+  function handleSseBlock(block) {
+    const lines = block.split("\\n");
+    let eventName = "";
+    const dataLines = [];
+    for (const line of lines) {
+      if (line.startsWith("event:")) {
+        eventName = line.slice(6).trim();
+      } else if (line.startsWith("data:")) {
+        dataLines.push(line.slice(5).trimStart());
+      }
+    }
+    if (eventName !== "telemetry" || dataLines.length === 0) {
+      return;
+    }
+    setConnection("open", "Live SSE connected");
+    render(JSON.parse(dataLines.join("\\n")));
+  }
+
+  async function connect() {
     if (!baseUrl) {
       setConnection("error", "Missing backend URL");
       return;
     }
-
     const streamUrl = `${baseUrl}/v1/voice/assistant/telemetry/stream`;
-    source = new EventSource(streamUrl);
+    const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
+    abortController = new AbortController();
+    try {
+      const response = await fetch(streamUrl, {
+        headers,
+        signal: abortController.signal,
+      });
+      if (!response.ok || !response.body) {
+        if (response.status === 401) {
+          setConnection("error", "Auth required: enable public telemetry or provide a token");
+          return;
+        }
+        setConnection("error", `SSE failed (${response.status})`);
+        return;
+      }
 
-    source.onopen = () => setConnection("open", "Live SSE connected");
-    source.addEventListener("telemetry", (event) => {
       setConnection("open", "Live SSE connected");
-      render(JSON.parse(event.data));
-    });
-    source.onerror = () => {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) {
+          break;
+        }
+        buffer += decoder.decode(value, { stream: true });
+        const blocks = buffer.split("\\n\\n");
+        buffer = blocks.pop() || "";
+        for (const block of blocks) {
+          handleSseBlock(block);
+        }
+      }
       setConnection("error", "SSE disconnected");
-    };
+    } catch (error) {
+      setConnection("error", "SSE disconnected");
+    }
   }
 
   connect();
 </script>
 """
-    return template.replace("__BASE_URL__", base_url_literal)
+    return template.replace("__BASE_URL__", base_url_literal).replace(
+        "__ACCESS_TOKEN__",
+        access_token_literal,
+    )
 
 
 def main() -> None:
@@ -923,8 +971,9 @@ def main() -> None:
         unsafe_allow_html=True,
     )
 
+    access_token = st.sidebar.text_input("Access token", type="password")
     components.html(
-        dashboard_component("http://theunseenblade.ddns.net:8000"),
+        dashboard_component("http://theunseenblade.ddns.net:8000", access_token),
         height=1800,
         scrolling=True,
     )

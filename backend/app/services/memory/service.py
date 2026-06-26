@@ -29,9 +29,6 @@ from app.services.memory.types import (
 from mem0 import Memory
 from openai import OpenAIError
 
-DEFAULT_USER_ID = "default-user"
-
-
 class MemoryService:
     """Lazy wrapper around Mem0 memory storage."""
 
@@ -54,7 +51,7 @@ class MemoryService:
                 self._memory = Memory.from_config(self.memory_config.to_mem0_config())
             return self._memory
 
-    def respond(self, text: str, user_id: str = DEFAULT_USER_ID) -> MemoryReply:
+    def respond(self, text: str, user_id: str) -> MemoryReply:
         query = text.strip()
         if not query:
             raise MemoryServiceError("Memory service received empty text.")

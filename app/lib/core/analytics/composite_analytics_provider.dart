@@ -8,14 +8,11 @@ import 'analytics_service.dart';
 /// Each provider is called independently inside its own try-catch so that
 /// a failure in one provider never blocks or affects the others.
 ///
-/// Registered manually in [RegisterModule] (get_it.dart) because injectable
-/// cannot auto-inject a [List<AnalyticsService>] constructor parameter:
+/// Registered manually in [RegisterModule] because injectable cannot
+/// auto-inject a [List<AnalyticsService>] constructor parameter:
 /// ```dart
 /// getIt.registerLazySingleton<AnalyticsService>(
-///   () => CompositeAnalyticsProvider([
-///     getIt<FirebaseAnalyticsProvider>(),
-///     getIt<PostHogAnalyticsProvider>(),
-///   ]),
+///   () => CompositeAnalyticsProvider([getIt<PostHogAnalyticsProvider>()]),
 /// );
 /// ```
 class CompositeAnalyticsProvider implements AnalyticsService {

@@ -12,20 +12,24 @@ class StreamPersistence:
         memory: AssistantMemory,
         telemetry: AssistantTelemetry,
         history: ConversationHistory,
-        user_id: str,
     ) -> None:
         self.memory = memory
         self.telemetry = telemetry
         self.history = history
-        self.user_id = user_id
 
     def persist_streamed_response(self, response_holder: ResponseHolder) -> None:
         query = str(response_holder.get("query", "")).strip()
         response_text = str(response_holder.get("text", "")).strip()
+        user_id = str(response_holder.get("user_id", "")).strip()
         run_id = response_holder.get("run_id")
 
         self.telemetry.start_stage(run_id, "mem0_persist_background")
-        if response_holder.get("completed") != "true" or not query or not response_text:
+        if (
+            response_holder.get("completed") != "true"
+            or not query
+            or not response_text
+            or not user_id
+        ):
             self.telemetry.finish_stage(
                 run_id,
                 "mem0_persist_background",
@@ -42,11 +46,11 @@ class StreamPersistence:
         persist_result = self.memory.persist_conversation(
             query,
             response_text,
-            self.user_id,
+            user_id,
             self._recent_messages(response_holder),
             candidate_memories,
         )
-        self.history.record_turn(self.user_id, query, response_text)
+        self.history.record_turn(user_id, query, response_text)
         persist_metadata: dict[str, object] = {
             "persisted": True,
             "candidate_memory_count": len(candidate_memories),
@@ -74,6 +78,8 @@ class StreamPersistence:
             return "missing_query"
         if not str(response_holder.get("text", "")).strip():
             return "missing_response"
+        if not str(response_holder.get("user_id", "")).strip():
+            return "missing_user"
         return "stream_not_completed"
 
     def _recent_messages(

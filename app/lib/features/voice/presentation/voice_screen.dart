@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/design_system/design_system.dart';
 import '../../../core/di/get_it.dart';
+import '../../auth/auth.dart';
 import '../../../shared/i18n/i18n.dart';
 import 'voice_capture_cubit.dart';
 import 'voice_capture_state.dart';
@@ -23,6 +24,17 @@ final class VoiceScreen extends StatelessWidget {
       create: (_) => cubit ?? getIt<VoiceCaptureCubit>(),
       child: Scaffold(
         backgroundColor: colorScheme.surface,
+        appBar: AppBar(
+          backgroundColor: colorScheme.surface,
+          elevation: 0,
+          actions: [
+            IconButton(
+              tooltip: 'Sign out',
+              onPressed: () => context.read<AuthCubit>().logout(),
+              icon: const Icon(Icons.logout),
+            ),
+          ],
+        ),
         body: SafeArea(
           child: BlocBuilder<VoiceCaptureCubit, VoiceCaptureState>(
             builder: (context, state) {

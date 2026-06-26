@@ -15,67 +15,62 @@ import 'core/connectivity/connectivity_cubit.dart';
 import 'core/connectivity/connectivity_service.dart';
 import 'core/connectivity/offline_queue_service.dart';
 import 'core/di/get_it.dart';
-import 'core/firebase/crashlytics_service.dart';
-import 'core/firebase/firebase_initializer.dart';
 import 'core/logger/logger.dart';
 import 'core/router/router.dart';
 import 'core/theme/theme.dart';
 import 'core/utils/utils.dart';
+import 'features/auth/auth.dart';
 import 'shared/i18n/generated/app_localizations.dart';
 
 Future<void> initializeFlutterApp() async {
   // 1. Flutter engine must be ready before any platform channel calls.
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 2. Firebase — graceful fallback if config files are absent.
-  await FirebaseInitializer.initialize();
-
-  // 3. Hive — required by DiskCache and OfflineQueueService.
+  // 2. Hive — required by DiskCache and OfflineQueueService.
   await Hive.initFlutter();
 
-  // 4. HydratedBloc persistent storage.
+  // 3. HydratedBloc persistent storage.
   HydratedBloc.storage = await HydratedStorage.build(
     storageDirectory: HydratedStorageDirectory(
       (await getApplicationSupportDirectory()).path,
     ),
   );
 
-  // 5. Dependency injection — all @LazySingleton/@Injectable classes registered.
+  // 4. Dependency injection — all @LazySingleton/@Injectable classes registered.
   configureDependencies();
 
-  // 6. Register CompositeAnalyticsProvider as AnalyticsService after DI is ready.
+  // 5. Register CompositeAnalyticsProvider as AnalyticsService after DI is ready.
   registerCompositeAnalytics();
 
-  // 7. Initialise CacheManager disk layer (opens Hive box).
+  // 6. Initialise CacheManager disk layer (opens Hive box).
   await getIt<CacheManager>().init();
 
-  // 8. Start connectivity monitoring before any network calls.
+  // 7. Start connectivity monitoring before any network calls.
   await getIt<ConnectivityService>().init();
   getIt<ConnectivityCubit>().startMonitoring();
 
-  // 9. Initialise OfflineQueueService (opens Hive box, subscribes connectivity).
+  // 8. Initialise OfflineQueueService (opens Hive box, subscribes connectivity).
   await getIt<OfflineQueueService>().initialize();
 
-  // 10. Logger + BLoC observer.
+  // 9. Logger + BLoC observer.
   final logger = getIt<Logger>();
   final observer = getIt<AppBlocObserver>();
 
-  // 11. Wire error handlers to Crashlytics (no-op in debug / without Firebase).
+  // 10. Wire error handlers to the local logger.
   FlutterError.onError = (FlutterErrorDetails details) {
     logger(details.exceptionAsString(), stackTrace: details.stack);
-    getIt<CrashlyticsService>().recordFlutterError(details);
+    FlutterError.presentError(details);
   };
   PlatformDispatcher.instance.onError = (error, stack) {
     logger(error.toString(), error: error, stackTrace: stack);
-    getIt<CrashlyticsService>().logError(error, stack, fatal: true);
     return true;
   };
 
-  // 12. Equatable + BLoC observer.
+  // 11. Equatable + BLoC observer.
   EquatableConfig.stringify = true;
   Bloc.observer = observer;
 
-  // 13. Analytics — runs after DI and Firebase are both ready.
+  // 12. Analytics.
   await getIt<AnalyticsService>().initialize();
 
   runApp(const App());
@@ -88,6 +83,7 @@ final class App extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
+        BlocProvider(create: (_) => getIt<AuthCubit>()),
         BlocProvider(
           // ConnectivityCubit is a lazySingleton — share the same instance.
           create: (_) => getIt<ConnectivityCubit>(),
