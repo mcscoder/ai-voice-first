@@ -1,6 +1,10 @@
 import json
 
 from app.services.assistant.telemetry import AssistantTelemetry
+from app.services.assistant.telemetry_payload import (
+    telemetry_sse_event,
+    with_service_metadata,
+)
 
 
 def test_telemetry_moves_completed_run_to_recent_history() -> None:
@@ -93,8 +97,8 @@ def test_telemetry_formats_payload_and_sse_event() -> None:
     telemetry = AssistantTelemetry(max_recent_runs=2)
     snapshot = telemetry.snapshot()
 
-    payload = telemetry.payload(snapshot)
-    event = telemetry.sse_event(snapshot)
+    payload = with_service_metadata(snapshot)
+    event = telemetry_sse_event(payload)
 
     assert payload["services"]["llm_model"] == "deepseek-v4-flash"
     assert payload["services"]["llm_thinking"] == "disabled"

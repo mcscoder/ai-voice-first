@@ -1,8 +1,8 @@
-import logging
 from threading import Event
 
 from app.services.asr import AsrResult
 from app.services.assistant.service import AssistantService
+from app.services.assistant.streaming import AssistantResponseStreamer
 from app.services.assistant.telemetry import assistant_telemetry
 from app.services.memory import MemoryReply
 from app.services.tts import TtsResult
@@ -35,13 +35,6 @@ class StreamingMemory:
     def search_memory_results(self, query: str, user_id: str) -> list[object]:
         return []
 
-    def build_response_messages(
-        self,
-        query: str,
-        memories: list[object],
-    ) -> list[dict[str, str]]:
-        return []
-
     def stream_response(
         self,
         query: str,
@@ -49,9 +42,6 @@ class StreamingMemory:
         messages: list[dict[str, str]],
     ):
         yield from self.deltas
-
-    def _clean_response_for_speech(self, text: str) -> str:
-        return text.strip()
 
     def persist_conversation(
         self,
@@ -96,13 +86,19 @@ class BlockingFirstTts:
         return TtsResult(audio=text.encode(), media_type="audio/wav")
 
 
-def test_assistant_logs_step_timings(monkeypatch, caplog) -> None:
-    times = iter([1.0, 1.0, 1.1, 1.1, 1.4, 1.4, 1.9, 2.0])
-    monkeypatch.setattr(
-        "app.services.assistant.service.perf_counter",
-        lambda: next(times),
+def create_streamer(
+    memory: StreamingMemory,
+    tts: RecordingTts | BlockingFirstTts,
+) -> AssistantResponseStreamer:
+    return AssistantResponseStreamer(
+        memory=memory,
+        tts=tts,
+        telemetry=assistant_telemetry,
+        user_id="test-user",
     )
 
+
+def test_assistant_responds_with_synthesized_memory_reply() -> None:
     service = AssistantService(
         asr=StubAsr(),
         memory=StubMemory(),
@@ -110,30 +106,17 @@ def test_assistant_logs_step_timings(monkeypatch, caplog) -> None:
         user_id="test-user",
     )
 
-    with caplog.at_level(logging.INFO, logger="app.services.assistant.service"):
-        result = service.respond(b"audio-bytes", "English")
+    result = service.respond(b"audio-bytes", "English")
 
     assert result.audio == b"assistant-audio"
     assert result.media_type == "audio/wav"
-    messages = [record.getMessage() for record in caplog.records]
-    assert messages == [
-        "voice_assistant step=asr duration_ms=100.00",
-        "voice_assistant step=memory duration_ms=300.00",
-        "voice_assistant step=tts duration_ms=500.00",
-        "voice_assistant step=total duration_ms=1000.00",
-    ]
 
 
 def test_stream_response_keeps_synthesizing_after_audio_event_is_yielded() -> None:
     tts = RecordingTts()
-    service = AssistantService(
-        asr=StubAsr(),
-        memory=StreamingMemory(),
-        tts=tts,
-        user_id="test-user",
-    )
+    streamer = create_streamer(StreamingMemory(), tts)
 
-    events = service.stream_response_events("Hello", {"run_id": None})
+    events = streamer.stream_response_events("Hello", {"run_id": None})
     try:
         while True:
             event = next(events)
@@ -151,14 +134,12 @@ def test_stream_response_records_current_tts_chunk_while_synthesizing() -> None:
     release_first_audio = Event()
     first_started = Event()
     run_id = assistant_telemetry.start_run(None)
-    service = AssistantService(
-        asr=StubAsr(),
-        memory=StreamingMemory(["One. "]),
-        tts=BlockingFirstTts(release_first_audio, first_started),
-        user_id="test-user",
+    streamer = create_streamer(
+        StreamingMemory(["One. "]),
+        BlockingFirstTts(release_first_audio, first_started),
     )
 
-    events = service.stream_response_events("Hello", {"run_id": run_id})
+    events = streamer.stream_response_events("Hello", {"run_id": run_id})
     try:
         assert next(events) == {"type": "text_delta", "text": "One. "}
         assert first_started.wait(timeout=1.0)
@@ -179,14 +160,12 @@ def test_stream_response_records_current_tts_chunk_while_synthesizing() -> None:
 
 def test_stream_response_yields_ready_audio_before_later_text() -> None:
     release_first_audio = Event()
-    service = AssistantService(
-        asr=StubAsr(),
-        memory=StreamingMemory(["One. ", "Two. ", "Three. "]),
-        tts=BlockingFirstTts(release_first_audio),
-        user_id="test-user",
+    streamer = create_streamer(
+        StreamingMemory(["One. ", "Two. ", "Three. "]),
+        BlockingFirstTts(release_first_audio),
     )
 
-    events = service.stream_response_events("Hello", {"run_id": None})
+    events = streamer.stream_response_events("Hello", {"run_id": None})
     try:
         first = next(events)
         assert first == {"type": "text_delta", "text": "One. "}
@@ -201,15 +180,11 @@ def test_stream_response_yields_ready_audio_before_later_text() -> None:
 
 def test_stream_response_splits_long_tts_chunk_at_comma() -> None:
     tts = RecordingTts()
-    service = AssistantService(
-        asr=StubAsr(),
-        memory=StreamingMemory(
-            ["Xin chào bạn, rất vui được gặp bạn hôm nay, bạn khỏe không?"]
-        ),
-        tts=tts,
-        user_id="test-user",
+    streamer = create_streamer(
+        StreamingMemory(["Xin chào bạn, rất vui được gặp bạn hôm nay, bạn khỏe không?"]),
+        tts,
     )
-    events = service.stream_response_events("Hello", {"run_id": None})
+    events = streamer.stream_response_events("Hello", {"run_id": None})
 
     try:
         while True:
@@ -227,13 +202,8 @@ def test_stream_response_splits_long_tts_chunk_at_comma() -> None:
 
 def test_stream_response_does_not_split_short_tts_chunk_at_comma() -> None:
     tts = RecordingTts()
-    service = AssistantService(
-        asr=StubAsr(),
-        memory=StreamingMemory(["Xin chào bạn, bạn khỏe không?"]),
-        tts=tts,
-        user_id="test-user",
-    )
-    events = service.stream_response_events("Hello", {"run_id": None})
+    streamer = create_streamer(StreamingMemory(["Xin chào bạn, bạn khỏe không?"]), tts)
+    events = streamer.stream_response_events("Hello", {"run_id": None})
 
     try:
         while True:
@@ -262,7 +232,7 @@ def test_cancelled_stream_skips_memory_persist_and_completes_telemetry() -> None
     assert next(events) == {"type": "text_delta", "text": "One. "}
     events.close()
 
-    service.persist_streamed_response(response_holder)
+    service.stream_persistence.persist_streamed_response(response_holder)
 
     assert "completed" not in response_holder
     assert response_holder["cancelled"] == "true"
@@ -282,6 +252,7 @@ def test_cancelled_stream_skips_memory_persist_and_completes_telemetry() -> None
 
 def test_stream_closed_after_done_event_does_not_persist() -> None:
     memory = StreamingMemory(["Done. "])
+    streamer = create_streamer(memory, RecordingTts())
     service = AssistantService(
         asr=StubAsr(),
         memory=memory,
@@ -289,7 +260,7 @@ def test_stream_closed_after_done_event_does_not_persist() -> None:
         user_id="test-user",
     )
     response_holder = {"run_id": None}
-    events = service.stream_response_events("Hello", response_holder)
+    events = streamer.stream_response_events("Hello", response_holder)
 
     try:
         event_types = []
@@ -301,7 +272,7 @@ def test_stream_closed_after_done_event_does_not_persist() -> None:
     finally:
         events.close()
 
-    service.persist_streamed_response(response_holder)
+    service.stream_persistence.persist_streamed_response(response_holder)
 
     assert event_types == ["text_delta", "audio", "done"]
     assert "completed" not in response_holder

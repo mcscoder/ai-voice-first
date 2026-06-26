@@ -7,6 +7,10 @@ import pytest
 
 from app.api import routes
 from app.services.assistant.telemetry import assistant_telemetry
+from app.services.assistant.telemetry_payload import (
+    telemetry_sse_event,
+    with_service_metadata,
+)
 from app.services.asr import AsrResult, UnsupportedAsrLanguageError
 from app.services.memory import (
     DEFAULT_USER_ID,
@@ -292,12 +296,10 @@ def test_voice_assistant_stream_records_pipeline_telemetry(monkeypatch) -> None:
 
     assert response.status_code == 200
 
-    telemetry_response = create_client().get("/v1/voice/assistant/telemetry")
-    assert telemetry_response.status_code == 200
-    payload = telemetry_response.json()
-    assert payload["summary"] == {"active_count": 0, "recent_count": 1}
+    snapshot = assistant_telemetry.snapshot()
+    assert snapshot["summary"] == {"active_count": 0, "recent_count": 1}
 
-    run = payload["recent_runs"][0]
+    run = snapshot["recent_runs"][0]
     stages = {stage["name"]: stage for stage in run["stages"]}
     assert run["status"] == "done"
     assert stages["asr"]["metadata"]["transcript"] == "Remember this"
@@ -396,8 +398,8 @@ def test_voice_assistant_stream_records_memory_persist_actions(monkeypatch) -> N
 
     assert response.status_code == 200
 
-    payload = create_client().get("/v1/voice/assistant/telemetry").json()
-    run = payload["recent_runs"][0]
+    snapshot = assistant_telemetry.snapshot()
+    run = snapshot["recent_runs"][0]
     stages = {stage["name"]: stage for stage in run["stages"]}
     persist_metadata = stages["mem0_persist_background"]["metadata"]
 
@@ -406,24 +408,13 @@ def test_voice_assistant_stream_records_memory_persist_actions(monkeypatch) -> N
     assert persist_metadata["memory_actions"] == persist_result.actions
 
 
-def test_voice_assistant_telemetry_endpoint_returns_service_metadata() -> None:
-    response = create_client().get("/v1/voice/assistant/telemetry")
-
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["summary"] == {"active_count": 0, "recent_count": 0}
-    assert payload["services"]["llm_model"] == "deepseek-v4-flash"
-    assert payload["services"]["llm_thinking"] == "disabled"
-    assert payload["services"]["asr_model"] == "Qwen/Qwen3-ASR-0.6B"
-
-
 def test_voice_assistant_telemetry_stream_returns_sse_event() -> None:
     response = routes.voice_assistant_telemetry_stream()
     assert response.media_type == "text/event-stream"
     assert response.headers["cache-control"] == "no-cache"
     assert response.headers["x-accel-buffering"] == "no"
 
-    event = assistant_telemetry.sse_event(assistant_telemetry.snapshot())
+    event = telemetry_sse_event(with_service_metadata(assistant_telemetry.snapshot()))
     lines = event.splitlines()
     assert lines[0] == "event: telemetry"
     data_line = lines[1]

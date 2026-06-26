@@ -1,62 +1,18 @@
 from __future__ import annotations
 
-import json
 from collections import deque
 from collections.abc import Iterator
-from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from queue import Empty, Full, Queue
 from threading import RLock
 from time import perf_counter
 from uuid import uuid4
 
-from app.core.config import config
-
-
-StageStatus = str
-
-
-@dataclass
-class PipelineStage:
-    name: str
-    label: str
-    status: StageStatus = "pending"
-    started_at: float | None = None
-    duration_ms: float | None = None
-    metadata: dict[str, object] = field(default_factory=dict)
-
-    def to_dict(self) -> dict[str, object]:
-        return {
-            "name": self.name,
-            "label": self.label,
-            "status": self.status,
-            "duration_ms": self.duration_ms,
-            "metadata": self.metadata,
-        }
-
-
-@dataclass
-class PipelineRun:
-    run_id: str
-    status: StageStatus
-    created_at: str
-    started_at: float
-    completed_at: float | None
-    current_stage: str
-    stages: dict[str, PipelineStage]
-    metadata: dict[str, object] = field(default_factory=dict)
-    total_duration_ms: float | None = None
-
-    def to_dict(self) -> dict[str, object]:
-        return {
-            "run_id": self.run_id,
-            "status": self.status,
-            "created_at": self.created_at,
-            "current_stage": self.current_stage,
-            "total_duration_ms": self.total_duration_ms,
-            "metadata": self.metadata,
-            "stages": [stage.to_dict() for stage in self.stages.values()],
-        }
+from app.services.assistant.telemetry_types import (
+    PipelineRun,
+    PipelineStage,
+    StageStatus,
+)
 
 
 class AssistantTelemetry:
@@ -229,24 +185,6 @@ class AssistantTelemetry:
     def snapshot(self) -> dict[str, object]:
         with self._lock:
             return self._snapshot_locked()
-
-    def payload(self, snapshot: dict[str, object] | None = None) -> dict[str, object]:
-        payload = dict(snapshot or self.snapshot())
-        payload["services"] = {
-            "asr_model": config.asr.model_name,
-            "asr_device": config.asr.device,
-            "asr_quantization": config.asr.quantization_level,
-            "llm_provider": config.memory.llm_provider,
-            "llm_model": config.memory.llm_model,
-            "llm_thinking": config.memory.llm_thinking,
-            "embedder_model": config.memory.embedder_model,
-            "tts_device": config.tts.device,
-            "tts_voice": config.tts.default_voice,
-        }
-        return payload
-
-    def sse_event(self, snapshot: dict[str, object]) -> str:
-        return f"event: telemetry\ndata: {json.dumps(self.payload(snapshot))}\n\n"
 
     def reset(self) -> None:
         with self._lock:

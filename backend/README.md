@@ -23,8 +23,7 @@ uv run streamlit run dashboard.py
 The dashboard uses `GET /v1/voice/assistant/telemetry/stream` with
 Server-Sent Events and visualizes the current assistant pipeline: request
 intake, ASR, memory retrieval, DeepSeek streaming, VieNeu TTS chunks, client
-stream completion, and Mem0 background persistence. A snapshot endpoint is also
-available at `GET /v1/voice/assistant/telemetry`.
+stream completion, and Mem0 background persistence.
 
 ## Development Principles
 

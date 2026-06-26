@@ -10,6 +10,10 @@ from starlette.background import BackgroundTask
 from app.core.config import TtsVoice, config
 from app.services.assistant import assistant_service
 from app.services.assistant.telemetry import assistant_telemetry
+from app.services.assistant.telemetry_payload import (
+    telemetry_sse_event,
+    with_service_metadata,
+)
 from app.services.asr import asr_service
 from app.services.tts import tts_service
 
@@ -45,11 +49,6 @@ def health_check() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@router.get("/v1/voice/assistant/telemetry")
-def voice_assistant_telemetry() -> dict[str, object]:
-    return assistant_telemetry.payload()
-
-
 @router.get("/v1/voice/assistant/telemetry/stream")
 def voice_assistant_telemetry_stream() -> StreamingResponse:
     def event_lines() -> Iterator[str]:
@@ -58,7 +57,7 @@ def voice_assistant_telemetry_stream() -> StreamingResponse:
                 yield ": keep-alive\n\n"
                 continue
 
-            yield assistant_telemetry.sse_event(snapshot)
+            yield telemetry_sse_event(with_service_metadata(snapshot))
 
     return StreamingResponse(
         event_lines(),
@@ -194,7 +193,7 @@ async def voice_assistant_stream(
         event_lines(),
         media_type="application/x-ndjson",
         background=BackgroundTask(
-            assistant_service.persist_streamed_response,
+            assistant_service.stream_persistence.persist_streamed_response,
             response_holder,
         ),
     )
