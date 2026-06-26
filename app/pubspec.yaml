@@ -60,10 +60,6 @@ dependencies:
   hive_flutter: ^1.1.0
   flutter_secure_storage: ^9.2.4
 
-  # UI
-  infinite_scroll_pagination: ^5.1.1
-  shimmer: ^3.0.0
-
   # Forms
   formz: ^0.7.0
 
@@ -82,19 +78,6 @@ dependencies:
   posthog_flutter: ^5.21.1
 
   # endregion packages
-
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.8
-  flutter_screenutil: ^5.9.3
-  timeago: ^3.7.1
-  url_launcher: ^6.3.2
-  from_css_color: ^2.0.0
-  json_path: ^0.9.0
-  collection: ^1.19.1
-  cached_network_image: ^3.4.1
-  uuid: ^4.5.3
-  package_info_plus: ^8.3.0
 
 dev_dependencies:
   flutter_test:

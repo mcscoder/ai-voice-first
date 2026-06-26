@@ -17,7 +17,6 @@ import 'core/di/get_it.dart';
 import 'core/logger/logger.dart';
 import 'core/router/router.dart';
 import 'core/theme/theme.dart';
-import 'core/utils/utils.dart';
 import 'features/auth/auth.dart';
 import 'features/onboarding/onboarding.dart';
 import 'shared/i18n/generated/app_localizations.dart';
@@ -109,7 +108,10 @@ final class AppViewState extends State<AppView> {
   ThemeMode _themeMode = ThemeMode.dark;
 
   void setThemeMode(ThemeMode mode) {
-    safeSetState(() {
+    if (!mounted) {
+      return;
+    }
+    setState(() {
       _themeMode = mode;
     });
   }
