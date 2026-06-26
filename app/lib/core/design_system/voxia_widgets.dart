@@ -627,7 +627,6 @@ final class VoxiaTabBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = <_VoxiaTabItem>[
       const _VoxiaTabItem(Icons.mic_none, 'Talk'),
-      const _VoxiaTabItem(Icons.history, 'History'),
       const _VoxiaTabItem(Icons.psychology_outlined, 'Memory'),
       const _VoxiaTabItem(Icons.person_outline, 'Profile'),
     ];

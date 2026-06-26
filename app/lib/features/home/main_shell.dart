@@ -24,7 +24,6 @@ final class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     final pages = <Widget>[
       VoiceScreen(cubit: widget.voiceCubit, isShellMode: true),
-      _HistoryScreen(onBack: _returnHome),
       _MemoryScreen(onBack: _returnHome),
       _ProfileScreen(onBack: _returnHome),
     ];
@@ -331,7 +330,6 @@ final class _DrawerCloseButton extends StatelessWidget {
 
 const _navigationItems = <_NavigationItem>[
   _NavigationItem(Icons.mic_none, 'Talk'),
-  _NavigationItem(Icons.history, 'History'),
   _NavigationItem(Icons.psychology_outlined, 'Memory'),
   _NavigationItem(Icons.person_outline, 'Profile'),
 ];
@@ -360,51 +358,6 @@ final class _BackToTalkButton extends StatelessWidget {
         shape: const CircleBorder(),
       ),
       icon: const Icon(Icons.arrow_back_rounded, size: 26),
-    );
-  }
-}
-
-final class _HistoryScreen extends StatelessWidget {
-  const _HistoryScreen({required this.onBack});
-
-  final VoidCallback onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    return VoxiaScrollPage(
-      title: 'History',
-      subtitle: 'Recent conversations',
-      leading: _BackToTalkButton(onPressed: onBack),
-      slivers: [
-        const SizedBox(height: AppSpacing.sm),
-        const _SummaryCard(
-          icon: Icons.track_changes,
-          title: 'Main topic',
-          subtitle: 'Project planning and next steps',
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        const _SummaryCard(
-          icon: Icons.star_border,
-          title: 'Key takeaways',
-          subtitle: '3 key points discussed',
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        const _SummaryCard(
-          icon: Icons.arrow_forward,
-          title: 'Suggested next action',
-          subtitle: 'Review timeline and assign tasks',
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        VoxiaGradientButton(label: 'Continue talking', onPressed: () {}),
-        const SizedBox(height: AppSpacing.sm),
-        VoxiaOutlineButton(label: 'Save summary', onPressed: () {}),
-        const SizedBox(height: AppSpacing.sm),
-        VoxiaOutlineButton(
-          label: 'Delete session',
-          foregroundColor: VoxiaColors.red,
-          onPressed: () {},
-        ),
-      ],
     );
   }
 }
