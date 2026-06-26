@@ -97,13 +97,12 @@ base class TranscriptionApi extends Api {
 
   Future<({NetworkError? error, Uint8List? audio})> respond({
     required String filePath,
-    required VoiceLanguage language,
     CancelToken? cancelToken,
     ProgressCallback? onSendProgress,
   }) async {
     final result = await withTimeoutRequest(() async {
       final formData = FormData.fromMap({
-        'language': language.code,
+        'language': VoiceLanguage.vietnamese.code,
         'file': await MultipartFile.fromFile(
           filePath,
           filename: filePath.split('/').last,
@@ -130,13 +129,12 @@ base class TranscriptionApi extends Api {
 
   Stream<VoiceAssistantStreamEvent> respondStream({
     required String filePath,
-    required VoiceLanguage language,
     CancelToken? cancelToken,
     ProgressCallback? onSendProgress,
   }) async* {
     try {
       final formData = FormData.fromMap({
-        'language': language.code,
+        'language': VoiceLanguage.vietnamese.code,
         'file': await MultipartFile.fromFile(
           filePath,
           filename: filePath.split('/').last,

@@ -5,7 +5,6 @@ import 'package:ai_voice_first/core/error.dart' as app_error;
 import 'package:ai_voice_first/core/permissions/permission_service.dart';
 import 'package:ai_voice_first/features/voice/data/audio_recorder_service.dart';
 import 'package:ai_voice_first/features/voice/data/transcription_api.dart';
-import 'package:ai_voice_first/features/voice/data/voice_language.dart';
 import 'package:ai_voice_first/features/voice/presentation/voice_capture_cubit.dart';
 import 'package:ai_voice_first/features/voice/presentation/voice_capture_state.dart';
 import 'package:dio/dio.dart';
@@ -78,12 +77,10 @@ void main() {
         },
       );
 
-      cubit.selectLanguage(VoiceLanguage.vietnamese);
       await cubit.startRecording();
       await cubit.stopRecording();
 
       expect(cubit.state.status, VoiceCaptureStatus.success);
-      expect(cubit.state.selectedLanguage, VoiceLanguage.vietnamese);
       expect(playedAudio.single, equals(Uint8List.fromList(const [9, 8, 7])));
       await cubit.close();
     });
@@ -173,21 +170,7 @@ void main() {
       },
     );
 
-    test('updates selected language when idle', () async {
-      final cubit = VoiceCaptureCubit(
-        FakePermissionService(checkStatus: AppPermissionStatus.granted),
-        FakeAudioRecorderService(stopPath: '/tmp/audio.m4a'),
-        FakeTranscriptionApi.success(const [1, 2, 3]),
-        playAssistantSpeech: _noopPlayback,
-      );
-
-      cubit.selectLanguage(VoiceLanguage.vietnamese);
-
-      expect(cubit.state.selectedLanguage, VoiceLanguage.vietnamese);
-      await cubit.close();
-    });
-
-    test('uses selected language when responding', () async {
+    test('uses vietnamese when responding', () async {
       final api = FakeTranscriptionApi.success(const [4, 5, 6]);
       final cubit = VoiceCaptureCubit(
         FakePermissionService(checkStatus: AppPermissionStatus.granted),
@@ -196,7 +179,6 @@ void main() {
         playAssistantSpeech: _noopPlayback,
       );
 
-      cubit.selectLanguage(VoiceLanguage.vietnamese);
       await cubit.startRecording();
       await cubit.stopRecording();
 
@@ -212,13 +194,11 @@ void main() {
         playAssistantSpeech: _noopPlayback,
       );
 
-      cubit.selectLanguage(VoiceLanguage.vietnamese);
       await cubit.startRecording();
       await cubit.stopRecording();
 
       expect(cubit.state.status, VoiceCaptureStatus.failure);
       expect(cubit.state.failure, VoiceCaptureFailure.badAudio);
-      expect(cubit.state.selectedLanguage, VoiceLanguage.vietnamese);
       await cubit.close();
     });
 
@@ -232,13 +212,11 @@ void main() {
         playAssistantSpeech: _noopPlayback,
       );
 
-      cubit.selectLanguage(VoiceLanguage.vietnamese);
       await cubit.startRecording();
       await cubit.stopRecording();
 
       expect(cubit.state.status, VoiceCaptureStatus.failure);
       expect(cubit.state.failure, VoiceCaptureFailure.network);
-      expect(cubit.state.selectedLanguage, VoiceLanguage.vietnamese);
       await cubit.close();
     });
 
@@ -252,13 +230,11 @@ void main() {
         playAssistantSpeech: _noopPlayback,
       );
 
-      cubit.selectLanguage(VoiceLanguage.vietnamese);
       await cubit.startRecording();
       await cubit.stopRecording();
 
       expect(cubit.state.status, VoiceCaptureStatus.failure);
       expect(cubit.state.failure, VoiceCaptureFailure.badAudio);
-      expect(cubit.state.selectedLanguage, VoiceLanguage.vietnamese);
       await cubit.close();
     });
 
@@ -272,17 +248,15 @@ void main() {
         playAssistantSpeech: _noopPlayback,
       );
 
-      cubit.selectLanguage(VoiceLanguage.vietnamese);
       await cubit.startRecording();
       await cubit.stopRecording();
 
       expect(cubit.state.status, VoiceCaptureStatus.failure);
       expect(cubit.state.failure, VoiceCaptureFailure.backend);
-      expect(cubit.state.selectedLanguage, VoiceLanguage.vietnamese);
       await cubit.close();
     });
 
-    test('keeps selected language on microphone denial', () async {
+    test('keeps microphone denial failure', () async {
       final cubit = VoiceCaptureCubit(
         FakePermissionService(
           checkStatus: AppPermissionStatus.denied,
@@ -293,16 +267,14 @@ void main() {
         playAssistantSpeech: _noopPlayback,
       );
 
-      cubit.selectLanguage(VoiceLanguage.vietnamese);
       await cubit.startRecording();
 
       expect(cubit.state.status, VoiceCaptureStatus.failure);
       expect(cubit.state.failure, VoiceCaptureFailure.microphoneDenied);
-      expect(cubit.state.selectedLanguage, VoiceLanguage.vietnamese);
       await cubit.close();
     });
 
-    test('restores selected language from storage with idle state', () async {
+    test('restores idle state from storage', () async {
       final storage = FakeStorage();
       final firstCubit = VoiceCaptureCubit(
         FakePermissionService(checkStatus: AppPermissionStatus.granted),
@@ -312,7 +284,6 @@ void main() {
         storage: storage,
       );
 
-      firstCubit.selectLanguage(VoiceLanguage.vietnamese);
       await firstCubit.close();
 
       final restoredCubit = VoiceCaptureCubit(
@@ -326,24 +297,7 @@ void main() {
       expect(restoredCubit.state.status, VoiceCaptureStatus.idle);
       expect(restoredCubit.state.reply, isEmpty);
       expect(restoredCubit.state.failure, isNull);
-      expect(restoredCubit.state.selectedLanguage, VoiceLanguage.vietnamese);
       await restoredCubit.close();
-    });
-
-    test('falls back to english when stored language is unknown', () async {
-      final storage = FakeStorage();
-      await storage.write('voice_capture_language', {'selectedLanguage': 'jp'});
-
-      final cubit = VoiceCaptureCubit(
-        FakePermissionService(checkStatus: AppPermissionStatus.granted),
-        FakeAudioRecorderService(stopPath: '/tmp/audio.m4a'),
-        FakeTranscriptionApi.success(const [1, 2, 3]),
-        playAssistantSpeech: _noopPlayback,
-        storage: storage,
-      );
-
-      expect(cubit.state.selectedLanguage, VoiceLanguage.english);
-      await cubit.close();
     });
   });
 }
@@ -460,11 +414,10 @@ final class FakeTranscriptionApi extends TranscriptionApi {
   @override
   Future<({app_error.NetworkError? error, Uint8List? audio})> respond({
     required String filePath,
-    required VoiceLanguage language,
     CancelToken? cancelToken,
     ProgressCallback? onSendProgress,
   }) async {
-    lastLanguageCode = language.code;
+    lastLanguageCode = 'vi';
     lastCancelToken = cancelToken;
     if (!_requestStarted.isCompleted) {
       _requestStarted.complete();
@@ -475,11 +428,10 @@ final class FakeTranscriptionApi extends TranscriptionApi {
   @override
   Stream<VoiceAssistantStreamEvent> respondStream({
     required String filePath,
-    required VoiceLanguage language,
     CancelToken? cancelToken,
     ProgressCallback? onSendProgress,
   }) async* {
-    lastLanguageCode = language.code;
+    lastLanguageCode = 'vi';
     lastCancelToken = cancelToken;
     if (!_requestStarted.isCompleted) {
       _requestStarted.complete();
@@ -517,7 +469,6 @@ final class FakeStreamingTranscriptionApi extends TranscriptionApi {
   @override
   Future<({app_error.NetworkError? error, Uint8List? audio})> respond({
     required String filePath,
-    required VoiceLanguage language,
     CancelToken? cancelToken,
     ProgressCallback? onSendProgress,
   }) async {
@@ -527,7 +478,6 @@ final class FakeStreamingTranscriptionApi extends TranscriptionApi {
   @override
   Stream<VoiceAssistantStreamEvent> respondStream({
     required String filePath,
-    required VoiceLanguage language,
     CancelToken? cancelToken,
     ProgressCallback? onSendProgress,
   }) async* {

@@ -4,7 +4,6 @@ import 'dart:io';
 
 import 'package:ai_voice_first/core/error.dart';
 import 'package:ai_voice_first/features/voice/data/transcription_api.dart';
-import 'package:ai_voice_first/features/voice/data/voice_language.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -40,7 +39,6 @@ void main() {
       final api = TranscriptionApi(dio);
       final result = await api.respond(
         filePath: file.path,
-        language: VoiceLanguage.english,
         cancelToken: cancelToken,
       );
 
@@ -50,7 +48,7 @@ void main() {
       expect(capturedCancelToken, same(cancelToken));
       expect(capturedFormData, isNotNull);
       expect(capturedFormData!.fields.single.key, 'language');
-      expect(capturedFormData!.fields.single.value, 'en');
+      expect(capturedFormData!.fields.single.value, 'vi');
       expect(capturedFormData!.files.single.key, 'file');
 
       await tempDir.delete(recursive: true);
@@ -76,10 +74,7 @@ void main() {
       );
 
       final api = TranscriptionApi(dio);
-      final result = await api.respond(
-        filePath: file.path,
-        language: VoiceLanguage.vietnamese,
-      );
+      final result = await api.respond(filePath: file.path);
 
       expect(result.audio, isNull);
       expect(result.error, isA<BadRequest>());
@@ -121,12 +116,12 @@ void main() {
       );
 
       final api = TranscriptionApi(dio);
-      final events = await api
-          .respondStream(filePath: file.path, language: VoiceLanguage.english)
-          .toList();
+      final events = await api.respondStream(filePath: file.path).toList();
 
       expect(capturedPath, '/v1/voice/assistant/stream');
       expect(capturedFormData, isNotNull);
+      expect(capturedFormData!.fields.single.key, 'language');
+      expect(capturedFormData!.fields.single.value, 'vi');
       expect(events[0], isA<VoiceAssistantTextDeltaEvent>());
       expect((events[0] as VoiceAssistantTextDeltaEvent).text, 'Hello');
       expect(events[1], isA<VoiceAssistantAudioEvent>());

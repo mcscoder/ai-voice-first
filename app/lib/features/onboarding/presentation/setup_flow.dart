@@ -15,7 +15,6 @@ final class _SetupFlowState extends State<SetupFlow> {
   final _nicknameController = TextEditingController();
   var _step = 0;
   var _selectedStyle = SpeakingStyle.shortAnswers;
-  var _selectedLanguage = 'English';
 
   @override
   void initState() {
@@ -23,7 +22,6 @@ final class _SetupFlowState extends State<SetupFlow> {
     final setup = context.read<SetupCubit>().state;
     _nicknameController.text = setup.nickname;
     _selectedStyle = setup.speakingStyle;
-    _selectedLanguage = setup.language;
   }
 
   @override
@@ -39,13 +37,7 @@ final class _SetupFlowState extends State<SetupFlow> {
       _VoiceSetupStep(onContinue: _next),
       _PersonalizationStep(
         nicknameController: _nicknameController,
-        selectedLanguage: _selectedLanguage,
         selectedStyle: _selectedStyle,
-        onLanguageChanged: (value) {
-          setState(() {
-            _selectedLanguage = value;
-          });
-        },
         onStyleChanged: (value) {
           setState(() {
             _selectedStyle = value;
@@ -54,7 +46,6 @@ final class _SetupFlowState extends State<SetupFlow> {
         onContinue: () {
           context.read<SetupCubit>().updatePersonalization(
             nickname: _nicknameController.text,
-            language: _selectedLanguage,
             speakingStyle: _selectedStyle,
           );
           _next();
@@ -202,17 +193,13 @@ final class _VoiceSetupStep extends StatelessWidget {
 final class _PersonalizationStep extends StatelessWidget {
   const _PersonalizationStep({
     required this.nicknameController,
-    required this.selectedLanguage,
     required this.selectedStyle,
-    required this.onLanguageChanged,
     required this.onStyleChanged,
     required this.onContinue,
   });
 
   final TextEditingController nicknameController;
-  final String selectedLanguage;
   final SpeakingStyle selectedStyle;
-  final ValueChanged<String> onLanguageChanged;
   final ValueChanged<SpeakingStyle> onStyleChanged;
   final VoidCallback onContinue;
 
@@ -231,23 +218,6 @@ final class _PersonalizationStep extends StatelessWidget {
             controller: nicknameController,
             textInputAction: TextInputAction.next,
             decoration: const InputDecoration(hintText: 'Your nickname'),
-          ),
-        ),
-        _FieldLabel(
-          label: 'Preferred language',
-          child: DropdownButtonFormField<String>(
-            initialValue: selectedLanguage,
-            dropdownColor: VoxiaColors.backgroundAlt,
-            decoration: const InputDecoration(),
-            items: const [
-              DropdownMenuItem(value: 'English', child: Text('English')),
-              DropdownMenuItem(value: 'Vietnamese', child: Text('Vietnamese')),
-            ],
-            onChanged: (value) {
-              if (value != null) {
-                onLanguageChanged(value);
-              }
-            },
           ),
         ),
         _FieldLabel(

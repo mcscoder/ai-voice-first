@@ -8,7 +8,6 @@ import '../../../core/network/request_cancellation_mixin.dart';
 import '../../../core/permissions/permission_service.dart';
 import '../data/audio_recorder_service.dart';
 import '../data/transcription_api.dart';
-import '../data/voice_language.dart';
 import 'voice_capture_state.dart';
 
 typedef PlayAssistantSpeech = Future<void> Function(Uint8List audioBytes);
@@ -46,14 +45,6 @@ class VoiceCaptureCubit extends HydratedCubit<VoiceCaptureState>
   late final AudioPlayer? _audioPlayer;
   late final PlayAssistantSpeech _playAssistantSpeech;
   int _requestGeneration = 0;
-
-  void selectLanguage(VoiceLanguage language) {
-    if (state.isBusy || language.code == state.selectedLanguage.code) {
-      return;
-    }
-
-    emit(state.copyWith(selectedLanguage: language, clearFailure: true));
-  }
 
   Future<void> toggleRecording() async {
     switch (state.status) {
@@ -154,7 +145,6 @@ class VoiceCaptureCubit extends HydratedCubit<VoiceCaptureState>
       try {
         await for (final event in _transcriptionApi.respondStream(
           filePath: filePath,
-          language: state.selectedLanguage,
           cancelToken: cancelToken,
           onSendProgress: (sent, total) {
             if (_isStaleRequest(requestGeneration)) {
@@ -354,16 +344,12 @@ class VoiceCaptureCubit extends HydratedCubit<VoiceCaptureState>
 
   @override
   VoiceCaptureState? fromJson(Map<String, dynamic> json) {
-    return VoiceCaptureState(
-      selectedLanguage: VoiceLanguage.fromCode(
-        json['selectedLanguage'] as String?,
-      ),
-    );
+    return const VoiceCaptureState();
   }
 
   @override
   Map<String, dynamic>? toJson(VoiceCaptureState state) {
-    return {'selectedLanguage': state.selectedLanguage.code};
+    return const {};
   }
 
   static Storage _resolveStorage(Storage? storage) {

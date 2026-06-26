@@ -53,7 +53,7 @@ def test_voice_assistant_returns_generated_audio(monkeypatch) -> None:
 
     def transcribe(audio: bytes, language: str | None) -> AsrResult:
         calls["asr"] = {"audio": audio, "language": language}
-        return AsrResult(text="What should I do today?", language="English", model="test")
+        return AsrResult(text="Hôm nay tôi nên làm gì?", language="Vietnamese", model="test")
 
     def respond(text: str, user_id: str) -> MemoryReply:
         calls["memory"] = {"text": text, "user_id": user_id}
@@ -69,16 +69,16 @@ def test_voice_assistant_returns_generated_audio(monkeypatch) -> None:
 
     response = create_client().post(
         "/v1/voice/assistant",
-        data={"language": "en"},
+        data={"language": "vi"},
         files={"file": ("speech.wav", b"audio-bytes", "audio/wav")},
     )
 
     assert response.status_code == 200
     assert response.content == b"wav-bytes"
     assert response.headers["content-type"] == "audio/wav"
-    assert calls["asr"] == {"audio": b"audio-bytes", "language": "en"}
+    assert calls["asr"] == {"audio": b"audio-bytes", "language": "vi"}
     assert calls["memory"] == {
-        "text": "What should I do today?",
+        "text": "Hôm nay tôi nên làm gì?",
         "user_id": "test-user",
     }
     assert calls["tts"] == {"text": "You should review your plan.", "voice": None}
@@ -87,7 +87,7 @@ def test_voice_assistant_returns_generated_audio(monkeypatch) -> None:
 def test_voice_assistant_rejects_empty_upload() -> None:
     response = create_client().post(
         "/v1/voice/assistant",
-        data={"language": "en"},
+        data={"language": "vi"},
         files={"file": ("empty.wav", b"", "audio/wav")},
     )
 
@@ -98,7 +98,7 @@ def test_voice_assistant_rejects_empty_upload() -> None:
 def test_voice_assistant_requires_authentication() -> None:
     response = create_unauthenticated_client().post(
         "/v1/voice/assistant",
-        data={"language": "en"},
+        data={"language": "vi"},
         files={"file": ("speech.wav", b"audio-bytes", "audio/wav")},
     )
 
@@ -124,7 +124,7 @@ def test_voice_assistant_stream_returns_ordered_events(monkeypatch) -> None:
     calls: dict[str, object] = {}
 
     def transcribe(audio: bytes, language: str | None) -> AsrResult:
-        return AsrResult(text="Hello", language=language or "English", model="test")
+        return AsrResult(text="Xin chào", language=language or "Vietnamese", model="test")
 
     def search_memory_results(query: str, user_id: str) -> list[MemorySearchResult]:
         calls["search"] = {"query": query, "user_id": user_id}
@@ -171,14 +171,14 @@ def test_voice_assistant_stream_returns_ordered_events(monkeypatch) -> None:
 
     response = create_client().post(
         "/v1/voice/assistant/stream",
-        data={"language": "en"},
+        data={"language": "vi"},
         files={"file": ("speech.wav", b"audio-bytes", "audio/wav")},
     )
 
     assert response.status_code == 200
     events = [json.loads(line) for line in response.text.strip().splitlines()]
     assert events == [
-        {"type": "asr", "text": "Hello", "language": "en", "model": "test"},
+        {"type": "asr", "text": "Xin chào", "language": "vi", "model": "test"},
         {"type": "text_delta", "text": "Hi there."},
         {
             "type": "audio",
@@ -189,12 +189,12 @@ def test_voice_assistant_stream_returns_ordered_events(monkeypatch) -> None:
         {"type": "done", "text": "Hi there."},
     ]
     assert response.headers["content-type"].startswith("application/x-ndjson")
-    assert calls["search"] == {"query": "Hello", "user_id": "test-user"}
+    assert calls["search"] == {"query": "Xin chào", "user_id": "test-user"}
     stream_call = calls["stream"]
     assert isinstance(stream_call, dict)
     messages = stream_call.pop("messages")
     assert stream_call == {
-        "query": "Hello",
+        "query": "Xin chào",
         "memories": [
             MemorySearchResult.from_mem0(
                 {
@@ -209,7 +209,7 @@ def test_voice_assistant_stream_returns_ordered_events(monkeypatch) -> None:
     assert isinstance(messages, list)
     assert messages[0]["role"] == "system"
     assert messages[1]["role"] == "system"
-    assert messages[2] == {"role": "user", "content": "Hello"}
+    assert messages[2] == {"role": "user", "content": "Xin chào"}
     prompt = messages[1]["content"]
     assert "Relevant memories CSV:" in prompt
     assert "memory,created_at,updated_at" in prompt
@@ -224,7 +224,7 @@ def test_voice_assistant_stream_persists_after_done(monkeypatch) -> None:
     persisted: list[dict[str, object]] = []
 
     def transcribe(audio: bytes, language: str | None) -> AsrResult:
-        return AsrResult(text="Remember this", language="English", model="test")
+        return AsrResult(text="Nhớ việc này", language="Vietnamese", model="test")
 
     def stream_response(
         query: str,
@@ -270,7 +270,7 @@ def test_voice_assistant_stream_persists_after_done(monkeypatch) -> None:
 
     response = create_client().post(
         "/v1/voice/assistant/stream",
-        data={"language": "en"},
+        data={"language": "vi"},
         files={"file": ("speech.wav", b"audio-bytes", "audio/wav")},
     )
 
@@ -281,7 +281,7 @@ def test_voice_assistant_stream_persists_after_done(monkeypatch) -> None:
     }
     assert persisted == [
         {
-            "query": "Remember this",
+            "query": "Nhớ việc này",
             "response_text": "Saved.",
             "user_id": "test-user",
             "recent_messages": [],
@@ -292,7 +292,7 @@ def test_voice_assistant_stream_persists_after_done(monkeypatch) -> None:
 
 def test_voice_assistant_stream_records_pipeline_telemetry(monkeypatch) -> None:
     def transcribe(audio: bytes, language: str | None) -> AsrResult:
-        return AsrResult(text="Remember this", language="English", model="test")
+        return AsrResult(text="Nhớ việc này", language="Vietnamese", model="test")
 
     def stream_response(
         query: str,
@@ -331,7 +331,7 @@ def test_voice_assistant_stream_records_pipeline_telemetry(monkeypatch) -> None:
 
     response = create_client().post(
         "/v1/voice/assistant/stream",
-        data={"language": "en"},
+        data={"language": "vi"},
         files={"file": ("speech.wav", b"audio-bytes", "audio/wav")},
     )
 
@@ -343,7 +343,7 @@ def test_voice_assistant_stream_records_pipeline_telemetry(monkeypatch) -> None:
     run = snapshot["recent_runs"][0]
     stages = {stage["name"]: stage for stage in run["stages"]}
     assert run["status"] == "done"
-    assert stages["asr"]["metadata"]["transcript"] == "Remember this"
+    assert stages["asr"]["metadata"]["transcript"] == "Nhớ việc này"
     assert stages["memory_search"]["metadata"]["memory_count"] == 1
     assert stages["memory_search"]["metadata"]["memories"] == [
         {
@@ -362,7 +362,7 @@ def test_voice_assistant_stream_records_pipeline_telemetry(monkeypatch) -> None:
     assert llm_metadata["prompt_messages"][1]["role"] == "system"
     assert llm_metadata["prompt_messages"][2] == {
         "role": "user",
-        "content": "Remember this",
+        "content": "Nhớ việc này",
     }
     prompt = llm_metadata["prompt_messages"][1]["content"]
     assert "Relevant memories CSV:" in prompt
@@ -390,7 +390,7 @@ def test_voice_assistant_stream_records_pipeline_telemetry(monkeypatch) -> None:
 
 def test_voice_assistant_stream_records_memory_persist_actions(monkeypatch) -> None:
     def transcribe(audio: bytes, language: str | None) -> AsrResult:
-        return AsrResult(text="Remember this", language="English", model="test")
+        return AsrResult(text="Nhớ việc này", language="Vietnamese", model="test")
 
     def stream_response(
         query: str,
@@ -436,7 +436,7 @@ def test_voice_assistant_stream_records_memory_persist_actions(monkeypatch) -> N
 
     response = create_client().post(
         "/v1/voice/assistant/stream",
-        data={"language": "en"},
+        data={"language": "vi"},
         files={"file": ("speech.wav", b"audio-bytes", "audio/wav")},
     )
 

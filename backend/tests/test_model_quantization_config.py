@@ -1,7 +1,7 @@
 import pytest
 
 from app.core.config import MemoryConfig
-from app.services.asr.service import AsrService
+from app.services.asr.service import AsrService, UnsupportedAsrLanguageError
 
 
 def load_asr_model_kwargs(monkeypatch, quantization_level: str) -> dict[str, object]:
@@ -70,6 +70,15 @@ def test_asr_supports_4bit_quantization_levels(monkeypatch) -> None:
 
     assert_4bit_quantization(nf4_kwargs["quantization_config"], quant_type="nf4")
     assert_4bit_quantization(fp4_kwargs["quantization_config"], quant_type="fp4")
+
+
+def test_asr_defaults_to_vietnamese_when_language_is_missing() -> None:
+    assert AsrService().normalize_language(None) == "Vietnamese"
+
+
+def test_asr_rejects_english_language() -> None:
+    with pytest.raises(UnsupportedAsrLanguageError):
+        AsrService().normalize_language("en")
 
 
 def test_memory_config_passes_default_8bit_quantization_to_huggingface_embedder() -> None:

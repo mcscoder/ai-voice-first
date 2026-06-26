@@ -10,14 +10,14 @@ from app.services.assistant.telemetry_payload import (
 def test_telemetry_moves_completed_run_to_recent_history() -> None:
     telemetry = AssistantTelemetry(max_recent_runs=2)
 
-    run_id = telemetry.start_run("en")
+    run_id = telemetry.start_run("vi")
     telemetry.start_stage(run_id, "asr")
     telemetry.finish_stage(
         run_id,
         "asr",
         {
-            "transcript": "Hello",
-            "language": "English",
+            "transcript": "Xin chào",
+            "language": "Vietnamese",
             "model": "test",
         },
     )
@@ -35,11 +35,11 @@ def test_telemetry_moves_completed_run_to_recent_history() -> None:
     recent_run = snapshot["recent_runs"][0]
     assert recent_run["run_id"] == run_id
     assert recent_run["status"] == "done"
-    assert recent_run["metadata"] == {"language": "en"}
+    assert recent_run["metadata"] == {"language": "vi"}
 
     stages = {stage["name"]: stage for stage in recent_run["stages"]}
     assert stages["asr"]["status"] == "done"
-    assert stages["asr"]["metadata"]["transcript"] == "Hello"
+    assert stages["asr"]["metadata"]["transcript"] == "Xin chào"
     assert stages["llm_response_stream"]["duration_ms"] == 42.5
     assert stages["llm_response_stream"]["metadata"] == {"characters": 12}
 
@@ -47,11 +47,11 @@ def test_telemetry_moves_completed_run_to_recent_history() -> None:
 def test_telemetry_keeps_bounded_recent_history() -> None:
     telemetry = AssistantTelemetry(max_recent_runs=2)
 
-    first = telemetry.start_run("en")
+    first = telemetry.start_run("vi")
     telemetry.complete_run(first)
     second = telemetry.start_run("vi")
     telemetry.complete_run(second)
-    third = telemetry.start_run("en")
+    third = telemetry.start_run("vi")
     telemetry.complete_run(third)
 
     snapshot = telemetry.snapshot()
@@ -66,7 +66,7 @@ def test_telemetry_subscriber_receives_initial_snapshot_and_updates() -> None:
     initial_snapshot = next(subscriber)
     assert initial_snapshot["summary"] == {"active_count": 0, "recent_count": 0}
 
-    run_id = telemetry.start_run("en")
+    run_id = telemetry.start_run("vi")
     update = next(subscriber)
 
     assert update["summary"] == {"active_count": 1, "recent_count": 0}
@@ -80,7 +80,7 @@ def test_telemetry_subscriber_keeps_latest_snapshot_for_slow_consumers() -> None
     subscriber = telemetry.subscribe(keepalive_seconds=0.01)
     next(subscriber)
 
-    run_id = telemetry.start_run("en")
+    run_id = telemetry.start_run("vi")
     telemetry.start_stage(run_id, "asr")
     telemetry.finish_stage(run_id, "asr", {"transcript": "Hello"})
 

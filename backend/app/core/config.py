@@ -85,12 +85,10 @@ class AsrConfig:
     quantization_level: QuantizationLevel = "int8"
     load_on_startup: bool = True
 
-    default_language: str = "English"
-    supported_languages: tuple[str, str] = ("English", "Vietnamese")
+    default_language: str = "Vietnamese"
+    supported_languages: tuple[str, ...] = ("Vietnamese",)
     language_map: dict[str, str] = field(
         default_factory=lambda: {
-            "en": "English",
-            "english": "English",
             "vi": "Vietnamese",
             "vietnamese": "Vietnamese",
         },

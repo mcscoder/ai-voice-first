@@ -12,7 +12,7 @@ class StubAsr:
     def transcribe(self, audio: bytes, language: str | None) -> AsrResult:
         return AsrResult(
             text="Remember my meeting",
-            language=language or "English",
+            language=language or "Vietnamese",
             model="test",
         )
 
@@ -118,7 +118,7 @@ def test_assistant_responds_with_synthesized_memory_reply() -> None:
         tts=StubTts(),
     )
 
-    result = service.respond(b"audio-bytes", "English", "test-user")
+    result = service.respond(b"audio-bytes", "vi", "test-user")
 
     assert result.audio == b"assistant-audio"
     assert result.media_type == "audio/wav"

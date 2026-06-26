@@ -1,7 +1,5 @@
 import 'package:equatable/equatable.dart';
 
-import '../data/voice_language.dart';
-
 enum VoiceCaptureStatus {
   idle,
   recording,
@@ -26,7 +24,6 @@ final class VoiceCaptureState extends Equatable {
     this.status = VoiceCaptureStatus.idle,
     this.reply = '',
     this.transcript = '',
-    this.selectedLanguage = VoiceLanguage.english,
     this.failure,
     this.requestStartedAt,
     this.requestCompletedAt,
@@ -35,7 +32,6 @@ final class VoiceCaptureState extends Equatable {
   final VoiceCaptureStatus status;
   final String reply;
   final String transcript;
-  final VoiceLanguage selectedLanguage;
   final VoiceCaptureFailure? failure;
   final DateTime? requestStartedAt;
   final DateTime? requestCompletedAt;
@@ -50,7 +46,6 @@ final class VoiceCaptureState extends Equatable {
     VoiceCaptureStatus? status,
     String? reply,
     String? transcript,
-    VoiceLanguage? selectedLanguage,
     VoiceCaptureFailure? failure,
     DateTime? requestStartedAt,
     DateTime? requestCompletedAt,
@@ -61,7 +56,6 @@ final class VoiceCaptureState extends Equatable {
       status: status ?? this.status,
       reply: reply ?? this.reply,
       transcript: transcript ?? this.transcript,
-      selectedLanguage: selectedLanguage ?? this.selectedLanguage,
       failure: clearFailure && failure == null ? null : failure ?? this.failure,
       requestStartedAt: clearRequestTiming
           ? null
@@ -77,7 +71,6 @@ final class VoiceCaptureState extends Equatable {
     status,
     reply,
     transcript,
-    selectedLanguage.code,
     failure,
     requestStartedAt,
     requestCompletedAt,

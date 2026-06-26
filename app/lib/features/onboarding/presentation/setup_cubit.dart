@@ -9,7 +9,6 @@ final class SetupState extends Equatable {
   const SetupState({
     this.isComplete = false,
     this.nickname = '',
-    this.language = 'English',
     this.voice = AssistantVoice.friendly,
     this.speakingStyle = SpeakingStyle.shortAnswers,
     this.memoryEnabled = true,
@@ -17,7 +16,6 @@ final class SetupState extends Equatable {
 
   final bool isComplete;
   final String nickname;
-  final String language;
   final AssistantVoice voice;
   final SpeakingStyle speakingStyle;
   final bool memoryEnabled;
@@ -25,7 +23,6 @@ final class SetupState extends Equatable {
   SetupState copyWith({
     bool? isComplete,
     String? nickname,
-    String? language,
     AssistantVoice? voice,
     SpeakingStyle? speakingStyle,
     bool? memoryEnabled,
@@ -33,7 +30,6 @@ final class SetupState extends Equatable {
     return SetupState(
       isComplete: isComplete ?? this.isComplete,
       nickname: nickname ?? this.nickname,
-      language: language ?? this.language,
       voice: voice ?? this.voice,
       speakingStyle: speakingStyle ?? this.speakingStyle,
       memoryEnabled: memoryEnabled ?? this.memoryEnabled,
@@ -44,7 +40,6 @@ final class SetupState extends Equatable {
   List<Object?> get props => [
     isComplete,
     nickname,
-    language,
     voice,
     speakingStyle,
     memoryEnabled,
@@ -61,15 +56,10 @@ final class SetupCubit extends HydratedCubit<SetupState> {
 
   void updatePersonalization({
     required String nickname,
-    required String language,
     required SpeakingStyle speakingStyle,
   }) {
     emit(
-      state.copyWith(
-        nickname: nickname.trim(),
-        language: language,
-        speakingStyle: speakingStyle,
-      ),
+      state.copyWith(nickname: nickname.trim(), speakingStyle: speakingStyle),
     );
   }
 
@@ -90,7 +80,6 @@ final class SetupCubit extends HydratedCubit<SetupState> {
     return SetupState(
       isComplete: json['isComplete'] as bool? ?? false,
       nickname: json['nickname'] as String? ?? '',
-      language: json['language'] as String? ?? 'English',
       voice: _voiceFromName(json['voice'] as String?),
       speakingStyle: _styleFromName(json['speakingStyle'] as String?),
       memoryEnabled: json['memoryEnabled'] as bool? ?? true,
@@ -102,7 +91,6 @@ final class SetupCubit extends HydratedCubit<SetupState> {
     return {
       'isComplete': state.isComplete,
       'nickname': state.nickname,
-      'language': state.language,
       'voice': state.voice.name,
       'speakingStyle': state.speakingStyle.name,
       'memoryEnabled': state.memoryEnabled,
