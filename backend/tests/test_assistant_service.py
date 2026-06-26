@@ -199,6 +199,53 @@ def test_stream_response_yields_ready_audio_before_later_text() -> None:
         events.close()
 
 
+def test_stream_response_splits_long_tts_chunk_at_comma() -> None:
+    tts = RecordingTts()
+    service = AssistantService(
+        asr=StubAsr(),
+        memory=StreamingMemory(
+            ["Xin chào bạn, rất vui được gặp bạn hôm nay, bạn khỏe không?"]
+        ),
+        tts=tts,
+        user_id="test-user",
+    )
+    events = service.stream_response_events("Hello", {"run_id": None})
+
+    try:
+        while True:
+            event = next(events)
+            if event["type"] == "done":
+                break
+    finally:
+        events.close()
+
+    assert tts.started == [
+        "Xin chào bạn, rất vui được gặp bạn hôm nay,",
+        "bạn khỏe không?",
+    ]
+
+
+def test_stream_response_does_not_split_short_tts_chunk_at_comma() -> None:
+    tts = RecordingTts()
+    service = AssistantService(
+        asr=StubAsr(),
+        memory=StreamingMemory(["Xin chào bạn, bạn khỏe không?"]),
+        tts=tts,
+        user_id="test-user",
+    )
+    events = service.stream_response_events("Hello", {"run_id": None})
+
+    try:
+        while True:
+            event = next(events)
+            if event["type"] == "done":
+                break
+    finally:
+        events.close()
+
+    assert tts.started == ["Xin chào bạn, bạn khỏe không?"]
+
+
 def test_cancelled_stream_skips_memory_persist_and_completes_telemetry() -> None:
     assistant_telemetry.reset()
     memory = StreamingMemory(["One. ", "Two. "])

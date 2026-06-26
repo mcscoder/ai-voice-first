@@ -637,12 +637,31 @@ class AssistantService:
         return "stream_not_completed"
 
     def _split_tts_chunk(self, text: str) -> tuple[str | None, str]:
-        match = re.search(r"^(.+?[.!?。！？])(\s+|$)", text, flags=re.DOTALL)
-        if match:
-            return match.group(1).strip(), text[match.end() :].lstrip()
+        max_chars = 180
+        min_chars = 40
 
-        if len(text) >= 180:
-            return text.strip(), ""
+        for match in re.finditer(r"[.!?。！？,]", text):
+            chunk = text[: match.end()].strip()
+
+            if match.group(0) == ",":
+                if len(chunk) > 40:
+                    return chunk, text[match.end() :].lstrip()
+                continue
+
+            if match.end() == len(text) or text[match.end()].isspace():
+                return chunk, text[match.end() :].lstrip()
+
+        if len(text) >= max_chars:
+            split_at = None
+
+            for match in re.finditer(r"\s+", text[:max_chars]):
+                if match.start() >= min_chars:
+                    split_at = match.start()
+
+            if split_at is not None:
+                return text[:split_at].strip(), text[split_at:].lstrip()
+
+            return None, text
 
         return None, text
 
