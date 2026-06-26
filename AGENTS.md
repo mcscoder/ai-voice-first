@@ -58,6 +58,8 @@ For multi-step tasks, state a brief plan:
 
 **A test must exercise the implementation it claims to verify.**
 
+- For UI-only tasks, do not write tests and do not run tests. UI-only tasks
+  should be verified by the requested visual/layout change itself.
 - Tests are part of the deliverable, not decoration. A passing test suite only
   matters when the tests would fail for the bug or regression they claim to
   cover.

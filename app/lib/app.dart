@@ -3,7 +3,6 @@ import 'dart:ui';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hydrated_bloc/hydrated_bloc.dart';
 import 'package:path_provider/path_provider.dart';
@@ -20,6 +19,7 @@ import 'core/router/router.dart';
 import 'core/theme/theme.dart';
 import 'core/utils/utils.dart';
 import 'features/auth/auth.dart';
+import 'features/onboarding/onboarding.dart';
 import 'shared/i18n/generated/app_localizations.dart';
 
 Future<void> initializeFlutterApp() async {
@@ -84,6 +84,7 @@ final class App extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider(create: (_) => getIt<AuthCubit>()),
+        BlocProvider(create: (_) => SetupCubit()),
         BlocProvider(
           // ConnectivityCubit is a lazySingleton — share the same instance.
           create: (_) => getIt<ConnectivityCubit>(),
@@ -105,7 +106,7 @@ final class AppView extends StatefulWidget {
 }
 
 final class AppViewState extends State<AppView> {
-  ThemeMode _themeMode = ThemeMode.system;
+  ThemeMode _themeMode = ThemeMode.dark;
 
   void setThemeMode(ThemeMode mode) {
     safeSetState(() {
@@ -115,17 +116,13 @@ final class AppViewState extends State<AppView> {
 
   @override
   Widget build(BuildContext context) {
-    return ScreenUtilInit(
-      designSize: const Size(430, 932),
-      minTextAdapt: true,
-      child: MaterialApp.router(
-        theme: AppTheme.light,
-        darkTheme: AppTheme.dark,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        routerConfig: AppRouter.routerConfig,
-        themeMode: _themeMode,
-      ),
+    return MaterialApp.router(
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      routerConfig: AppRouter.routerConfig,
+      themeMode: _themeMode,
     );
   }
 }

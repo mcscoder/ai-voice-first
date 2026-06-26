@@ -1,147 +1,414 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/design_system/design_system.dart';
 import '../../../core/di/get_it.dart';
-import '../../auth/auth.dart';
 import '../../../shared/i18n/i18n.dart';
 import 'voice_capture_cubit.dart';
 import 'voice_capture_state.dart';
 
 final class VoiceScreen extends StatelessWidget {
-  const VoiceScreen({super.key, this.cubit});
+  const VoiceScreen({super.key, this.cubit, this.isShellMode = false});
 
   final VoiceCaptureCubit? cubit;
+  final bool isShellMode;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return BlocProvider(
+    final content = BlocProvider(
       create: (_) => cubit ?? getIt<VoiceCaptureCubit>(),
-      child: Scaffold(
-        backgroundColor: colorScheme.surface,
-        appBar: AppBar(
-          backgroundColor: colorScheme.surface,
-          elevation: 0,
-          actions: [
-            IconButton(
-              tooltip: 'Sign out',
-              onPressed: () => context.read<AuthCubit>().logout(),
-              icon: const Icon(Icons.logout),
-            ),
-          ],
-        ),
-        body: SafeArea(
-          child: BlocBuilder<VoiceCaptureCubit, VoiceCaptureState>(
-            builder: (context, state) {
-              final cubit = context.read<VoiceCaptureCubit>();
-              final isRecording = state.status == VoiceCaptureStatus.recording;
-              final isActionLocked =
-                  state.status == VoiceCaptureStatus.uploading ||
-                  state.status == VoiceCaptureStatus.processing ||
-                  state.status == VoiceCaptureStatus.speaking;
-              final canCancelRequest =
-                  state.status == VoiceCaptureStatus.uploading ||
-                  state.status == VoiceCaptureStatus.processing ||
-                  state.status == VoiceCaptureStatus.speaking;
+      child: const _TalkContent(),
+    );
 
-              return Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.xl),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _VoiceOrbButton(
-                          status: state.status,
-                          isRecording: isRecording,
-                          isDisabled: isActionLocked,
-                          onPressed: cubit.toggleRecording,
-                        ),
-                        const SizedBox(height: AppSpacing.xl),
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 180),
-                          child: Text(
-                            _statusText(context, state),
-                            key: ValueKey(state.status),
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: state.status == VoiceCaptureStatus.failure
-                                  ? colorScheme.error
-                                  : colorScheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0,
-                            ),
-                          ),
-                        ),
-                        if (canCancelRequest) ...[
-                          const SizedBox(height: AppSpacing.sm),
-                          _RequestElapsedTime(state: state),
-                          const SizedBox(height: AppSpacing.md),
-                          TextButton.icon(
-                            onPressed: cubit.cancelRequest,
-                            icon: const Icon(Icons.close),
-                            label: Text(context.l10n.voiceCancelRequest),
-                          ),
-                        ],
-                        if (state.failure ==
-                            VoiceCaptureFailure
-                                .microphonePermanentlyDenied) ...[
-                          const SizedBox(height: AppSpacing.md),
-                          TextButton.icon(
-                            onPressed: cubit.openSettings,
-                            icon: const Icon(Icons.settings_outlined),
-                            label: Text(context.l10n.voiceOpenSettings),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
+    if (isShellMode) {
+      return content;
+    }
+
+    return VoxiaScaffold(child: content);
+  }
+}
+
+final class _TalkContent extends StatelessWidget {
+  const _TalkContent();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<VoiceCaptureCubit, VoiceCaptureState>(
+      builder: (context, state) {
+        final cubit = context.read<VoiceCaptureCubit>();
+        final isRecording = state.status == VoiceCaptureStatus.recording;
+        final canCancelRequest =
+            state.status == VoiceCaptureStatus.uploading ||
+            state.status == VoiceCaptureStatus.processing ||
+            state.status == VoiceCaptureStatus.speaking;
+
+        return VoxiaFixedPage(
+          title: 'Talk',
+          leading: IconButton(
+            tooltip: 'Menu',
+            onPressed: () {},
+            icon: const Icon(Icons.menu),
+          ),
+          trailing: const _ProChip(),
+          body: Column(
+            children: [
+              const Spacer(),
+              _PrimaryVisualizer(status: state.status),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                _statusTitle(state),
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: state.status == VoiceCaptureStatus.failure
+                      ? VoxiaColors.red
+                      : VoxiaColors.text,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0,
                 ),
-              );
-            },
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                _statusSubtitle(context, state),
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: VoxiaColors.muted,
+                  letterSpacing: 0,
+                ),
+              ),
+              if (canCancelRequest) ...[
+                const SizedBox(height: AppSpacing.xs),
+                _RequestElapsedTime(state: state),
+              ],
+              const SizedBox(height: AppSpacing.md),
+              _ActionArea(
+                state: state,
+                isRecording: isRecording,
+                onToggleRecording: cubit.toggleRecording,
+                onCancelRequest: cubit.cancelRequest,
+                onOpenSettings: cubit.openSettings,
+              ),
+              const Spacer(),
+              if (state.status == VoiceCaptureStatus.idle ||
+                  state.status == VoiceCaptureStatus.success)
+                const _ShortcutGrid(),
+              const SizedBox(height: AppSpacing.md),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _statusTitle(VoiceCaptureState state) {
+    return switch (state.status) {
+      VoiceCaptureStatus.idle => 'Tap to talk',
+      VoiceCaptureStatus.recording => 'Listening...',
+      VoiceCaptureStatus.uploading => 'Uploading...',
+      VoiceCaptureStatus.processing => 'Processing...',
+      VoiceCaptureStatus.speaking => 'Speaking...',
+      VoiceCaptureStatus.success => 'Tap to talk',
+      VoiceCaptureStatus.failure => 'Try again',
+    };
+  }
+
+  String _statusSubtitle(BuildContext context, VoiceCaptureState state) {
+    return switch (state.status) {
+      VoiceCaptureStatus.idle => 'Your assistant is ready',
+      VoiceCaptureStatus.recording => 'Speak naturally',
+      VoiceCaptureStatus.uploading => context.l10n.voiceUploadingStatus,
+      VoiceCaptureStatus.processing => context.l10n.voiceProcessingStatus,
+      VoiceCaptureStatus.speaking => 'How can I help?',
+      VoiceCaptureStatus.success => context.l10n.voiceSuccessStatus,
+      VoiceCaptureStatus.failure => _failureText(context, state),
+    };
+  }
+
+  String _failureText(BuildContext context, VoiceCaptureState state) {
+    switch (state.failure) {
+      case VoiceCaptureFailure.microphoneDenied:
+        return context.l10n.voiceMicDeniedStatus;
+      case VoiceCaptureFailure.microphonePermanentlyDenied:
+        return context.l10n.voiceMicPermanentlyDeniedStatus;
+      case VoiceCaptureFailure.network:
+        return context.l10n.voiceNetworkErrorStatus;
+      case VoiceCaptureFailure.badAudio:
+        return context.l10n.voiceBadAudioStatus;
+      case VoiceCaptureFailure.backend:
+        return context.l10n.voiceBackendErrorStatus;
+      case VoiceCaptureFailure.unknown:
+      case null:
+        return context.l10n.voiceUnknownErrorStatus;
+    }
+  }
+}
+
+final class _ProChip extends StatelessWidget {
+  const _ProChip();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        borderRadius: AppRadius.borderFull,
+        border: Border.all(color: VoxiaColors.violet),
+        color: VoxiaColors.violet.withValues(alpha: 0.12),
+      ),
+      child: const Text(
+        'Pro',
+        style: TextStyle(color: VoxiaColors.text, fontSize: 12),
+      ),
+    );
+  }
+}
+
+final class _PrimaryVisualizer extends StatelessWidget {
+  const _PrimaryVisualizer({required this.status});
+
+  final VoiceCaptureStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    return switch (status) {
+      VoiceCaptureStatus.recording => const VoxiaWaveform(
+        height: 150,
+        mode: VoxiaWaveformMode.listening,
+        isAnimated: true,
+      ),
+      VoiceCaptureStatus.uploading || VoiceCaptureStatus.processing =>
+        const VoxiaMark(size: 140, showRing: true),
+      VoiceCaptureStatus.speaking => const VoxiaOrb(
+        size: 180,
+        mode: VoxiaOrbMode.speaking,
+        isAnimated: true,
+      ),
+      VoiceCaptureStatus.failure => const Icon(
+        Icons.error_outline,
+        color: VoxiaColors.red,
+        size: 108,
+      ),
+      VoiceCaptureStatus.idle ||
+      VoiceCaptureStatus.success => const VoxiaOrb(size: 180),
+    };
+  }
+}
+
+final class _ActionArea extends StatelessWidget {
+  const _ActionArea({
+    required this.state,
+    required this.isRecording,
+    required this.onToggleRecording,
+    required this.onCancelRequest,
+    required this.onOpenSettings,
+  });
+
+  final VoiceCaptureState state;
+  final bool isRecording;
+  final VoidCallback onToggleRecording;
+  final VoidCallback onCancelRequest;
+  final VoidCallback onOpenSettings;
+
+  @override
+  Widget build(BuildContext context) {
+    if (state.status == VoiceCaptureStatus.speaking) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _RoundAction(
+            icon: Icons.stop,
+            label: 'Stop',
+            color: VoxiaColors.red,
+            onPressed: onCancelRequest,
+          ),
+          _RoundAction(icon: Icons.speed, label: 'Slow', onPressed: () {}),
+          _RoundAction(icon: Icons.refresh, label: 'Repeat', onPressed: () {}),
+          _RoundAction(
+            icon: Icons.mic_off_outlined,
+            label: 'Mute',
+            onPressed: () {},
+          ),
+        ],
+      );
+    }
+
+    if (state.failure == VoiceCaptureFailure.microphonePermanentlyDenied) {
+      return VoxiaGradientButton(
+        label: context.l10n.voiceOpenSettings,
+        icon: Icons.settings_outlined,
+        onPressed: onOpenSettings,
+      );
+    }
+
+    if (state.status == VoiceCaptureStatus.uploading ||
+        state.status == VoiceCaptureStatus.processing) {
+      return _RoundAction(
+        icon: Icons.close,
+        label: context.l10n.voiceCancelRequest,
+        onPressed: onCancelRequest,
+      );
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        _RoundAction(
+          icon: Icons.mic_off_outlined,
+          label: 'Mute',
+          onPressed: () {},
+        ),
+        _MicButton(isRecording: isRecording, onPressed: onToggleRecording),
+        _RoundAction(
+          icon: Icons.call_end,
+          label: 'End',
+          color: VoxiaColors.red,
+          onPressed: () {},
+        ),
+      ],
+    );
+  }
+}
+
+final class _MicButton extends StatelessWidget {
+  const _MicButton({required this.isRecording, required this.onPressed});
+
+  final bool isRecording;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: isRecording
+          ? context.l10n.voiceStopHint
+          : context.l10n.voiceStartHint,
+      child: GestureDetector(
+        onTap: onPressed,
+        child: Container(
+          width: 104,
+          height: 104,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: VoxiaColors.accentGradient,
+          ),
+          padding: const EdgeInsets.all(5),
+          child: Container(
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: VoxiaColors.background,
+            ),
+            child: Icon(
+              isRecording ? Icons.stop : Icons.mic,
+              color: VoxiaColors.text,
+              size: 44,
+            ),
           ),
         ),
       ),
     );
   }
+}
 
-  String _statusText(BuildContext context, VoiceCaptureState state) {
-    switch (state.status) {
-      case VoiceCaptureStatus.idle:
-        return context.l10n.voiceIdleStatus;
-      case VoiceCaptureStatus.recording:
-        return context.l10n.voiceRecordingStatus;
-      case VoiceCaptureStatus.uploading:
-        return context.l10n.voiceUploadingStatus;
-      case VoiceCaptureStatus.processing:
-        return context.l10n.voiceProcessingStatus;
-      case VoiceCaptureStatus.speaking:
-        return context.l10n.voiceSpeakingStatus;
-      case VoiceCaptureStatus.success:
-        return context.l10n.voiceSuccessStatus;
-      case VoiceCaptureStatus.failure:
-        switch (state.failure) {
-          case VoiceCaptureFailure.microphoneDenied:
-            return context.l10n.voiceMicDeniedStatus;
-          case VoiceCaptureFailure.microphonePermanentlyDenied:
-            return context.l10n.voiceMicPermanentlyDeniedStatus;
-          case VoiceCaptureFailure.network:
-            return context.l10n.voiceNetworkErrorStatus;
-          case VoiceCaptureFailure.badAudio:
-            return context.l10n.voiceBadAudioStatus;
-          case VoiceCaptureFailure.backend:
-            return context.l10n.voiceBackendErrorStatus;
-          case VoiceCaptureFailure.unknown:
-          case null:
-            return context.l10n.voiceUnknownErrorStatus;
-        }
-    }
+final class _RoundAction extends StatelessWidget {
+  const _RoundAction({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    this.color = VoxiaColors.text,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton.filled(
+          tooltip: label,
+          onPressed: onPressed,
+          style: IconButton.styleFrom(
+            backgroundColor: VoxiaColors.panelStrong,
+            foregroundColor: color,
+            minimumSize: const Size.square(52),
+            shape: const CircleBorder(
+              side: BorderSide(color: VoxiaColors.border),
+            ),
+          ),
+          icon: Icon(icon, size: 26),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          label,
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: color, letterSpacing: 0),
+        ),
+      ],
+    );
+  }
+}
+
+final class _ShortcutGrid extends StatelessWidget {
+  const _ShortcutGrid();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _ShortcutTile(icon: Icons.add, label: 'New session'),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: _ShortcutTile(
+            icon: Icons.psychology_outlined,
+            label: 'Memory',
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: _ShortcutTile(
+            icon: Icons.settings_outlined,
+            label: 'Settings',
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+final class _ShortcutTile extends StatelessWidget {
+  const _ShortcutTile({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return VoxiaGlassPanel(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.md,
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: VoxiaColors.text, size: 26),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: VoxiaColors.text,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -157,408 +424,24 @@ final class _RequestElapsedTime extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final colorScheme = Theme.of(context).colorScheme;
-    final textStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
-      color: colorScheme.onSurfaceVariant,
-      fontWeight: FontWeight.w600,
-      letterSpacing: 0,
-    );
-
     return StreamBuilder<int>(
       stream: Stream<int>.periodic(const Duration(seconds: 1), (tick) => tick),
       builder: (context, snapshot) {
         final elapsed = DateTime.now().difference(startedAt);
-        return Text(_formatElapsed(elapsed), style: textStyle);
+        final minutes = elapsed.inMinutes;
+        final seconds = elapsed.inSeconds
+            .remainder(60)
+            .toString()
+            .padLeft(2, '0');
+        return Text(
+          '$minutes:$seconds',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: VoxiaColors.muted,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0,
+          ),
+        );
       },
     );
-  }
-
-  String _formatElapsed(Duration duration) {
-    final minutes = duration.inMinutes;
-    final seconds = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$minutes:$seconds';
-  }
-}
-
-final class _VoiceOrbButton extends StatefulWidget {
-  const _VoiceOrbButton({
-    required this.status,
-    required this.isRecording,
-    required this.isDisabled,
-    required this.onPressed,
-  });
-
-  final VoiceCaptureStatus status;
-  final bool isRecording;
-  final bool isDisabled;
-  final VoidCallback onPressed;
-
-  @override
-  State<_VoiceOrbButton> createState() => _VoiceOrbButtonState();
-}
-
-final class _VoiceOrbButtonState extends State<_VoiceOrbButton>
-    with TickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1800),
-  );
-  late final AnimationController _thinkingController = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1600),
-  );
-
-  @override
-  void initState() {
-    super.initState();
-    if (_shouldAnimate) {
-      _controller.repeat(reverse: true);
-    }
-    if (_isThinking) {
-      _thinkingController.repeat();
-    }
-  }
-
-  @override
-  void didUpdateWidget(covariant _VoiceOrbButton oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (_shouldAnimate && !_controller.isAnimating) {
-      _controller.repeat(reverse: true);
-    } else if (!_shouldAnimate && _controller.isAnimating) {
-      _controller.stop();
-      _controller.value = 0;
-    }
-
-    if (_isThinking && !_thinkingController.isAnimating) {
-      _thinkingController.repeat();
-    } else if (!_isThinking && _thinkingController.isAnimating) {
-      _thinkingController.stop();
-      _thinkingController.value = 0;
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _thinkingController.dispose();
-    super.dispose();
-  }
-
-  bool get _isThinking =>
-      widget.status == VoiceCaptureStatus.uploading ||
-      widget.status == VoiceCaptureStatus.processing;
-
-  bool get _shouldAnimate =>
-      widget.status == VoiceCaptureStatus.idle ||
-      widget.status == VoiceCaptureStatus.recording ||
-      widget.status == VoiceCaptureStatus.uploading ||
-      widget.status == VoiceCaptureStatus.processing ||
-      widget.status == VoiceCaptureStatus.speaking;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final animationsDisabled = MediaQuery.disableAnimationsOf(context);
-    final visual = _VoiceOrbVisual.fromStatus(widget.status, colorScheme);
-    final buttonColor = widget.isDisabled
-        ? colorScheme.surfaceContainerHighest
-        : visual.primaryColor;
-    final animation = Listenable.merge([_controller, _thinkingController]);
-    final semanticLabel = _semanticLabel(context);
-
-    return Semantics(
-      button: true,
-      enabled: !widget.isDisabled,
-      label: semanticLabel,
-      child: AnimatedBuilder(
-        animation: animation,
-        builder: (context, child) {
-          final motion = animationsDisabled ? 0.0 : _controller.value;
-          final thinking = animationsDisabled ? 0.0 : _thinkingController.value;
-          final scale = visual.scaleFor(motion);
-
-          return Transform.scale(
-            scale: scale,
-            child: SizedBox(
-              width: 214,
-              height: 214,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Positioned.fill(
-                    child: CustomPaint(
-                      painter: _VoiceOrbPainter(
-                        visual: visual,
-                        motion: motion,
-                        thinking: thinking,
-                        isReducedMotion: animationsDisabled,
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    width: 156,
-                    height: 156,
-                    child: FilledButton(
-                      onPressed: widget.isDisabled ? null : widget.onPressed,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: buttonColor,
-                        disabledBackgroundColor:
-                            colorScheme.surfaceContainerHighest,
-                        foregroundColor: colorScheme.onPrimary,
-                        disabledForegroundColor: colorScheme.onSurfaceVariant,
-                        shape: const CircleBorder(),
-                        padding: EdgeInsets.zero,
-                      ),
-                      child: Icon(visual.icon, size: 62),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  String _semanticLabel(BuildContext context) {
-    switch (widget.status) {
-      case VoiceCaptureStatus.idle:
-      case VoiceCaptureStatus.success:
-      case VoiceCaptureStatus.failure:
-        return context.l10n.voiceStartHint;
-      case VoiceCaptureStatus.recording:
-        return context.l10n.voiceStopHint;
-      case VoiceCaptureStatus.uploading:
-        return context.l10n.voiceUploadingStatus;
-      case VoiceCaptureStatus.processing:
-        return context.l10n.voiceProcessingStatus;
-      case VoiceCaptureStatus.speaking:
-        return context.l10n.voiceSpeakingStatus;
-    }
-  }
-}
-
-final class _VoiceOrbVisual {
-  const _VoiceOrbVisual({
-    required this.primaryColor,
-    required this.secondaryColor,
-    required this.glowColor,
-    required this.icon,
-    required this.mode,
-  });
-
-  final Color primaryColor;
-  final Color secondaryColor;
-  final Color glowColor;
-  final IconData icon;
-  final _VoiceOrbMode mode;
-
-  factory _VoiceOrbVisual.fromStatus(
-    VoiceCaptureStatus status,
-    ColorScheme colorScheme,
-  ) {
-    switch (status) {
-      case VoiceCaptureStatus.recording:
-        return _VoiceOrbVisual(
-          primaryColor: colorScheme.error,
-          secondaryColor: colorScheme.errorContainer,
-          glowColor: colorScheme.error,
-          icon: Icons.stop,
-          mode: _VoiceOrbMode.recording,
-        );
-      case VoiceCaptureStatus.uploading:
-      case VoiceCaptureStatus.processing:
-        return _VoiceOrbVisual(
-          primaryColor: colorScheme.primary,
-          secondaryColor: colorScheme.secondary,
-          glowColor: colorScheme.primary,
-          icon: Icons.hourglass_top,
-          mode: _VoiceOrbMode.thinking,
-        );
-      case VoiceCaptureStatus.speaking:
-        return _VoiceOrbVisual(
-          primaryColor: colorScheme.secondary,
-          secondaryColor: colorScheme.tertiary,
-          glowColor: colorScheme.secondary,
-          icon: Icons.graphic_eq,
-          mode: _VoiceOrbMode.speaking,
-        );
-      case VoiceCaptureStatus.failure:
-        return _VoiceOrbVisual(
-          primaryColor: colorScheme.error,
-          secondaryColor: colorScheme.errorContainer,
-          glowColor: colorScheme.error,
-          icon: Icons.mic,
-          mode: _VoiceOrbMode.failure,
-        );
-      case VoiceCaptureStatus.idle:
-      case VoiceCaptureStatus.success:
-        return _VoiceOrbVisual(
-          primaryColor: colorScheme.primary,
-          secondaryColor: colorScheme.secondary,
-          glowColor: colorScheme.primary,
-          icon: Icons.mic,
-          mode: _VoiceOrbMode.idle,
-        );
-    }
-  }
-
-  double scaleFor(double motion) {
-    return switch (mode) {
-      _VoiceOrbMode.recording => 1 + (motion * 0.08),
-      _VoiceOrbMode.thinking => 1 + (math.sin(motion * math.pi) * 0.025),
-      _VoiceOrbMode.speaking => 1 + (motion * 0.055),
-      _VoiceOrbMode.idle => 1 + (math.sin(motion * math.pi) * 0.018),
-      _VoiceOrbMode.failure => 1.0,
-    };
-  }
-}
-
-enum _VoiceOrbMode { idle, recording, thinking, speaking, failure }
-
-final class _VoiceOrbPainter extends CustomPainter {
-  const _VoiceOrbPainter({
-    required this.visual,
-    required this.motion,
-    required this.thinking,
-    required this.isReducedMotion,
-  });
-
-  final _VoiceOrbVisual visual;
-  final double motion;
-  final double thinking;
-  final bool isReducedMotion;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = size.center(Offset.zero);
-    final shortest = math.min(size.width, size.height);
-    final baseRadius = shortest * 0.34;
-    final pulse = isReducedMotion ? 0.0 : math.sin(motion * math.pi);
-
-    _paintGlow(canvas, center, baseRadius, pulse);
-    _paintHalo(canvas, center, baseRadius, pulse);
-
-    switch (visual.mode) {
-      case _VoiceOrbMode.recording:
-      case _VoiceOrbMode.speaking:
-        _paintWaveBars(canvas, center, baseRadius, pulse);
-      case _VoiceOrbMode.thinking:
-        _paintThinkingArc(canvas, center, baseRadius);
-      case _VoiceOrbMode.failure:
-        _paintFailureRing(canvas, center, baseRadius);
-      case _VoiceOrbMode.idle:
-        _paintIdleRing(canvas, center, baseRadius);
-    }
-  }
-
-  void _paintGlow(
-    Canvas canvas,
-    Offset center,
-    double baseRadius,
-    double pulse,
-  ) {
-    final paint = Paint()
-      ..shader =
-          RadialGradient(
-            colors: [
-              visual.glowColor.withValues(alpha: 0.26 + (pulse * 0.08)),
-              visual.secondaryColor.withValues(alpha: 0.12),
-              visual.glowColor.withValues(alpha: 0),
-            ],
-          ).createShader(
-            Rect.fromCircle(center: center, radius: baseRadius * 1.55),
-          );
-
-    canvas.drawCircle(center, baseRadius * (1.42 + (pulse * 0.08)), paint);
-  }
-
-  void _paintHalo(
-    Canvas canvas,
-    Offset center,
-    double baseRadius,
-    double pulse,
-  ) {
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2
-      ..color = visual.secondaryColor.withValues(alpha: 0.34 + (pulse * 0.18));
-
-    canvas.drawCircle(center, baseRadius * (1.16 + (pulse * 0.05)), paint);
-  }
-
-  void _paintIdleRing(Canvas canvas, Offset center, double baseRadius) {
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 8
-      ..strokeCap = StrokeCap.round
-      ..color = visual.primaryColor.withValues(alpha: 0.18);
-
-    canvas.drawCircle(center, baseRadius * 0.93, paint);
-  }
-
-  void _paintFailureRing(Canvas canvas, Offset center, double baseRadius) {
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 6
-      ..strokeCap = StrokeCap.round
-      ..color = visual.primaryColor.withValues(alpha: 0.46);
-
-    canvas.drawCircle(center, baseRadius * 1.02, paint);
-  }
-
-  void _paintThinkingArc(Canvas canvas, Offset center, double baseRadius) {
-    final rect = Rect.fromCircle(center: center, radius: baseRadius * 1.05);
-    final start = (thinking * math.pi * 2) - math.pi / 2;
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 8
-      ..strokeCap = StrokeCap.round
-      ..shader = SweepGradient(
-        startAngle: start,
-        endAngle: start + math.pi * 1.5,
-        colors: [
-          visual.primaryColor.withValues(alpha: 0.1),
-          visual.secondaryColor.withValues(alpha: 0.86),
-          visual.primaryColor.withValues(alpha: 0.1),
-        ],
-      ).createShader(rect);
-
-    canvas.drawArc(rect, start, math.pi * 1.35, false, paint);
-  }
-
-  void _paintWaveBars(
-    Canvas canvas,
-    Offset center,
-    double baseRadius,
-    double pulse,
-  ) {
-    const barCount = 9;
-    final paint = Paint()
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = 5
-      ..color = visual.secondaryColor.withValues(alpha: 0.72);
-    final startX = center.dx - 44;
-    final baseline = center.dy + baseRadius * 1.15;
-
-    for (var i = 0; i < barCount; i += 1) {
-      final phase = isReducedMotion ? 0.35 : (motion + (i * 0.13)) % 1;
-      final height = 12 + (math.sin(phase * math.pi * 2).abs() * 26);
-      final x = startX + (i * 11);
-      canvas.drawLine(
-        Offset(x, baseline - height / 2),
-        Offset(x, baseline + height / 2),
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _VoiceOrbPainter oldDelegate) {
-    return oldDelegate.visual != visual ||
-        oldDelegate.motion != motion ||
-        oldDelegate.thinking != thinking ||
-        oldDelegate.isReducedMotion != isReducedMotion;
   }
 }

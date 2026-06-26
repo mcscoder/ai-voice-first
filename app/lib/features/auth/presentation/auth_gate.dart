@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../voice/voice.dart';
+import '../../../core/design_system/design_system.dart';
+import '../../home/home.dart';
+import '../../onboarding/onboarding.dart';
 import 'auth_cubit.dart';
 import 'auth_screen.dart';
 import 'auth_state.dart';
@@ -26,10 +28,17 @@ final class _AuthGateState extends State<AuthGate> {
       builder: (context, state) {
         switch (state.status) {
           case AuthStatus.authenticated:
-            return const VoiceScreen();
+            return BlocBuilder<SetupCubit, SetupState>(
+              builder: (context, setup) {
+                if (!setup.isComplete) {
+                  return const SetupFlow();
+                }
+                return const MainShell();
+              },
+            );
           case AuthStatus.unknown:
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
+            return const VoxiaScaffold(
+              child: Center(child: CircularProgressIndicator()),
             );
           case AuthStatus.unauthenticated:
           case AuthStatus.submitting:
