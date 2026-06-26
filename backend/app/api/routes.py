@@ -53,7 +53,7 @@ def voice_assistant_telemetry() -> dict[str, object]:
 @router.get("/v1/voice/assistant/telemetry/stream")
 def voice_assistant_telemetry_stream() -> StreamingResponse:
     def event_lines() -> Iterator[str]:
-        for snapshot in assistant_telemetry.subscribe():
+        for snapshot in assistant_telemetry.subscribe(keepalive_seconds=1.0):
             if snapshot is None:
                 yield ": keep-alive\n\n"
                 continue

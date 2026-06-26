@@ -434,6 +434,21 @@ def test_voice_assistant_telemetry_stream_returns_sse_event() -> None:
     assert payload["services"]["llm_thinking"] == "disabled"
 
 
+def test_voice_assistant_telemetry_stream_uses_short_keepalive(monkeypatch) -> None:
+    calls: dict[str, float] = {}
+
+    def subscribe(keepalive_seconds: float = 15.0):
+        calls["keepalive_seconds"] = keepalive_seconds
+        yield assistant_telemetry.snapshot()
+
+    monkeypatch.setattr(routes.assistant_telemetry, "subscribe", subscribe)
+
+    response = create_client().get("/v1/voice/assistant/telemetry/stream")
+
+    assert response.status_code == 200
+    assert calls == {"keepalive_seconds": 1.0}
+
+
 def test_voice_assistant_stream_emits_known_service_errors(monkeypatch) -> None:
     def transcribe(audio: bytes, language: str | None) -> AsrResult:
         raise UnsupportedAsrLanguageError("Unsupported language.")

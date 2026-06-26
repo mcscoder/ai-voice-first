@@ -31,7 +31,12 @@ app.include_router(router)
 def main() -> None:
     import uvicorn
 
-    uvicorn.run(app, host=config.host, port=config.port)
+    uvicorn.run(
+        app,
+        host=config.host,
+        port=config.port,
+        timeout_graceful_shutdown=5,
+    )
 
 
 if __name__ == "__main__":
