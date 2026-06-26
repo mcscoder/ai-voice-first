@@ -618,7 +618,7 @@ def test_build_memory_planner_messages_include_recent_context_and_candidates() -
     )
 
     assert messages[0]["role"] == "system"
-    assert "tiếng Việt" in messages[0]["content"]
+    assert "Vietnamese voice assistant" in messages[0]["content"]
     assert messages[1]["role"] == "user"
     prompt = messages[1]["content"]
     assert "user: My friend Minh plays video games badly." in prompt
@@ -629,6 +629,15 @@ def test_build_memory_planner_messages_include_recent_context_and_candidates() -
     assert "UPDATE" in prompt
     assert "DELETE" in prompt
     assert "NONE" in prompt
+    assert "about_me" in prompt
+    assert "preferences" in prompt
+    assert "work" in prompt
+    assert "relationships" in prompt
+    assert "goals" in prompt
+    assert "custom_notes" in prompt
+    assert "Choose the most specific category first." in prompt
+    assert "create two facts instead of merging them into one" in prompt
+    assert "The user has a friend named Minh" in prompt
 
 
 def test_memory_planner_tool_schema_is_strict() -> None:

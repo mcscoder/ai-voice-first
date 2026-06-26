@@ -65,34 +65,45 @@ def build_memory_planner_messages(
         {
             "role": "system",
             "content": (
-                "Bạn là bộ lập kế hoạch ghi nhớ cho trợ lý giọng nói tiếng Việt. "
-                "Hãy quyết định các thay đổi memory cần thực hiện từ lượt hội thoại mới nhất. "
-                "Chỉ dùng tool được cung cấp, không trả lời bằng Markdown. "
-                "Ưu tiên memory rõ chủ thể, tự nhiên, "
-                "ngắn gọn, và không lưu câu trả lời xã giao của assistant."
+                "You are the memory planner for a Vietnamese voice assistant. "
+                "Decide which memory changes should be made from the latest conversation turn. "
+                "Use only the provided tool and do not reply with Markdown. "
+                "Prefer memories with a clear subject, natural wording, and concise phrasing. "
+                "Do not store the assistant's small talk or polite filler."
             ),
         },
         {
             "role": "user",
             "content": (
-                "Recent conversation trong 15 phút gần đây:\n"
+                "Recent conversation from the last 15 minutes:\n"
                 f"{format_recent_messages(recent_messages) or '(none)'}\n\n"
-                "Candidate memories đã search được:\n"
+                "Candidate memories from search:\n"
                 f"{format_candidate_memories(candidate_memories)}\n\n"
                 "Latest user message:\n"
                 f"{query}\n\n"
                 "Assistant response:\n"
                 f"{response_text}\n\n"
-                "Quy tắc:\n"
-                "- ADD khi latest user message chứa thông tin mới đáng nhớ và không trùng candidate.\n"
-                "- UPDATE khi latest user message làm rõ, sửa, hoặc bổ sung một candidate memory.\n"
-                "- DELETE chỉ khi user nói rõ memory/candidate đó không còn đúng hoặc muốn xóa.\n"
-                "- NONE khi không có thông tin đáng nhớ.\n"
-                "- Với UPDATE/DELETE, id phải là một id trong Candidate memories.\n"
-                "- Với ADD/UPDATE, category phải là đúng một giá trị trong "
+                "Rules:\n"
+                "- ADD when the latest user message contains new memorable information and it does not duplicate a candidate memory.\n"
+                "- UPDATE when the latest user message clarifies, corrects, or adds detail to a candidate memory.\n"
+                "- DELETE only when the user clearly says a memory or candidate is no longer true or wants it removed.\n"
+                "- NONE when there is no memorable information to store.\n"
+                "- For UPDATE or DELETE, id must be one of the ids in Candidate memories.\n"
+                "- For ADD or UPDATE, category must be exactly one value from "
                 f"{', '.join(MEMORY_CATEGORY_KEYS)}.\n"
-                "- Dùng recent conversation chỉ để giải tham chiếu như nó, thằng đó, người đó, bạn kia.\n"
-                "- Gọi tool plan_memory_actions với actions đã chọn."
+                "- Category guide:\n"
+                "  about_me = stable facts about the user's identity, background, profile, or enduring personal details.\n"
+                "  preferences = the user's own likes, dislikes, habits, favorites, and recurring choices.\n"
+                "  work = the user's job, company, projects, responsibilities, work context, or professional tasks.\n"
+                "  relationships = people connected to the user and facts about those people or that connection, including names, roles, birthdays, traits, and their preferences.\n"
+                "  goals = things the user wants, plans, intends, or is trying to achieve.\n"
+                "  custom_notes = memorable facts worth storing that do not clearly fit the other categories.\n"
+                "- Choose the most specific category first. preferences, work, relationships, and goals are more specific than about_me.\n"
+                "- Use custom_notes only when no other category clearly fits.\n"
+                "- If one message contains two distinct memories, create two facts instead of merging them into one.\n"
+                "- For people-related memories, split the relationship fact from the detail when both matter. Example: 'The user has a friend named Minh' and 'Minh likes coffee' should be stored as two separate memories.\n"
+                "- Use recent conversation only to resolve references such as he, she, they, that person, or that thing.\n"
+                "- Call the plan_memory_actions tool with the selected actions."
             ),
         },
     ]
