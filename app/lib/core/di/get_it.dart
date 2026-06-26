@@ -13,6 +13,9 @@ import '../flavor_configurations.dart';
 import '../network/remote.dart';
 import '../permissions/permission_service.dart';
 import '../router/deep_link_handler.dart';
+import '../../features/memory/data/memory_api.dart';
+import '../../features/memory/data/memory_repository.dart';
+import '../../features/memory/presentation/memory_cubit.dart';
 import '../../features/voice/data/audio_recorder_service.dart';
 import '../../features/voice/data/transcription_api.dart';
 import '../../features/voice/presentation/voice_capture_cubit.dart';
@@ -21,8 +24,25 @@ import 'get_it.config.dart';
 final getIt = GetIt.instance;
 
 @InjectableInit(preferRelativeImports: true)
-void configureDependencies() =>
-    getIt.init(environment: ConfigurationProfile.current.name);
+void configureDependencies() {
+  getIt.init(environment: ConfigurationProfile.current.name);
+
+  if (!getIt.isRegistered<MemoryApi>()) {
+    getIt.registerLazySingleton<MemoryApi>(
+      () => MemoryApi(getIt<Dio>(instanceName: 'AuthDio')),
+    );
+  }
+  if (!getIt.isRegistered<MemoryRepository>()) {
+    getIt.registerLazySingleton<MemoryRepository>(
+      () => MemoryRepository(getIt<MemoryApi>()),
+    );
+  }
+  if (!getIt.isRegistered<MemoryCubit>()) {
+    getIt.registerFactory<MemoryCubit>(
+      () => MemoryCubit(getIt<MemoryRepository>()),
+    );
+  }
+}
 
 const development = Environment('development');
 const staging = Environment('staging');

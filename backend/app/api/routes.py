@@ -31,6 +31,12 @@ from app.services.assistant.telemetry_payload import (
 )
 from app.services.auth import AuthConfigError, InvalidCredentialsError, auth_service
 from app.services.asr import asr_service
+from app.services.memory import (
+    ManagedMemoryItem,
+    MemoryCategoryKey,
+    MemoryNotFoundError,
+    memory_service,
+)
 from app.services.tts import tts_service
 
 
@@ -53,6 +59,50 @@ class TtsRequest(BaseModel):
                 f"Text must be at most {config.tts.max_text_length} characters."
             )
         return text
+
+
+class MemoryItemResponse(BaseModel):
+    id: str
+    memory: str
+    category: MemoryCategoryKey
+    created_at: str | None = None
+    updated_at: str | None = None
+
+    @classmethod
+    def from_item(cls, item: ManagedMemoryItem) -> "MemoryItemResponse":
+        return cls(
+            id=item.id,
+            memory=item.memory,
+            category=item.category,
+            created_at=item.created_at,
+            updated_at=item.updated_at,
+        )
+
+
+class MemoryListResponse(BaseModel):
+    memory_enabled: bool
+    memories: list[MemoryItemResponse]
+
+
+class MemoryMutationRequest(BaseModel):
+    memory: str
+    category: MemoryCategoryKey
+
+    @field_validator("memory")
+    @classmethod
+    def validate_memory(cls, value: str) -> str:
+        text = value.strip()
+        if not text:
+            raise ValueError("Memory must not be empty.")
+        return text
+
+
+class MemorySettingsRequest(BaseModel):
+    memory_enabled: bool
+
+
+class MemorySettingsResponse(BaseModel):
+    memory_enabled: bool
 
 
 def telemetry_user_id(
@@ -104,6 +154,64 @@ def auth_logout(request: RefreshTokenRequest, user: CurrentUser) -> dict[str, st
 @router.get("/auth/me", response_model=AuthUserResponse)
 def auth_me(user: CurrentUser) -> AuthUserResponse:
     return AuthUserResponse(id=user.id, email=user.email)
+
+
+@router.get("/v1/memories", response_model=MemoryListResponse)
+def list_memories(user: CurrentUser) -> MemoryListResponse:
+    memories = [
+        MemoryItemResponse.from_item(item)
+        for item in memory_service.list_memories(user.id)
+    ]
+    return MemoryListResponse(
+        memory_enabled=memory_service.is_enabled(user.id),
+        memories=memories,
+    )
+
+
+@router.post("/v1/memories", response_model=MemoryItemResponse)
+def create_memory(
+    request: MemoryMutationRequest,
+    user: CurrentUser,
+) -> MemoryItemResponse:
+    item = memory_service.create_memory(user.id, request.memory, request.category)
+    return MemoryItemResponse.from_item(item)
+
+
+@router.patch("/v1/memories/{memory_id}", response_model=MemoryItemResponse)
+def update_memory(
+    memory_id: str,
+    request: MemoryMutationRequest,
+    user: CurrentUser,
+) -> MemoryItemResponse:
+    try:
+        item = memory_service.update_memory(
+            user.id,
+            memory_id,
+            request.memory,
+            request.category,
+        )
+    except MemoryNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Memory not found.") from error
+    return MemoryItemResponse.from_item(item)
+
+
+@router.delete("/v1/memories/{memory_id}")
+def delete_memory(memory_id: str, user: CurrentUser) -> dict[str, str]:
+    try:
+        memory_service.delete_memory(user.id, memory_id)
+    except MemoryNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Memory not found.") from error
+    return {"status": "ok"}
+
+
+@router.put("/v1/memories/settings", response_model=MemorySettingsResponse)
+def update_memory_settings(
+    request: MemorySettingsRequest,
+    user: CurrentUser,
+) -> MemorySettingsResponse:
+    return MemorySettingsResponse(
+        memory_enabled=memory_service.set_enabled(user.id, request.memory_enabled)
+    )
 
 
 @router.get("/v1/voice/assistant/telemetry/stream")

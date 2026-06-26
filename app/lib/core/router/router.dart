@@ -17,6 +17,8 @@ abstract class AppRoutes {
   static const talk = '/talk';
   static const memory = '/memory';
   static const profile = '/profile';
+
+  static String memoryCategory(String categoryKey) => '$memory/$categoryKey';
 }
 
 abstract class AppRouter {
@@ -46,6 +48,12 @@ abstract class AppRouter {
         GoRoute(
           path: AppRoutes.memory,
           builder: (_, _) => const MemoryScreen(),
+        ),
+        GoRoute(
+          path: '${AppRoutes.memory}/:categoryKey',
+          builder: (_, state) => MemoryCategoryScreen(
+            categoryKey: state.pathParameters['categoryKey'] ?? '',
+          ),
         ),
         GoRoute(
           path: AppRoutes.profile,

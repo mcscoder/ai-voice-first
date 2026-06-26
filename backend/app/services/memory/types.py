@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from app.services.memory.categories import (
+    DEFAULT_MEMORY_CATEGORY,
+    MemoryCategoryKey,
+    normalize_memory_category,
+)
 from app.services.memory.persistence import MemoryAction
 
 
@@ -17,6 +22,7 @@ class MemorySearchResult:
     score: float | None
     id: str | None = None
     user_id: str | None = None
+    category: MemoryCategoryKey = DEFAULT_MEMORY_CATEGORY
     categories: list[str] = field(default_factory=list)
     created_at: str | None = None
     updated_at: str | None = None
@@ -57,6 +63,7 @@ class MemorySearchResult:
             memory=memory_text,
             score=float(score) if isinstance(score, (int, float)) else None,
             user_id=str(item["user_id"]) if item.get("user_id") is not None else None,
+            category=normalize_memory_category(item),
             categories=[str(category) for category in categories],
             created_at=str(item["created_at"])
             if item.get("created_at") is not None
@@ -77,6 +84,7 @@ class MemorySearchResult:
         for key in (
             "id",
             "user_id",
+            "category",
             "categories",
             "created_at",
             "updated_at",
@@ -95,6 +103,39 @@ class MemorySearchResult:
 
 
 @dataclass(frozen=True)
+class ManagedMemoryItem:
+    id: str
+    memory: str
+    category: MemoryCategoryKey
+    created_at: str | None = None
+    updated_at: str | None = None
+    user_id: str | None = None
+    metadata: dict[str, object] | None = None
+
+    @classmethod
+    def from_mem0(cls, item: dict[str, object]) -> ManagedMemoryItem:
+        memory_id = item.get("id")
+        memory_text = item.get("memory")
+        if memory_id is None or not isinstance(memory_text, str):
+            raise ValueError("Mem0 memory item is missing required fields.")
+
+        metadata = item.get("metadata")
+        return cls(
+            id=str(memory_id),
+            memory=memory_text,
+            category=normalize_memory_category(item),
+            created_at=str(item["created_at"])
+            if item.get("created_at") is not None
+            else None,
+            updated_at=str(item["updated_at"])
+            if item.get("updated_at") is not None
+            else None,
+            user_id=str(item["user_id"]) if item.get("user_id") is not None else None,
+            metadata=metadata if isinstance(metadata, dict) else None,
+        )
+
+
+@dataclass(frozen=True)
 class MemoryPersistResult:
     actions: list[MemoryAction]
     action_counts: dict[str, int]
@@ -102,4 +143,8 @@ class MemoryPersistResult:
 
 
 class MemoryServiceError(Exception):
+    pass
+
+
+class MemoryNotFoundError(MemoryServiceError):
     pass

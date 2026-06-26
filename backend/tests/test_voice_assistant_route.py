@@ -350,6 +350,7 @@ def test_voice_assistant_stream_records_pipeline_telemetry(monkeypatch) -> None:
             "id": "memory-id",
             "memory": "User likes concise answers.",
             "score": 0.82,
+            "category": "custom_notes",
             "created_at": "2026-06-25T04:08:26+00:00",
             "updated_at": "2026-06-25T05:40:29+00:00",
             "metadata": {"topic": "preferences"},
@@ -454,6 +455,221 @@ def test_voice_assistant_stream_records_memory_persist_actions(monkeypatch) -> N
     ]
 
 
+@pytest.mark.parametrize(
+    ("method", "path", "kwargs"),
+    [
+        ("get", "/v1/memories", {}),
+        (
+            "post",
+            "/v1/memories",
+            {"json": {"memory": "Test memory.", "category": "goals"}},
+        ),
+        (
+            "patch",
+            "/v1/memories/memory-id",
+            {"json": {"memory": "Updated memory.", "category": "work"}},
+        ),
+        ("delete", "/v1/memories/memory-id", {}),
+        (
+            "put",
+            "/v1/memories/settings",
+            {"json": {"memory_enabled": False}},
+        ),
+    ],
+)
+def test_memory_routes_require_authentication(
+    method: str,
+    path: str,
+    kwargs: dict[str, object],
+) -> None:
+    response = getattr(create_unauthenticated_client(), method)(path, **kwargs)
+
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Invalid or expired credentials."}
+
+
+def test_memory_crud_routes_use_authenticated_user(monkeypatch) -> None:
+    calls: dict[str, object] = {}
+
+    def list_memories(user_id: str):
+        calls["list"] = user_id
+        return [
+            SimpleNamespace(
+                id="memory-id",
+                memory="User likes tea.",
+                category="preferences",
+                created_at="2026-06-25T04:08:26+00:00",
+                updated_at="2026-06-25T05:40:29+00:00",
+            )
+        ]
+
+    def create_memory(user_id: str, memory: str, category: str):
+        calls["create"] = {
+            "user_id": user_id,
+            "memory": memory,
+            "category": category,
+        }
+        return SimpleNamespace(
+            id="created-id",
+            memory=memory,
+            category=category,
+            created_at="2026-06-25T04:08:26+00:00",
+            updated_at="2026-06-25T05:40:29+00:00",
+        )
+
+    def update_memory(user_id: str, memory_id: str, memory: str, category: str):
+        calls["update"] = {
+            "user_id": user_id,
+            "memory_id": memory_id,
+            "memory": memory,
+            "category": category,
+        }
+        return SimpleNamespace(
+            id=memory_id,
+            memory=memory,
+            category=category,
+            created_at="2026-06-25T04:08:26+00:00",
+            updated_at="2026-06-26T05:40:29+00:00",
+        )
+
+    def delete_memory(user_id: str, memory_id: str) -> None:
+        calls["delete"] = {"user_id": user_id, "memory_id": memory_id}
+
+    monkeypatch.setattr(routes.memory_service, "list_memories", list_memories)
+    monkeypatch.setattr(routes.memory_service, "create_memory", create_memory)
+    monkeypatch.setattr(routes.memory_service, "update_memory", update_memory)
+    monkeypatch.setattr(routes.memory_service, "delete_memory", delete_memory)
+    monkeypatch.setattr(routes.memory_service, "is_enabled", lambda user_id: False)
+
+    client = create_client()
+
+    response = client.get("/v1/memories")
+    assert response.status_code == 200
+    assert response.json() == {
+        "memory_enabled": False,
+        "memories": [
+            {
+                "id": "memory-id",
+                "memory": "User likes tea.",
+                "category": "preferences",
+                "created_at": "2026-06-25T04:08:26+00:00",
+                "updated_at": "2026-06-25T05:40:29+00:00",
+            }
+        ],
+    }
+
+    response = client.post(
+        "/v1/memories",
+        json={"memory": "Plan a trip.", "category": "goals"},
+    )
+    assert response.status_code == 200
+    assert response.json()["category"] == "goals"
+
+    response = client.patch(
+        "/v1/memories/memory-id",
+        json={"memory": "Updated plan.", "category": "work"},
+    )
+    assert response.status_code == 200
+    assert response.json()["updated_at"] == "2026-06-26T05:40:29+00:00"
+
+    response = client.delete("/v1/memories/memory-id")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+
+    assert calls == {
+        "list": "test-user",
+        "create": {
+            "user_id": "test-user",
+            "memory": "Plan a trip.",
+            "category": "goals",
+        },
+        "update": {
+            "user_id": "test-user",
+            "memory_id": "memory-id",
+            "memory": "Updated plan.",
+            "category": "work",
+        },
+        "delete": {"user_id": "test-user", "memory_id": "memory-id"},
+    }
+
+
+def test_memory_settings_route_disables_assistant_memory_runtime(monkeypatch) -> None:
+    state = {"enabled": True, "search_calls": 0, "persist_calls": 0}
+
+    def set_enabled(user_id: str, enabled: bool) -> bool:
+        state["enabled"] = enabled
+        return enabled
+
+    def is_enabled(user_id: str) -> bool:
+        return bool(state["enabled"])
+
+    def transcribe(audio: bytes, language: str | None) -> AsrResult:
+        return AsrResult(text="Nhớ việc này", language="Vietnamese", model="test")
+
+    def search_memory_results(query: str, user_id: str) -> list[MemorySearchResult]:
+        state["search_calls"] += 1
+        return []
+
+    def stream_response(
+        query: str,
+        memories: list[MemorySearchResult],
+        messages: list[dict[str, str]],
+    ):
+        yield "Saved."
+
+    def persist_conversation(*args, **kwargs) -> None:
+        state["persist_calls"] += 1
+
+    def synthesize(text: str, voice: object | None) -> TtsResult:
+        return TtsResult(audio=b"wav-chunk", media_type="audio/wav")
+
+    monkeypatch.setattr(routes.memory_service, "set_enabled", set_enabled)
+    monkeypatch.setattr(routes.assistant_service.memory, "is_enabled", is_enabled)
+    monkeypatch.setattr(routes.assistant_service.asr, "transcribe", transcribe)
+    monkeypatch.setattr(
+        routes.assistant_service.memory,
+        "search_memory_results",
+        search_memory_results,
+    )
+    monkeypatch.setattr(routes.assistant_service.memory, "stream_response", stream_response)
+    monkeypatch.setattr(
+        routes.assistant_service.memory,
+        "persist_conversation",
+        persist_conversation,
+    )
+    monkeypatch.setattr(routes.assistant_service.tts, "synthesize", synthesize)
+
+    client = create_client()
+
+    response = client.put("/v1/memories/settings", json={"memory_enabled": False})
+    assert response.status_code == 200
+    assert response.json() == {"memory_enabled": False}
+
+    response = client.post(
+        "/v1/voice/assistant/stream",
+        data={"language": "vi"},
+        files={"file": ("speech.wav", b"audio-bytes", "audio/wav")},
+    )
+    assert response.status_code == 200
+
+    assert state["search_calls"] == 0
+    assert state["persist_calls"] == 0
+
+    run = assistant_telemetry.snapshot()["recent_runs"][0]
+    stages = {stage["name"]: stage for stage in run["stages"]}
+    assert stages["memory_search"]["status"] == "skipped"
+    assert stages["memory_search"]["metadata"] == {
+        "memory_count": 0,
+        "memories": [],
+        "skip_reason": "memory_disabled",
+    }
+    assert stages["mem0_persist_background"]["status"] == "skipped"
+    assert stages["mem0_persist_background"]["metadata"] == {
+        "persisted": False,
+        "skip_reason": "memory_disabled",
+    }
+
+
 def test_voice_assistant_telemetry_stream_returns_sse_event() -> None:
     response = routes.voice_assistant_telemetry_stream("test-user")
     assert response.media_type == "text/event-stream"
@@ -487,7 +703,12 @@ def test_voice_assistant_telemetry_stream_uses_short_keepalive(monkeypatch) -> N
     assert calls == {"keepalive_seconds": 1.0, "user_id": "test-user"}
 
 
-def test_voice_assistant_telemetry_stream_requires_authentication() -> None:
+def test_voice_assistant_telemetry_stream_requires_authentication(monkeypatch) -> None:
+    monkeypatch.setattr(
+        routes,
+        "config",
+        SimpleNamespace(telemetry=SimpleNamespace(public_stream="disabled")),
+    )
     response = create_unauthenticated_client().get(
         "/v1/voice/assistant/telemetry/stream"
     )

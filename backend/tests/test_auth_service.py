@@ -97,3 +97,20 @@ def test_logout_revokes_refresh_token(tmp_path) -> None:
         return
 
     raise AssertionError("Expected logged-out refresh token to be invalid.")
+
+
+def test_memory_preference_defaults_to_enabled_without_row(tmp_path) -> None:
+    service = create_service(tmp_path)
+    token_pair = service.register("test@example.com", "Password1!")
+
+    assert service.is_memory_enabled(token_pair.user.id) is True
+
+
+def test_memory_preference_persists_updates(tmp_path) -> None:
+    service = create_service(tmp_path)
+    token_pair = service.register("test@example.com", "Password1!")
+
+    assert service.set_memory_enabled(token_pair.user.id, False) is False
+    assert service.is_memory_enabled(token_pair.user.id) is False
+    assert service.set_memory_enabled(token_pair.user.id, True) is True
+    assert service.is_memory_enabled(token_pair.user.id) is True

@@ -1,12 +1,14 @@
 import 'dart:async';
 
 import 'package:ai_voice_first/core/analytics/analytics_service.dart';
+import 'package:ai_voice_first/core/error.dart';
 import 'package:ai_voice_first/core/auth/secure_storage_service.dart';
 import 'package:ai_voice_first/core/auth/token_manager.dart';
 import 'package:ai_voice_first/core/di/get_it.dart';
 import 'package:ai_voice_first/core/permissions/permission_service.dart';
 import 'package:ai_voice_first/core/router/router.dart';
 import 'package:ai_voice_first/features/auth/auth.dart';
+import 'package:ai_voice_first/features/memory/memory.dart';
 import 'package:ai_voice_first/features/onboarding/onboarding.dart';
 import 'package:ai_voice_first/features/voice/data/audio_recorder_service.dart';
 import 'package:ai_voice_first/features/voice/data/transcription_api.dart';
@@ -150,6 +152,8 @@ void main() {
 
   group('AppRouter stack navigation', () {
     late AuthCubit authCubit;
+    late _MemoryRepositoryStub memoryRepository;
+    late MemoryCubit memoryCubit;
     late SetupCubit setupCubit;
 
     setUpAll(() {
@@ -174,11 +178,27 @@ void main() {
           ),
         ),
       );
+      memoryRepository = _MemoryRepositoryStub(
+        collection: const MemoryCollection(
+          memoryEnabled: false,
+          memories: [
+            MemoryItem(
+              id: 'memory-1',
+              memory: 'Prefers short answers.',
+              category: MemoryCategory.preferences,
+              createdAt: '2026-06-25T04:08:26+00:00',
+              updatedAt: '2026-06-25T05:40:29+00:00',
+            ),
+          ],
+        ),
+      );
+      memoryCubit = MemoryCubit(memoryRepository);
       setupCubit = SetupCubit()..complete();
     });
 
     tearDown(() async {
       await authCubit.close();
+      await memoryCubit.close();
       await setupCubit.close();
     });
 
@@ -192,6 +212,7 @@ void main() {
       final router = await _pumpRouterApp(
         tester,
         authCubit: authCubit,
+        memoryCubit: memoryCubit,
         setupCubit: setupCubit,
       );
 
@@ -207,6 +228,7 @@ void main() {
       final router = await _pumpRouterApp(
         tester,
         authCubit: authCubit,
+        memoryCubit: memoryCubit,
         setupCubit: setupCubit,
       );
 
@@ -220,13 +242,62 @@ void main() {
 
       expect(find.byTooltip('Back to talk'), findsOneWidget);
       expect(find.text('Memory'), findsOneWidget);
-      expect(find.text('Memory is enabled'), findsOneWidget);
+      expect(find.text('Memory is disabled'), findsOneWidget);
+      expect(find.text('1 item'), findsOneWidget);
+      expect(find.byType(FloatingActionButton), findsOneWidget);
+
+      await tester.tap(find.text('Preferences'));
+      await _pumpForTransition(tester);
+
+      expect(find.text('Preferences'), findsOneWidget);
+      expect(find.text('Prefers short answers.'), findsOneWidget);
+      expect(find.byType(FloatingActionButton), findsOneWidget);
+
+      await tester.binding.handlePopRoute();
+      await _pumpForTransition(tester);
+
+      expect(find.text('Memory'), findsOneWidget);
+      expect(find.text('Memory is disabled'), findsOneWidget);
 
       await tester.binding.handlePopRoute();
       await _pumpForTransition(tester);
 
       expect(find.byTooltip('Menu'), findsOneWidget);
-      expect(find.text('Memory is enabled'), findsNothing);
+      expect(find.text('Memory is disabled'), findsNothing);
+    });
+
+    testWidgets('reopens memory and refetches latest items', (tester) async {
+      await memoryCubit.close();
+      memoryRepository = _MemoryRepositoryStub(
+        loadCollections: [
+          MemoryCollection(memoryEnabled: true, memories: _memoryItems(10)),
+          MemoryCollection(memoryEnabled: true, memories: _memoryItems(12)),
+        ],
+      );
+      memoryCubit = MemoryCubit(memoryRepository);
+
+      final router = await _pumpRouterApp(
+        tester,
+        authCubit: authCubit,
+        memoryCubit: memoryCubit,
+        setupCubit: setupCubit,
+      );
+
+      router.push(AppRoutes.memory);
+      await _pumpForTransition(tester);
+
+      expect(find.text('10 items'), findsOneWidget);
+      expect(memoryRepository.loadCallCount, 1);
+
+      await tester.binding.handlePopRoute();
+      await _pumpForTransition(tester);
+
+      router.push(AppRoutes.memory);
+      await _pumpForTransition(tester);
+
+      expect(find.text('12 items'), findsOneWidget);
+      expect(find.text('10 items'), findsNothing);
+      expect(memoryRepository.loadCallCount, 2);
     });
 
     testWidgets('pushes profile from talk and pops back to talk', (
@@ -235,6 +306,7 @@ void main() {
       final router = await _pumpRouterApp(
         tester,
         authCubit: authCubit,
+        memoryCubit: memoryCubit,
         setupCubit: setupCubit,
       );
 
@@ -263,6 +335,7 @@ void main() {
 Future<GoRouter> _pumpRouterApp(
   WidgetTester tester, {
   required AuthCubit authCubit,
+  required MemoryCubit memoryCubit,
   required SetupCubit setupCubit,
 }) async {
   final router = AppRouter.createRouter(
@@ -273,6 +346,7 @@ Future<GoRouter> _pumpRouterApp(
   await tester.pumpWidget(
     _RouterTestApp(
       authCubit: authCubit,
+      memoryCubit: memoryCubit,
       setupCubit: setupCubit,
       router: router,
     ),
@@ -294,11 +368,13 @@ Future<void> _pumpForTransition(WidgetTester tester) async {
 final class _RouterTestApp extends StatefulWidget {
   const _RouterTestApp({
     required this.authCubit,
+    required this.memoryCubit,
     required this.setupCubit,
     required this.router,
   });
 
   final AuthCubit authCubit;
+  final MemoryCubit memoryCubit;
   final SetupCubit setupCubit;
   final GoRouter router;
 
@@ -335,6 +411,7 @@ final class _RouterTestAppState extends State<_RouterTestApp> {
     return MultiBlocProvider(
       providers: [
         BlocProvider<AuthCubit>.value(value: widget.authCubit),
+        BlocProvider<MemoryCubit>.value(value: widget.memoryCubit),
         BlocProvider<SetupCubit>.value(value: widget.setupCubit),
       ],
       child: MaterialApp.router(
@@ -343,6 +420,61 @@ final class _RouterTestAppState extends State<_RouterTestApp> {
         routerConfig: widget.router,
       ),
     );
+  }
+}
+
+final class _MemoryRepositoryStub extends MemoryRepository {
+  _MemoryRepositoryStub({
+    MemoryCollection? collection,
+    List<MemoryCollection>? loadCollections,
+  }) : _loadCollections =
+           loadCollections ??
+           [
+             collection ??
+                 const MemoryCollection(memoryEnabled: true, memories: []),
+           ],
+       super(MemoryApi(Dio()));
+
+  final List<MemoryCollection> _loadCollections;
+  int loadCallCount = 0;
+
+  @override
+  Future<({NetworkError? error, MemoryCollection? collection})>
+  loadMemories() async {
+    final index = loadCallCount < _loadCollections.length
+        ? loadCallCount
+        : _loadCollections.length - 1;
+    loadCallCount += 1;
+    return (error: null, collection: _loadCollections[index]);
+  }
+
+  @override
+  Future<({NetworkError? error, MemoryItem? item})> createMemory({
+    required String memory,
+    required MemoryCategory category,
+  }) async {
+    return (error: null, item: null);
+  }
+
+  @override
+  Future<({NetworkError? error, MemoryItem? item})> updateMemory({
+    required String id,
+    required String memory,
+    required MemoryCategory category,
+  }) async {
+    return (error: null, item: null);
+  }
+
+  @override
+  Future<NetworkError?> deleteMemory({required String id}) async {
+    return null;
+  }
+
+  @override
+  Future<({NetworkError? error, bool? memoryEnabled})> updateSettings({
+    required bool memoryEnabled,
+  }) async {
+    return (error: null, memoryEnabled: memoryEnabled);
   }
 }
 
@@ -431,4 +563,17 @@ final class _NoopAnalytics implements AnalyticsService {
     String screenName, {
     Map<String, dynamic>? properties,
   }) async {}
+}
+
+List<MemoryItem> _memoryItems(int count) {
+  return List.generate(
+    count,
+    (index) => MemoryItem(
+      id: 'memory-$index',
+      memory: 'Preference $index',
+      category: MemoryCategory.preferences,
+      createdAt: '2026-06-25T04:08:26+00:00',
+      updatedAt: '2026-06-25T05:40:29+00:00',
+    ),
+  );
 }

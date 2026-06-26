@@ -135,6 +135,31 @@ class AuthService:
             raise InvalidCredentialsError("Invalid access token.")
         return AuthenticatedUser(row["id"], row["email"])
 
+    def is_memory_enabled(self, user_id: str) -> bool:
+        with self._connect() as db:
+            row = db.execute(
+                "SELECT memory_enabled FROM user_preferences WHERE user_id = ?",
+                (user_id,),
+            ).fetchone()
+
+        if row is None:
+            return True
+        return bool(row["memory_enabled"])
+
+    def set_memory_enabled(self, user_id: str, enabled: bool) -> bool:
+        with self._connect() as db:
+            db.execute(
+                """
+                INSERT INTO user_preferences (user_id, memory_enabled, updated_at)
+                VALUES (?, ?, ?)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    memory_enabled = excluded.memory_enabled,
+                    updated_at = excluded.updated_at
+                """,
+                (user_id, int(enabled), self._now_iso()),
+            )
+        return enabled
+
     def _issue_token_pair(self, user: AuthenticatedUser) -> TokenPair:
         expires_at = datetime.now(timezone.utc) + self.auth_config.access_token_ttl
         access_token = jwt.encode(
@@ -207,6 +232,16 @@ class AuthService:
                     """
                     CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id
                     ON refresh_tokens (user_id)
+                    """
+                )
+                db.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS user_preferences (
+                        user_id TEXT PRIMARY KEY,
+                        memory_enabled INTEGER NOT NULL,
+                        updated_at TEXT NOT NULL,
+                        FOREIGN KEY (user_id) REFERENCES users(id)
+                    )
                     """
                 )
                 db.commit()

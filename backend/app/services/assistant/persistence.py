@@ -42,6 +42,20 @@ class StreamPersistence:
             self.telemetry.complete_run(run_id)
             return
 
+        if response_holder.get("memory_enabled") is False:
+            self.telemetry.finish_stage(
+                run_id,
+                "mem0_persist_background",
+                {
+                    "persisted": False,
+                    "skip_reason": "memory_disabled",
+                },
+                status="skipped",
+            )
+            self.history.record_turn(user_id, query, response_text)
+            self.telemetry.complete_run(run_id)
+            return
+
         candidate_memories = self._candidate_memories(response_holder)
         persist_result = self.memory.persist_conversation(
             query,

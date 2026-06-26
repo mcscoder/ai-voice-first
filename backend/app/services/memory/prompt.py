@@ -4,6 +4,7 @@ import csv
 from datetime import datetime, timezone
 from io import StringIO
 
+from app.services.memory.categories import MEMORY_CATEGORY_KEYS
 from app.services.memory.types import MemorySearchResult
 
 
@@ -88,6 +89,8 @@ def build_memory_planner_messages(
                 "- DELETE chỉ khi user nói rõ memory/candidate đó không còn đúng hoặc muốn xóa.\n"
                 "- NONE khi không có thông tin đáng nhớ.\n"
                 "- Với UPDATE/DELETE, id phải là một id trong Candidate memories.\n"
+                "- Với ADD/UPDATE, category phải là đúng một giá trị trong "
+                f"{', '.join(MEMORY_CATEGORY_KEYS)}.\n"
                 "- Dùng recent conversation chỉ để giải tham chiếu như nó, thằng đó, người đó, bạn kia.\n"
                 "- Gọi tool plan_memory_actions với actions đã chọn."
             ),

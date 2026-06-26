@@ -83,16 +83,32 @@ class AssistantResponseStreamer:
         user_id: str,
     ):
         run_id = response_holder.get("run_id")
+        memory_enabled = self.memory.is_enabled(user_id)
+        response_holder["memory_enabled"] = memory_enabled
+
         self.telemetry.start_stage(run_id, "memory_search")
-        memory_results = self.memory.search_memory_results(query, user_id)
-        self.telemetry.finish_stage(
-            run_id,
-            "memory_search",
-            {
-                "memory_count": len(memory_results),
-                "memories": [item.as_telemetry() for item in memory_results],
-            },
-        )
+        if memory_enabled:
+            memory_results = self.memory.search_memory_results(query, user_id)
+            self.telemetry.finish_stage(
+                run_id,
+                "memory_search",
+                {
+                    "memory_count": len(memory_results),
+                    "memories": [item.as_telemetry() for item in memory_results],
+                },
+            )
+        else:
+            memory_results = []
+            self.telemetry.finish_stage(
+                run_id,
+                "memory_search",
+                {
+                    "memory_count": 0,
+                    "memories": [],
+                    "skip_reason": "memory_disabled",
+                },
+                status="skipped",
+            )
 
         recent_messages = self.history.messages_for(user_id)
         response_holder["recent_messages"] = recent_messages

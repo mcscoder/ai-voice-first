@@ -22,6 +22,9 @@ class AssistantMemory(Protocol):
     def respond(self, text: str, user_id: str) -> MemoryReply:
         ...
 
+    def is_enabled(self, user_id: str) -> bool:
+        ...
+
     def search_memory_results(
         self,
         query: str,

@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
+import pytest
+
 from app.core.config import MemoryConfig
 from app.services.memory.conversation_history import ConversationHistory
 from app.services.memory.persistence import MEMORY_PLANNER_TOOL, MemoryAction
@@ -8,6 +10,7 @@ from app.services.memory.prompt import (
     build_response_messages,
 )
 from app.services.memory.service import MemorySearchResult, MemoryService
+from app.services.memory.types import MemoryNotFoundError
 
 
 class FakeLlm:
@@ -36,15 +39,21 @@ class FakeMemory:
         memories: list[str] | None = None,
         search_results: list[dict[str, object]] | None = None,
         add_result: dict[str, object] | None = None,
+        get_results: dict[str, dict[str, object]] | None = None,
+        all_results: list[dict[str, object]] | None = None,
     ) -> None:
         self.llm = FakeLlm(response)
         self.memories = memories or []
         self.search_results = search_results
         self.add_result = add_result
+        self.get_results = get_results or {}
+        self.all_results = all_results or []
         self.added_messages: object | None = None
         self.added_user_id: str | None = None
         self.added_infer: bool | None = None
-        self.updated: list[dict[str, str]] = []
+        self.added_metadata: dict[str, object] | None = None
+        self.search_calls = 0
+        self.updated: list[dict[str, object]] = []
         self.deleted: list[str] = []
 
     def search(
@@ -54,6 +63,7 @@ class FakeMemory:
         top_k: int,
         threshold: float,
     ) -> dict[str, object]:
+        self.search_calls += 1
         if self.search_results is not None:
             return {"results": self.search_results}
         return {"results": [{"memory": memory} for memory in self.memories]}
@@ -62,21 +72,65 @@ class FakeMemory:
         self,
         messages: object,
         user_id: str,
+        metadata: dict[str, object] | None = None,
         infer: bool = True,
     ) -> dict[str, object] | None:
         self.added_messages = messages
         self.added_user_id = user_id
+        self.added_metadata = metadata
         self.added_infer = infer
-        return self.add_result or {
+        result = self.add_result or {
             "results": [{"id": "added-memory-id", "memory": str(messages), "event": "ADD"}]
         }
+        results = result.get("results")
+        if isinstance(results, list):
+            for item in results:
+                if not isinstance(item, dict):
+                    continue
+                memory_id = item.get("id")
+                if memory_id is None:
+                    continue
+                self.get_results.setdefault(
+                    str(memory_id),
+                    {
+                        "id": str(memory_id),
+                        "memory": str(item.get("memory") or messages),
+                        "user_id": user_id,
+                        "metadata": metadata or {},
+                        "created_at": "2026-06-25T04:08:26+00:00",
+                        "updated_at": "2026-06-25T05:40:29+00:00",
+                    },
+                )
+        return result
 
-    def update(self, memory_id: str, data: str) -> dict[str, str]:
-        self.updated.append({"id": memory_id, "memory": data})
+    def get(self, memory_id: str) -> dict[str, object] | None:
+        return self.get_results.get(memory_id)
+
+    def get_all(
+        self,
+        *,
+        filters: dict[str, object] | None = None,
+        top_k: int = 20,
+    ) -> dict[str, object]:
+        return {"results": self.all_results[:top_k]}
+
+    def update(
+        self,
+        memory_id: str,
+        data: str,
+        metadata: dict[str, object] | None = None,
+    ) -> dict[str, str]:
+        self.updated.append({"id": memory_id, "memory": data, "metadata": metadata})
+        existing = self.get_results.get(memory_id)
+        if existing is not None:
+            existing["memory"] = data
+            if metadata is not None:
+                existing["metadata"] = metadata
         return {"message": "Memory updated successfully!"}
 
     def delete(self, memory_id: str) -> dict[str, str]:
         self.deleted.append(memory_id)
+        self.get_results.pop(memory_id, None)
         return {"message": "Memory deleted successfully!"}
 
 
@@ -85,10 +139,19 @@ class FakeMemoryService(MemoryService):
         self,
         memory: FakeMemory,
         memory_config: MemoryConfig | None = None,
+        memory_enabled: bool = True,
     ) -> None:
         self.memory = memory
         self.memory_config = memory_config or MemoryConfig()
         self.history = ConversationHistory()
+        self.auth = type(
+            "FakeAuth",
+            (),
+            {
+                "is_memory_enabled": lambda _self, _user_id: memory_enabled,
+                "set_memory_enabled": lambda _self, _user_id, enabled: enabled,
+            },
+        )()
 
     def load_memory(self) -> FakeMemory:
         return self.memory
@@ -133,11 +196,20 @@ class FakeDeepSeekClient:
 
 
 def planner_response(actions: list[dict[str, str]]) -> dict[str, object]:
+    normalized_actions: list[dict[str, str]] = []
+    for action in actions:
+        normalized = dict(action)
+        event = normalized.get("event")
+        if event in ("ADD", "UPDATE"):
+            normalized.setdefault("category", "custom_notes")
+        else:
+            normalized.setdefault("category", "")
+        normalized_actions.append(normalized)
     return {
         "tool_calls": [
             {
                 "name": "plan_memory_actions",
-                "arguments": {"actions": actions},
+                "arguments": {"actions": normalized_actions},
             }
         ]
     }
@@ -266,6 +338,7 @@ def test_memory_search_results_include_scores() -> None:
             memory="User likes short answers.",
             score=0.87321,
             user_id="test-user",
+            category="about_me",
             categories=["personal_info"],
             created_at="2026-06-25T04:08:26+00:00",
             updated_at="2026-06-25T05:40:29+00:00",
@@ -300,12 +373,144 @@ def test_memory_search_result_from_mem0_preserves_fields_for_telemetry() -> None
         "id": "mem_123abc",
         "memory": "Name is Alex. Enjoys basketball and gaming.",
         "user_id": "alex",
+        "category": "about_me",
         "categories": ["personal_info"],
         "created_at": "2025-10-22T04:40:22.864647-07:00",
         "score": 0.89,
         "metadata": {"source": "mem0"},
         "custom_field": "custom-value",
     }
+
+
+def test_memory_category_normalization_prefers_metadata_then_aliases() -> None:
+    assert (
+        MemorySearchResult.from_mem0(
+            {
+                "id": "memory-id",
+                "memory": "User likes concise answers.",
+                "metadata": {"category": "preferences"},
+                "categories": ["personal_info"],
+            }
+        ).category
+        == "preferences"
+    )
+    assert (
+        MemorySearchResult.from_mem0(
+            {
+                "id": "memory-id",
+                "memory": "User owes a note.",
+                "metadata": {"categories": ["notes"]},
+            }
+        ).category
+        == "custom_notes"
+    )
+    assert (
+        MemorySearchResult.from_mem0(
+            {
+                "id": "memory-id",
+                "memory": "Unknown bucket.",
+                "categories": ["finance"],
+            }
+        ).category
+        == "custom_notes"
+    )
+
+
+def test_memory_list_memories_sorts_desc_and_normalizes_categories() -> None:
+    memory = FakeMemory(
+        "unused",
+        all_results=[
+            {
+                "id": "older-updated",
+                "memory": "Old memory.",
+                "user_id": "test-user",
+                "metadata": {"categories": ["notes"]},
+                "created_at": "2026-06-25T04:08:26+00:00",
+                "updated_at": "2026-06-25T05:40:29+00:00",
+            },
+            {
+                "id": "newer-updated",
+                "memory": "Newer memory.",
+                "user_id": "test-user",
+                "categories": ["personal_info"],
+                "created_at": "2026-06-25T04:08:26+00:00",
+                "updated_at": "2026-06-26T05:40:29+00:00",
+            },
+            {
+                "id": "newer-created",
+                "memory": "Tie breaker memory.",
+                "user_id": "test-user",
+                "metadata": {"category": "work"},
+                "created_at": "2026-06-27T04:08:26+00:00",
+                "updated_at": "2026-06-26T05:40:29+00:00",
+            },
+        ],
+    )
+    service = FakeMemoryService(memory)
+
+    results = service.list_memories("test-user")
+
+    assert [item.id for item in results] == [
+        "newer-created",
+        "newer-updated",
+        "older-updated",
+    ]
+    assert [item.category for item in results] == [
+        "work",
+        "about_me",
+        "custom_notes",
+    ]
+
+
+def test_memory_crud_uses_category_metadata_and_enforces_ownership() -> None:
+    memory = FakeMemory(
+        "unused",
+        add_result={"results": [{"id": "created-id", "memory": "Created memory."}]},
+        get_results={
+            "owned-id": {
+                "id": "owned-id",
+                "memory": "Current memory.",
+                "user_id": "test-user",
+                "metadata": {"category": "preferences"},
+                "created_at": "2026-06-25T04:08:26+00:00",
+                "updated_at": "2026-06-25T05:40:29+00:00",
+            },
+            "other-user-id": {
+                "id": "other-user-id",
+                "memory": "Other user's memory.",
+                "user_id": "other-user",
+                "metadata": {"category": "preferences"},
+                "created_at": "2026-06-25T04:08:26+00:00",
+                "updated_at": "2026-06-25T05:40:29+00:00",
+            },
+        },
+    )
+    service = FakeMemoryService(memory)
+
+    created = service.create_memory("test-user", "Created memory.", "goals")
+    updated = service.update_memory("test-user", "owned-id", "Updated memory.", "work")
+    service.delete_memory("test-user", "owned-id")
+
+    assert created.id == "created-id"
+    assert created.category == "goals"
+    assert memory.added_metadata == {"category": "goals"}
+    assert updated.category == "work"
+    assert memory.updated == [
+        {
+            "id": "owned-id",
+            "memory": "Updated memory.",
+            "metadata": {"category": "work"},
+        }
+    ]
+    assert memory.deleted == ["owned-id"]
+
+    with pytest.raises(MemoryNotFoundError):
+        service.update_memory(
+            "test-user",
+            "other-user-id",
+            "Should fail.",
+            "preferences",
+        )
 
 
 def test_memory_prompt_uses_compact_csv_context() -> None:
@@ -438,7 +643,7 @@ def test_memory_planner_tool_schema_is_strict() -> None:
     assert "minItems" not in parameters["properties"]["actions"]
     assert "maxItems" not in parameters["properties"]["actions"]
     assert action_schema["additionalProperties"] is False
-    assert action_schema["required"] == ["event", "id", "memory"]
+    assert action_schema["required"] == ["event", "id", "memory", "category"]
     assert action_schema["properties"]["event"]["enum"] == [
         "ADD",
         "UPDATE",
@@ -471,6 +676,40 @@ def test_memory_action_serializes_add_fallback_id() -> None:
         "event": "ADD",
         "memory": "Nguyên nợ tôi năm mươi ngàn.",
     }
+
+
+def test_memory_respond_skips_search_and_persist_when_disabled() -> None:
+    memory = FakeMemory(
+        [
+            "Tôi nhớ rồi.",
+            planner_response(
+                [
+                    {
+                        "event": "ADD",
+                        "id": "",
+                        "memory": "Should not persist.",
+                        "category": "custom_notes",
+                    }
+                ]
+            ),
+        ],
+        search_results=[
+            {
+                "id": "memory-id",
+                "memory": "Existing memory.",
+                "user_id": "test-user",
+            }
+        ],
+    )
+    service = FakeMemoryService(memory, memory_enabled=False)
+
+    reply = service.respond("Xin chào", "test-user")
+
+    assert reply.text == "Tôi nhớ rồi."
+    assert memory.search_calls == 0
+    assert memory.added_messages is None
+    assert memory.updated == []
+    assert memory.deleted == []
 
 
 def test_conversation_history_records_recent_turns_in_order() -> None:
@@ -534,11 +773,13 @@ def test_memory_persist_adds_planned_memory_with_add_only_mem0() -> None:
     assert memory.added_messages == "Nguyên nợ tôi năm mươi ngàn."
     assert memory.added_user_id == "test-user"
     assert memory.added_infer is False
+    assert memory.added_metadata == {"category": "custom_notes"}
     assert result.actions == [
         MemoryAction(
             event="ADD",
             id="added-memory-id",
             memory="Nguyên nợ tôi năm mươi ngàn.",
+            category="custom_notes",
         )
     ]
     assert result.action_counts == {"ADD": 1}
@@ -593,6 +834,7 @@ def test_memory_persist_updates_ambiguous_candidate_memory() -> None:
         {
             "id": "ambiguous-memory",
             "memory": "Bình Nguyên chơi Liên Minh rất tệ và tôi hay chửi Bình Nguyên.",
+            "metadata": {"category": "custom_notes"},
         }
     ]
     assert result.actions == [
@@ -600,6 +842,7 @@ def test_memory_persist_updates_ambiguous_candidate_memory() -> None:
             event="UPDATE",
             id="ambiguous-memory",
             memory="Bình Nguyên chơi Liên Minh rất tệ và tôi hay chửi Bình Nguyên.",
+            category="custom_notes",
             previous_memory=(
                 "Có một người chơi Liên Minh rất tệ và tôi hay chửi người đó"
             ),

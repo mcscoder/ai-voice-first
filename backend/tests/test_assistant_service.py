@@ -28,12 +28,23 @@ class StubTts:
 
 
 class StreamingMemory:
-    def __init__(self, deltas: list[str] | None = None) -> None:
+    def __init__(
+        self,
+        deltas: list[str] | None = None,
+        *,
+        memory_enabled: bool = True,
+    ) -> None:
         self.deltas = deltas or ["One. ", "Two. "]
+        self.memory_enabled = memory_enabled
+        self.search_calls = 0
         self.persisted: list[dict[str, object]] = []
         self.stream_messages: list[dict[str, str]] | None = None
 
+    def is_enabled(self, user_id: str) -> bool:
+        return self.memory_enabled
+
     def search_memory_results(self, query: str, user_id: str) -> list[object]:
+        self.search_calls += 1
         return [
             MemorySearchResult(
                 id="candidate-id",
@@ -296,6 +307,45 @@ def test_stream_persistence_records_short_term_history_after_done() -> None:
         {"role": "user", "content": "Remember my meeting"},
         {"role": "assistant", "content": "Done."},
     ]
+    assistant_telemetry.reset()
+
+
+def test_disabled_stream_skips_memory_search_and_persist_but_keeps_history() -> None:
+    assistant_telemetry.reset()
+    memory = StreamingMemory(["Done. "], memory_enabled=False)
+    history = ConversationHistory()
+    service = AssistantService(
+        asr=StubAsr(),
+        memory=memory,
+        tts=RecordingTts(),
+        history=history,
+    )
+    response_holder: dict[str, object] = {}
+
+    events = list(service.stream_events(b"audio-bytes", None, response_holder, "test-user"))
+    service.stream_persistence.persist_streamed_response(response_holder)
+
+    assert events[-1] == {"type": "done", "text": "Done."}
+    assert memory.search_calls == 0
+    assert memory.persisted == []
+    assert history.messages_for("test-user") == [
+        {"role": "user", "content": "Remember my meeting"},
+        {"role": "assistant", "content": "Done."},
+    ]
+
+    run = assistant_telemetry.snapshot()["recent_runs"][0]
+    stages = {stage["name"]: stage for stage in run["stages"]}
+    assert stages["memory_search"]["status"] == "skipped"
+    assert stages["memory_search"]["metadata"] == {
+        "memory_count": 0,
+        "memories": [],
+        "skip_reason": "memory_disabled",
+    }
+    assert stages["mem0_persist_background"]["status"] == "skipped"
+    assert stages["mem0_persist_background"]["metadata"] == {
+        "persisted": False,
+        "skip_reason": "memory_disabled",
+    }
     assistant_telemetry.reset()
 
 

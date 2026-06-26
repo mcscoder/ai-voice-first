@@ -20,6 +20,7 @@ import 'core/logger/logger.dart';
 import 'core/router/router.dart';
 import 'core/theme/theme.dart';
 import 'features/auth/auth.dart';
+import 'features/memory/memory.dart';
 import 'features/onboarding/onboarding.dart';
 import 'shared/i18n/generated/app_localizations.dart';
 
@@ -86,6 +87,7 @@ final class App extends StatelessWidget {
       providers: [
         BlocProvider(create: (_) => getIt<AuthCubit>()),
         BlocProvider(create: (_) => SetupCubit()),
+        BlocProvider(create: (_) => getIt<MemoryCubit>()),
         BlocProvider(
           // ConnectivityCubit is a lazySingleton — share the same instance.
           create: (_) => getIt<ConnectivityCubit>(),
