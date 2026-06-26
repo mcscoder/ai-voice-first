@@ -9,9 +9,11 @@ from app.services.assistant.streaming import AssistantResponseStreamer
 from app.services.assistant.telemetry import assistant_telemetry
 from app.services.assistant.types import AssistantResult, ResponseHolder, StreamEvent
 from app.services.memory import (
+    ConversationHistory,
     DEFAULT_USER_ID,
     MemoryService,
     MemoryServiceError,
+    conversation_history,
     memory_service,
 )
 from app.services.tts import TtsError, TtsService, tts_service
@@ -28,21 +30,25 @@ class AssistantService:
         asr: AsrService = asr_service,
         memory: MemoryService = memory_service,
         tts: TtsService = tts_service,
+        history: ConversationHistory = conversation_history,
         user_id: str = DEFAULT_USER_ID,
     ) -> None:
         self.asr = asr
         self.memory = memory
         self.tts = tts
+        self.history = history
         self.user_id = user_id
         self.response_streamer = AssistantResponseStreamer(
             memory=self.memory,
             tts=self.tts,
             telemetry=assistant_telemetry,
+            history=self.history,
             user_id=self.user_id,
         )
         self.stream_persistence = StreamPersistence(
             memory=self.memory,
             telemetry=assistant_telemetry,
+            history=self.history,
             user_id=self.user_id,
         )
 

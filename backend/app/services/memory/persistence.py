@@ -1,35 +1,77 @@
 from __future__ import annotations
 
-
-def memory_actions(raw_result: object) -> list[dict[str, object]]:
-    actions: list[dict[str, object]] = []
-    returned_results = raw_result.get("results", []) if isinstance(raw_result, dict) else []
-
-    # Only use structured return values from mem0; log-derived actions are intentionally ignored.
-    if isinstance(returned_results, list):
-        for item in returned_results:
-            if isinstance(item, dict) and isinstance(item.get("event"), str):
-                actions.append(normalize_memory_action(item))
-
-    return actions
+from dataclasses import dataclass
+from typing import Literal
 
 
-def normalize_memory_action(action: dict[str, object]) -> dict[str, object]:
-    memory_text = action.get("memory") or action.get("text") or ""
-    previous_memory = action.get("previous_memory") or action.get("old_memory")
-    normalized: dict[str, object] = {
-        "id": str(action.get("id", "")),
-        "event": str(action["event"]),
-        "memory": str(memory_text),
-    }
-    if previous_memory:
-        normalized["previous_memory"] = str(previous_memory)
-    return normalized
+MemoryActionEvent = Literal["ADD", "UPDATE", "DELETE", "NONE"]
+
+MEMORY_PLANNER_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "plan_memory_actions",
+        "description": "Plan exact memory mutations for the latest conversation turn.",
+        "strict": True,
+        "parameters": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["actions"],
+            "properties": {
+                "actions": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "required": ["event", "id", "memory"],
+                        "properties": {
+                            "event": {
+                                "type": "string",
+                                "enum": ["ADD", "UPDATE", "DELETE", "NONE"],
+                            },
+                            "id": {
+                                "type": "string",
+                                "description": (
+                                    "Candidate memory id for UPDATE or DELETE; empty "
+                                    "string for ADD or NONE."
+                                ),
+                            },
+                            "memory": {
+                                "type": "string",
+                                "description": (
+                                    "New memory text for ADD or UPDATE; empty string "
+                                    "for DELETE or NONE."
+                                ),
+                            },
+                        },
+                    },
+                }
+            },
+        },
+    },
+}
 
 
-def memory_action_counts(actions: list[dict[str, object]]) -> dict[str, int]:
+@dataclass(frozen=True)
+class MemoryAction:
+    event: MemoryActionEvent
+    memory: str = ""
+    id: str = ""
+    previous_memory: str = ""
+
+    def to_dict(self) -> dict[str, object]:
+        action: dict[str, object] = {
+            "event": self.event,
+            "memory": self.memory,
+        }
+        if self.id or self.event == "ADD":
+            action["id"] = self.id
+        if self.previous_memory:
+            action["previous_memory"] = self.previous_memory
+        return action
+
+
+def memory_action_counts(actions: list[MemoryAction]) -> dict[str, int]:
     counts: dict[str, int] = {}
     for action in actions:
-        event = str(action.get("event", "UNKNOWN"))
-        counts[event] = counts.get(event, 0) + 1
+        counts[action.event] = counts.get(action.event, 0) + 1
     return counts

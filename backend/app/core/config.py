@@ -110,7 +110,7 @@ class MemoryConfig:
     llm_provider: str = "deepseek"
     llm_model: str = "deepseek-v4-flash"
     llm_api_key: str | None = None
-    llm_base_url: str = "https://api.deepseek.com"
+    llm_base_url: str = "https://api.deepseek.com/beta"
     llm_temperature: float = 0.1
     llm_max_tokens: int = 2000
     llm_thinking: DeepSeekThinking = field(
@@ -174,6 +174,13 @@ class MemoryConfig:
                 },
             },
             "history_db_path": self.history_db_path,
+            "custom_instructions": (
+                "Extract concise, durable memories from Vietnamese voice conversations. "
+                "Prefer clear subjects and named people over vague references. "
+                "Use recent conversation context only to resolve pronouns or phrases such as "
+                "'nó', 'thằng đó', 'người đó', or 'bạn kia'. "
+                "Do not store assistant small talk, acknowledgements, or duplicate facts."
+            ),
         }
 
     def to_deepseek_extra_body(self) -> dict[str, object]:

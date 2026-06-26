@@ -14,6 +14,7 @@ from app.services.assistant.types import (
     ResponseHolder,
     StreamEvent,
 )
+from app.services.memory.conversation_history import ConversationHistory
 from app.services.memory import MemoryServiceError
 from app.services.memory.prompt import build_response_messages
 from app.services.memory.speech import clean_response_for_speech
@@ -68,11 +69,13 @@ class AssistantResponseStreamer:
         memory: AssistantMemory,
         tts: AssistantTts,
         telemetry: AssistantTelemetry,
+        history: ConversationHistory,
         user_id: str,
     ) -> None:
         self.memory = memory
         self.tts = tts
         self.telemetry = telemetry
+        self.history = history
         self.user_id = user_id
 
     def stream_response_events(
@@ -92,7 +95,14 @@ class AssistantResponseStreamer:
             },
         )
 
-        prompt_messages = build_response_messages(query, memory_results)
+        recent_messages = self.history.messages_for(self.user_id)
+        response_holder["recent_messages"] = recent_messages
+        response_holder["candidate_memories"] = memory_results
+        prompt_messages = build_response_messages(
+            query,
+            memory_results,
+            recent_messages,
+        )
         self.telemetry.start_stage(run_id, "llm_response_stream")
         self.telemetry.update_stage(
             run_id,
@@ -461,7 +471,7 @@ class AssistantResponseStreamer:
 
     def _split_tts_chunk(self, text: str) -> tuple[str | None, str]:
         max_chars = 180
-        min_chars = 40
+        min_chars = 30
 
         for match in re.finditer(r"[.!?。！？,]", text):
             chunk = text[: match.end()].strip()

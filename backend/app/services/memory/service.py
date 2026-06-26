@@ -1,13 +1,22 @@
 from __future__ import annotations
 
+import json
 import os
 import threading
 from collections.abc import Iterator
 
 from app.core.config import MemoryConfig, config
-from app.services.memory.persistence import memory_action_counts, memory_actions
+from app.services.memory.conversation_history import (
+    ConversationHistory,
+    conversation_history,
+)
+from app.services.memory.persistence import (
+    MEMORY_PLANNER_TOOL,
+    MemoryAction,
+    memory_action_counts,
+)
 from app.services.memory.prompt import (
-    VOICE_ASSISTANT_SYSTEM_PROMPT,
+    build_memory_planner_messages,
     build_response_messages,
 )
 from app.services.memory.speech import clean_response_for_speech
@@ -20,15 +29,19 @@ from app.services.memory.types import (
 from mem0 import Memory
 from openai import OpenAIError
 
-
 DEFAULT_USER_ID = "default-user"
 
 
 class MemoryService:
     """Lazy wrapper around Mem0 memory storage."""
 
-    def __init__(self, memory_config: MemoryConfig = config.memory) -> None:
+    def __init__(
+        self,
+        memory_config: MemoryConfig = config.memory,
+        history: ConversationHistory = conversation_history,
+    ) -> None:
         self.memory_config = memory_config
+        self.history = history
         self._memory: Memory | None = None
         self._lock = threading.RLock()
 
@@ -48,8 +61,9 @@ class MemoryService:
 
         memory = self.load_memory()
         memories = self.search_memory_results(query, user_id)
+        recent_messages = self.history.messages_for(user_id)
         response = memory.llm.generate_response(
-            build_response_messages(query, memories),
+            build_response_messages(query, memories, recent_messages),
             extra_body=self.memory_config.to_deepseek_extra_body(),
         )
 
@@ -57,13 +71,20 @@ class MemoryService:
         if not response_text:
             raise MemoryServiceError("Memory service returned an empty response.")
 
-        self.persist_conversation(query, response_text, user_id)
+        self.persist_conversation(
+            query, response_text, user_id, recent_messages, memories
+        )
+        self.history.record_turn(user_id, query, response_text)
 
         return MemoryReply(text=response_text, user_id=user_id)
 
-    def search_memory_results(self, query: str, user_id: str) -> list[MemorySearchResult]:
+    def search_memory_results(
+        self, query: str, user_id: str
+    ) -> list[MemorySearchResult]:
         memory = self.load_memory()
-        result = memory.search(query, user_id=user_id, limit=5)
+        result = memory.search(
+            query, filters={"user_id": user_id}, top_k=5, threshold=0.0
+        )
         memories: list[MemorySearchResult] = []
         for item in result.get("results", []):
             if not isinstance(item, dict) or not isinstance(item.get("memory"), str):
@@ -102,22 +123,177 @@ class MemoryService:
         query: str,
         response_text: str,
         user_id: str,
+        recent_messages: list[dict[str, str]] | None = None,
+        candidate_memories: list[MemorySearchResult] | None = None,
     ) -> MemoryPersistResult:
         memory = self.load_memory()
-        raw_result = memory.add(
-            [
-                {"role": "user", "content": query},
-                {"role": "assistant", "content": response_text},
-            ],
-            user_id=user_id,
+        candidate_memories = candidate_memories or []
+        planned_actions = self._plan_memory_actions(
+            memory,
+            query,
+            response_text,
+            recent_messages or [],
+            candidate_memories,
         )
-
-        actions = memory_actions(raw_result)
+        actions = self._apply_memory_actions(memory, planned_actions, user_id)
         return MemoryPersistResult(
             actions=actions,
             action_counts=memory_action_counts(actions),
-            raw_result=raw_result if isinstance(raw_result, dict) else None,
+            raw_result=None,
         )
+
+    def _plan_memory_actions(
+        self,
+        memory: Memory,
+        query: str,
+        response_text: str,
+        recent_messages: list[dict[str, str]],
+        candidate_memories: list[MemorySearchResult],
+    ) -> list[MemoryAction]:
+        try:
+            response = memory.llm.generate_response(
+                build_memory_planner_messages(
+                    query,
+                    response_text,
+                    recent_messages,
+                    candidate_memories,
+                ),
+                tools=[MEMORY_PLANNER_TOOL],
+                tool_choice={
+                    "type": "function",
+                    "function": {"name": "plan_memory_actions"},
+                },
+                extra_body=self.memory_config.to_deepseek_extra_body(),
+            )
+        except json.JSONDecodeError:
+            return []
+
+        if not isinstance(response, dict):
+            return []
+
+        tool_calls = response.get("tool_calls")
+        if not isinstance(tool_calls, list) or len(tool_calls) != 1:
+            return []
+
+        tool_call = tool_calls[0]
+        if not isinstance(tool_call, dict):
+            return []
+        if tool_call.get("name") != "plan_memory_actions":
+            return []
+
+        arguments = tool_call.get("arguments")
+        if not isinstance(arguments, dict):
+            return []
+
+        raw_actions = arguments.get("actions")
+        if not isinstance(raw_actions, list) or len(raw_actions) > 3:
+            return []
+
+        candidate_by_id = {
+            item.id: item.memory for item in candidate_memories if item.id is not None
+        }
+        actions: list[MemoryAction] = []
+        for raw_action in raw_actions:
+            if not isinstance(raw_action, dict):
+                continue
+            event = raw_action.get("event")
+            if event == "NONE":
+                actions.append(MemoryAction(event="NONE"))
+                continue
+            if event == "ADD":
+                memory_text = raw_action.get("memory")
+                if isinstance(memory_text, str) and memory_text.strip():
+                    actions.append(MemoryAction(event="ADD", memory=memory_text.strip()))
+                continue
+            if event == "UPDATE":
+                memory_id = raw_action.get("id")
+                memory_text = raw_action.get("memory")
+                if (
+                    isinstance(memory_id, str)
+                    and memory_id in candidate_by_id
+                    and isinstance(memory_text, str)
+                    and memory_text.strip()
+                ):
+                    actions.append(
+                        MemoryAction(
+                            event="UPDATE",
+                            id=memory_id,
+                            memory=memory_text.strip(),
+                            previous_memory=candidate_by_id[memory_id],
+                        )
+                    )
+                continue
+            if event == "DELETE":
+                memory_id = raw_action.get("id")
+                if isinstance(memory_id, str) and memory_id in candidate_by_id:
+                    actions.append(
+                        MemoryAction(
+                            event="DELETE",
+                            id=memory_id,
+                            previous_memory=candidate_by_id[memory_id],
+                        )
+                    )
+        return actions
+
+    def _apply_memory_actions(
+        self,
+        memory: Memory,
+        planned_actions: list[MemoryAction],
+        user_id: str,
+    ) -> list[MemoryAction]:
+        actions: list[MemoryAction] = []
+        for action in planned_actions:
+            if action.event == "NONE":
+                actions.append(MemoryAction(event="NONE"))
+                continue
+            if action.event == "ADD":
+                raw_result = memory.add(action.memory, user_id=user_id, infer=False)
+                actions.extend(self._memory_actions_from_add_result(raw_result, action.memory))
+                continue
+            if action.event == "UPDATE" and action.id:
+                memory.update(action.id, action.memory)
+                actions.append(
+                    MemoryAction(
+                        event="UPDATE",
+                        id=action.id,
+                        memory=action.memory,
+                        previous_memory=action.previous_memory or "",
+                    )
+                )
+                continue
+            if action.event == "DELETE" and action.id:
+                memory.delete(action.id)
+                actions.append(
+                    MemoryAction(
+                        event="DELETE",
+                        id=action.id,
+                        memory=action.previous_memory or "",
+                    )
+                )
+        return actions
+
+    def _memory_actions_from_add_result(
+        self, raw_result: object, memory_text: str
+    ) -> list[MemoryAction]:
+        if not isinstance(raw_result, dict):
+            return [MemoryAction(event="ADD", memory=memory_text)]
+
+        results = raw_result.get("results")
+        if not isinstance(results, list) or not results:
+            return [MemoryAction(event="ADD", memory=memory_text)]
+
+        actions: list[MemoryAction] = []
+        for item in results:
+            if not isinstance(item, dict):
+                continue
+            actions.append(
+                MemoryAction(
+                    event="ADD",
+                    id=str(item.get("id", "")),
+                    memory=str(item.get("memory") or item.get("text") or memory_text),
+                )
+            )
+        return actions or [MemoryAction(event="ADD", memory=memory_text)]
 
 
 memory_service = MemoryService()

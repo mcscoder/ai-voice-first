@@ -15,7 +15,7 @@ class AssistantResult:
 
 
 StreamEvent = dict[str, object]
-ResponseHolder = dict[str, str]
+ResponseHolder = dict[str, object]
 
 
 class AssistantMemory(Protocol):
@@ -42,6 +42,8 @@ class AssistantMemory(Protocol):
         query: str,
         response_text: str,
         user_id: str,
+        recent_messages: list[dict[str, str]] | None = None,
+        candidate_memories: list[MemorySearchResult] | None = None,
     ) -> MemoryPersistResult | None:
         ...
 

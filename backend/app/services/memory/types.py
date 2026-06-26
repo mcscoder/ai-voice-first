@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from app.services.memory.persistence import MemoryAction
+
 
 @dataclass(frozen=True)
 class MemoryReply:
@@ -94,7 +96,7 @@ class MemorySearchResult:
 
 @dataclass(frozen=True)
 class MemoryPersistResult:
-    actions: list[dict[str, object]]
+    actions: list[MemoryAction]
     action_counts: dict[str, int]
     raw_result: dict[str, object] | None
 

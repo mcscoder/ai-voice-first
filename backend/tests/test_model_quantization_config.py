@@ -106,7 +106,7 @@ def test_memory_config_uses_deepseek_llm() -> None:
     assert llm_config["provider"] == "deepseek"
     assert llm_config["config"]["model"] == "deepseek-v4-flash"
     assert llm_config["config"]["api_key"] is None
-    assert llm_config["config"]["deepseek_base_url"] == "https://api.deepseek.com"
+    assert llm_config["config"]["deepseek_base_url"] == "https://api.deepseek.com/beta"
 
 
 def test_memory_config_disables_deepseek_thinking_by_default(monkeypatch) -> None:

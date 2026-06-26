@@ -14,9 +14,11 @@ from app.services.assistant.telemetry_payload import (
 from app.services.asr import AsrResult, UnsupportedAsrLanguageError
 from app.services.memory import (
     DEFAULT_USER_ID,
+    MemoryAction,
     MemoryPersistResult,
     MemoryReply,
     MemorySearchResult,
+    conversation_history,
 )
 from app.services.tts import TtsResult
 
@@ -24,6 +26,7 @@ from app.services.tts import TtsResult
 @pytest.fixture(autouse=True)
 def reset_assistant_telemetry() -> None:
     assistant_telemetry.reset()
+    conversation_history.clear()
 
 
 def create_client() -> TestClient:
@@ -194,7 +197,7 @@ def test_voice_assistant_stream_returns_ordered_events(monkeypatch) -> None:
 
 
 def test_voice_assistant_stream_persists_after_done(monkeypatch) -> None:
-    persisted: list[dict[str, str]] = []
+    persisted: list[dict[str, object]] = []
 
     def transcribe(audio: bytes, language: str | None) -> AsrResult:
         return AsrResult(text="Remember this", language="English", model="test")
@@ -210,9 +213,21 @@ def test_voice_assistant_stream_persists_after_done(monkeypatch) -> None:
         assert persisted == []
         return TtsResult(audio=b"wav-chunk", media_type="audio/wav")
 
-    def persist_conversation(query: str, response_text: str, user_id: str) -> None:
+    def persist_conversation(
+        query: str,
+        response_text: str,
+        user_id: str,
+        recent_messages: list[dict[str, str]] | None = None,
+        candidate_memories: list[MemorySearchResult] | None = None,
+    ) -> None:
         persisted.append(
-            {"query": query, "response_text": response_text, "user_id": user_id}
+            {
+                "query": query,
+                "response_text": response_text,
+                "user_id": user_id,
+                "recent_messages": recent_messages or [],
+                "candidate_memories": candidate_memories or [],
+            }
         )
 
     monkeypatch.setattr(routes.assistant_service.asr, "transcribe", transcribe)
@@ -245,6 +260,8 @@ def test_voice_assistant_stream_persists_after_done(monkeypatch) -> None:
             "query": "Remember this",
             "response_text": "Saved.",
             "user_id": DEFAULT_USER_ID,
+            "recent_messages": [],
+            "candidate_memories": [],
         }
     ]
 
@@ -341,7 +358,10 @@ def test_voice_assistant_stream_records_pipeline_telemetry(monkeypatch) -> None:
     assert tts_chunks[0]["status"] == "streamed"
     assert isinstance(tts_chunks[0]["duration_ms"], int | float)
     assert tts_chunks[0]["duration_ms"] >= 0
-    assert stages["mem0_persist_background"]["metadata"] == {"persisted": True}
+    assert stages["mem0_persist_background"]["metadata"] == {
+        "persisted": True,
+        "candidate_memory_count": 1,
+    }
 
 
 def test_voice_assistant_stream_records_memory_persist_actions(monkeypatch) -> None:
@@ -360,17 +380,17 @@ def test_voice_assistant_stream_records_memory_persist_actions(monkeypatch) -> N
 
     persist_result = MemoryPersistResult(
         actions=[
-            {
-                "id": "memory-id",
-                "memory": "Nguyên nợ tôi năm mươi ngàn.",
-                "event": "UPDATE",
-                "previous_memory": "Nguyên nợ tôi tiền.",
-            },
-            {
-                "id": "1",
-                "memory": "Đang dự định in lại tài liệu",
-                "event": "NONE",
-            },
+            MemoryAction(
+                event="UPDATE",
+                id="memory-id",
+                memory="Nguyên nợ tôi năm mươi ngàn.",
+                previous_memory="Nguyên nợ tôi tiền.",
+            ),
+            MemoryAction(
+                event="NONE",
+                id="1",
+                memory="Đang dự định in lại tài liệu",
+            ),
         ],
         action_counts={"UPDATE": 1, "NONE": 1},
         raw_result=None,
@@ -405,7 +425,9 @@ def test_voice_assistant_stream_records_memory_persist_actions(monkeypatch) -> N
 
     assert persist_metadata["persisted"] is True
     assert persist_metadata["action_counts"] == {"UPDATE": 1, "NONE": 1}
-    assert persist_metadata["memory_actions"] == persist_result.actions
+    assert persist_metadata["memory_actions"] == [
+        action.to_dict() for action in persist_result.actions
+    ]
 
 
 def test_voice_assistant_telemetry_stream_returns_sse_event() -> None:

@@ -4,7 +4,7 @@ from app.services.asr import AsrResult
 from app.services.assistant.service import AssistantService
 from app.services.assistant.streaming import AssistantResponseStreamer
 from app.services.assistant.telemetry import assistant_telemetry
-from app.services.memory import MemoryReply
+from app.services.memory import ConversationHistory, MemoryReply, MemorySearchResult
 from app.services.tts import TtsResult
 
 
@@ -30,10 +30,17 @@ class StubTts:
 class StreamingMemory:
     def __init__(self, deltas: list[str] | None = None) -> None:
         self.deltas = deltas or ["One. ", "Two. "]
-        self.persisted: list[dict[str, str]] = []
+        self.persisted: list[dict[str, object]] = []
+        self.stream_messages: list[dict[str, str]] | None = None
 
     def search_memory_results(self, query: str, user_id: str) -> list[object]:
-        return []
+        return [
+            MemorySearchResult(
+                id="candidate-id",
+                memory="Existing candidate memory.",
+                score=0.8,
+            )
+        ]
 
     def stream_response(
         self,
@@ -41,6 +48,7 @@ class StreamingMemory:
         memories: list[object],
         messages: list[dict[str, str]],
     ):
+        self.stream_messages = messages
         yield from self.deltas
 
     def persist_conversation(
@@ -48,12 +56,16 @@ class StreamingMemory:
         query: str,
         response_text: str,
         user_id: str,
+        recent_messages: list[dict[str, str]] | None = None,
+        candidate_memories: list[MemorySearchResult] | None = None,
     ) -> None:
         self.persisted.append(
             {
                 "query": query,
                 "response_text": response_text,
                 "user_id": user_id,
+                "recent_messages": recent_messages or [],
+                "candidate_memories": candidate_memories or [],
             }
         )
 
@@ -89,11 +101,13 @@ class BlockingFirstTts:
 def create_streamer(
     memory: StreamingMemory,
     tts: RecordingTts | BlockingFirstTts,
+    history: ConversationHistory | None = None,
 ) -> AssistantResponseStreamer:
     return AssistantResponseStreamer(
         memory=memory,
         tts=tts,
         telemetry=assistant_telemetry,
+        history=history or ConversationHistory(),
         user_id="test-user",
     )
 
@@ -216,16 +230,86 @@ def test_stream_response_does_not_split_short_tts_chunk_at_comma() -> None:
     assert tts.started == ["Xin chào bạn, bạn khỏe không?"]
 
 
-def test_cancelled_stream_skips_memory_persist_and_completes_telemetry() -> None:
+def test_stream_response_injects_recent_conversation_messages() -> None:
+    memory = StreamingMemory(["Okay. "])
+    history = ConversationHistory()
+    history.record_turn("test-user", "I need to call Lan.", "I will remember that.")
+    streamer = create_streamer(memory, RecordingTts(), history)
+    events = streamer.stream_response_events("What did I mention?", {"run_id": None})
+
+    try:
+        while True:
+            event = next(events)
+            if event["type"] == "done":
+                break
+    finally:
+        events.close()
+
+    assert memory.stream_messages is not None
+    assert memory.stream_messages[-3:] == [
+        {"role": "user", "content": "I need to call Lan."},
+        {"role": "assistant", "content": "I will remember that."},
+        {"role": "user", "content": "What did I mention?"},
+    ]
+
+
+def test_stream_persistence_records_short_term_history_after_done() -> None:
     assistant_telemetry.reset()
-    memory = StreamingMemory(["One. ", "Two. "])
+    memory = StreamingMemory(["Done. "])
+    history = ConversationHistory()
+    history.record_turn("test-user", "My friend Minh plays badly.", "I understand.")
     service = AssistantService(
         asr=StubAsr(),
         memory=memory,
         tts=RecordingTts(),
+        history=history,
         user_id="test-user",
     )
-    response_holder: dict[str, str] = {}
+    response_holder: dict[str, object] = {}
+
+    events = list(service.stream_events(b"audio-bytes", None, response_holder))
+    service.stream_persistence.persist_streamed_response(response_holder)
+
+    assert events[-1] == {"type": "done", "text": "Done."}
+    assert memory.persisted == [
+        {
+            "query": "Remember my meeting",
+            "response_text": "Done.",
+            "user_id": "test-user",
+            "recent_messages": [
+                {"role": "user", "content": "My friend Minh plays badly."},
+                {"role": "assistant", "content": "I understand."},
+            ],
+            "candidate_memories": [
+                MemorySearchResult(
+                    id="candidate-id",
+                    memory="Existing candidate memory.",
+                    score=0.8,
+                )
+            ],
+        }
+    ]
+    assert history.messages_for("test-user") == [
+        {"role": "user", "content": "My friend Minh plays badly."},
+        {"role": "assistant", "content": "I understand."},
+        {"role": "user", "content": "Remember my meeting"},
+        {"role": "assistant", "content": "Done."},
+    ]
+    assistant_telemetry.reset()
+
+
+def test_cancelled_stream_skips_memory_persist_and_completes_telemetry() -> None:
+    assistant_telemetry.reset()
+    memory = StreamingMemory(["One. ", "Two. "])
+    history = ConversationHistory()
+    service = AssistantService(
+        asr=StubAsr(),
+        memory=memory,
+        tts=RecordingTts(),
+        history=history,
+        user_id="test-user",
+    )
+    response_holder: dict[str, object] = {}
 
     events = service.stream_events(b"audio-bytes", None, response_holder)
     assert next(events)["type"] == "asr"
@@ -237,6 +321,7 @@ def test_cancelled_stream_skips_memory_persist_and_completes_telemetry() -> None
     assert "completed" not in response_holder
     assert response_holder["cancelled"] == "true"
     assert memory.persisted == []
+    assert history.messages_for("test-user") == []
 
     run = assistant_telemetry.snapshot()["recent_runs"][0]
     stages = {stage["name"]: stage for stage in run["stages"]}
@@ -252,14 +337,16 @@ def test_cancelled_stream_skips_memory_persist_and_completes_telemetry() -> None
 
 def test_stream_closed_after_done_event_does_not_persist() -> None:
     memory = StreamingMemory(["Done. "])
-    streamer = create_streamer(memory, RecordingTts())
+    history = ConversationHistory()
+    streamer = create_streamer(memory, RecordingTts(), history)
     service = AssistantService(
         asr=StubAsr(),
         memory=memory,
         tts=RecordingTts(),
+        history=history,
         user_id="test-user",
     )
-    response_holder = {"run_id": None}
+    response_holder: dict[str, object] = {"run_id": None}
     events = streamer.stream_response_events("Hello", response_holder)
 
     try:
