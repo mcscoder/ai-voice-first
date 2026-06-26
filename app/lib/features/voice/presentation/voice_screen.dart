@@ -2,31 +2,43 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/design_system/design_system.dart';
 import '../../../core/di/get_it.dart';
+import '../../../core/router/router.dart';
 import '../../../shared/i18n/i18n.dart';
+import 'talk_navigation_drawer.dart';
 import 'voice_capture_cubit.dart';
 import 'voice_capture_state.dart';
 
 final class VoiceScreen extends StatelessWidget {
-  const VoiceScreen({super.key, this.cubit, this.isShellMode = false});
+  const VoiceScreen({super.key, this.cubit});
 
   final VoiceCaptureCubit? cubit;
-  final bool isShellMode;
 
   @override
   Widget build(BuildContext context) {
-    final content = BlocProvider(
-      create: (_) => cubit ?? getIt<VoiceCaptureCubit>(),
-      child: const _TalkContent(),
+    return VoxiaScaffold(
+      safeArea: false,
+      endDrawer: TalkNavigationDrawer(
+        onOpenMemory: () => context.push(AppRoutes.memory),
+        onOpenProfile: () => context.push(AppRoutes.profile),
+      ),
+      child: BlocProvider(
+        create: (_) => cubit ?? getIt<VoiceCaptureCubit>(),
+        child: const Stack(
+          children: [
+            _TalkContent(),
+            Positioned(
+              top: AppSpacing.sm,
+              right: AppSpacing.md,
+              child: SafeArea(child: TalkMenuButton()),
+            ),
+          ],
+        ),
+      ),
     );
-
-    if (isShellMode) {
-      return content;
-    }
-
-    return VoxiaScaffold(child: content);
   }
 }
 

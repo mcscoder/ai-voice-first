@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hydrated_bloc/hydrated_bloc.dart';
 import 'package:path_provider/path_provider.dart';
@@ -106,6 +108,33 @@ final class AppView extends StatefulWidget {
 
 final class AppViewState extends State<AppView> {
   ThemeMode _themeMode = ThemeMode.dark;
+  late final AuthCubit _authCubit;
+  late final SetupCubit _setupCubit;
+  late final GoRouter _router;
+  StreamSubscription<AuthState>? _authSubscription;
+  StreamSubscription<SetupState>? _setupSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _authCubit = context.read<AuthCubit>();
+    _setupCubit = context.read<SetupCubit>();
+    _router = AppRouter.createRouter(
+      authCubit: _authCubit,
+      setupCubit: _setupCubit,
+    );
+    _authSubscription = _authCubit.stream.listen((_) => _router.refresh());
+    _setupSubscription = _setupCubit.stream.listen((_) => _router.refresh());
+    _authCubit.restoreSession();
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    _setupSubscription?.cancel();
+    _router.dispose();
+    super.dispose();
+  }
 
   void setThemeMode(ThemeMode mode) {
     if (!mounted) {
@@ -123,7 +152,7 @@ final class AppViewState extends State<AppView> {
       darkTheme: AppTheme.dark,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      routerConfig: AppRouter.routerConfig,
+      routerConfig: _router,
       themeMode: _themeMode,
     );
   }
