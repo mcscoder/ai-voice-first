@@ -32,10 +32,13 @@ def load_asr_model_kwargs(monkeypatch, quantization_level: str) -> dict[str, obj
     return kwargs
 
 
-def get_memory_model_kwargs(quantization_level: str) -> dict[str, object]:
-    mem0_config = MemoryConfig(
-        embedding_quantization_level=quantization_level
-    ).to_mem0_config()
+def get_memory_model_kwargs(quantization_level: str | None = None) -> dict[str, object]:
+    if quantization_level is None:
+        mem0_config = MemoryConfig().to_mem0_config()
+    else:
+        mem0_config = MemoryConfig(
+            embedding_quantization_level=quantization_level
+        ).to_mem0_config()
 
     embedder_config = mem0_config["embedder"]["config"]
     sentence_transformer_kwargs = embedder_config["model_kwargs"]
@@ -81,7 +84,13 @@ def test_asr_rejects_english_language() -> None:
         AsrService().normalize_language("en")
 
 
-def test_memory_config_passes_default_8bit_quantization_to_huggingface_embedder() -> None:
+def test_memory_config_disables_embedding_quantization_by_default() -> None:
+    model_kwargs = get_memory_model_kwargs()
+
+    assert "quantization_config" not in model_kwargs
+
+
+def test_memory_config_can_pass_8bit_quantization_to_huggingface_embedder() -> None:
     model_kwargs = get_memory_model_kwargs(quantization_level="int8")
 
     quantization_config = model_kwargs["quantization_config"]

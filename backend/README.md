@@ -72,8 +72,8 @@ quantization. Supported values are `none`, `int8`, `int4-nf4`, and `int4-fp4`.
 The memory service uses Mem0 with:
 
 - DeepSeek as the LLM provider
-- `Qwen/Qwen3-Embedding-0.6B` through the Hugging Face embedder with 8-bit
-  bitsandbytes quantization
+- `Qwen/Qwen3-Embedding-0.6B` through the Hugging Face embedder without
+  bitsandbytes quantization by default
 - Local Qdrant storage under `backend/app/data/mem0`
 
 Change `app.core.config.MemoryConfig.embedding_quantization_level` to adjust

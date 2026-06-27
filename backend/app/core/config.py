@@ -126,7 +126,7 @@ class MemoryConfig:
     embedder_provider: str = "huggingface"
     embedder_model: str = "Qwen/Qwen3-Embedding-0.6B"
     embedding_dims: int = 1024
-    embedding_quantization_level: QuantizationLevel = "int8"
+    embedding_quantization_level: QuantizationLevel = "none"
 
     vector_store_provider: str = "qdrant"
     vector_store_collection_name: str = "ai_voice_first_memories"
