@@ -10,7 +10,7 @@ from app.services.assistant.telemetry_payload import (
 def test_telemetry_moves_completed_run_to_recent_history() -> None:
     telemetry = AssistantTelemetry(max_recent_runs=2)
 
-    run_id = telemetry.start_run("vi")
+    run_id = telemetry.start_run("vi", "user-1", "Ngọc Linh")
     telemetry.start_stage(run_id, "asr")
     telemetry.finish_stage(
         run_id,
@@ -35,7 +35,11 @@ def test_telemetry_moves_completed_run_to_recent_history() -> None:
     recent_run = snapshot["recent_runs"][0]
     assert recent_run["run_id"] == run_id
     assert recent_run["status"] == "done"
-    assert recent_run["metadata"] == {"language": "vi"}
+    assert recent_run["metadata"] == {
+        "language": "vi",
+        "user_id": "user-1",
+        "tts_voice": "Ngọc Linh",
+    }
 
     stages = {stage["name"]: stage for stage in recent_run["stages"]}
     assert stages["asr"]["status"] == "done"
@@ -102,6 +106,7 @@ def test_telemetry_formats_payload_and_sse_event() -> None:
 
     assert payload["services"]["llm_model"] == "deepseek-v4-flash"
     assert payload["services"]["llm_thinking"] == "disabled"
+    assert payload["services"]["tts_default_voice"] == "Mỹ Duyên"
     lines = event.splitlines()
     assert lines[0] == "event: telemetry"
     assert json.loads(lines[1].removeprefix("data: "))["services"] == payload["services"]

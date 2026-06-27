@@ -7,6 +7,7 @@ from queue import Empty, Full, Queue
 from threading import Event, Lock, Thread
 from time import perf_counter
 
+from app.core.config import TtsVoice
 from app.services.assistant.telemetry import AssistantTelemetry
 from app.services.assistant.types import (
     AssistantMemory,
@@ -81,10 +82,17 @@ class AssistantResponseStreamer:
         query: str,
         response_holder: ResponseHolder,
         user_id: str,
+        selected_voice: TtsVoice | None = None,
     ):
         run_id = response_holder.get("run_id")
         memory_enabled = self.memory.is_enabled(user_id)
         response_holder["memory_enabled"] = memory_enabled
+        response_holder["selected_voice"] = selected_voice
+        self.telemetry.update_stage(
+            run_id,
+            "tts_synthesis",
+            {"voice": selected_voice},
+        )
 
         self.telemetry.start_stage(run_id, "memory_search")
         if memory_enabled:
@@ -296,7 +304,7 @@ class AssistantResponseStreamer:
                         current_chunk,
                     )
                     audio_start = perf_counter()
-                    event = self._audio_event(job.text, job.sequence)
+                    event = self._audio_event(job.text, job.sequence, selected_voice)
                     chunk_duration_ms = (perf_counter() - audio_start) * 1000
                     tts_duration_ms += chunk_duration_ms
                     chunk_count += 1
@@ -513,8 +521,13 @@ class AssistantResponseStreamer:
 
         return None, text
 
-    def _audio_event(self, text: str, sequence: int) -> StreamEvent:
-        speech = self.tts.synthesize(text, None)
+    def _audio_event(
+        self,
+        text: str,
+        sequence: int,
+        selected_voice: TtsVoice | None,
+    ) -> StreamEvent:
+        speech = self.tts.synthesize(text, selected_voice)
         return {
             "type": "audio",
             "sequence": sequence,

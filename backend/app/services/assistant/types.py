@@ -4,6 +4,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Protocol
 
+from app.core.config import TtsVoice
 from app.services.memory import MemoryPersistResult, MemoryReply, MemorySearchResult
 from app.services.tts import TtsResult
 
@@ -52,5 +53,5 @@ class AssistantMemory(Protocol):
 
 
 class AssistantTts(Protocol):
-    def synthesize(self, text: str, voice: object | None) -> TtsResult:
+    def synthesize(self, text: str, voice: TtsVoice | None) -> TtsResult:
         ...

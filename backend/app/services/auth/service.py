@@ -5,6 +5,7 @@ import secrets
 import sqlite3
 import threading
 from datetime import datetime, timezone
+from typing import cast
 from uuid import uuid4
 
 import jwt
@@ -12,7 +13,7 @@ from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 from jwt import InvalidTokenError
 
-from app.core.config import AuthConfig, config
+from app.core.config import AuthConfig, TtsVoice, config
 from app.services.auth.types import (
     AuthConfigError,
     AuthenticatedUser,
@@ -160,6 +161,34 @@ class AuthService:
             )
         return enabled
 
+    def get_voice(self, user_id: str) -> TtsVoice:
+        with self._connect() as db:
+            row = db.execute(
+                "SELECT voice FROM user_preferences WHERE user_id = ?",
+                (user_id,),
+            ).fetchone()
+
+        if row is None or row["voice"] is None:
+            return config.tts.default_voice
+        return cast(TtsVoice, row["voice"])
+
+    def set_voice(self, user_id: str, voice: TtsVoice) -> TtsVoice:
+        memory_enabled = self.is_memory_enabled(user_id)
+        with self._connect() as db:
+            db.execute(
+                """
+                INSERT INTO user_preferences (
+                    user_id, memory_enabled, voice, updated_at
+                )
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    voice = excluded.voice,
+                    updated_at = excluded.updated_at
+                """,
+                (user_id, int(memory_enabled), voice, self._now_iso()),
+            )
+        return voice
+
     def _issue_token_pair(self, user: AuthenticatedUser) -> TokenPair:
         expires_at = datetime.now(timezone.utc) + self.auth_config.access_token_ttl
         access_token = jwt.encode(
@@ -239,15 +268,24 @@ class AuthService:
                     CREATE TABLE IF NOT EXISTS user_preferences (
                         user_id TEXT PRIMARY KEY,
                         memory_enabled INTEGER NOT NULL,
+                        voice TEXT,
                         updated_at TEXT NOT NULL,
                         FOREIGN KEY (user_id) REFERENCES users(id)
                     )
                     """
                 )
+                self._migrate_user_preferences(db)
                 db.commit()
             finally:
                 db.close()
             self._initialized = True
+
+    def _migrate_user_preferences(self, db: sqlite3.Connection) -> None:
+        columns = {
+            row[1] for row in db.execute("PRAGMA table_info(user_preferences)").fetchall()
+        }
+        if "voice" not in columns:
+            db.execute("ALTER TABLE user_preferences ADD COLUMN voice TEXT")
 
     def _secret_key(self) -> str:
         if not self.auth_config.secret_key:

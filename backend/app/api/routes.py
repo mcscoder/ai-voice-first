@@ -105,6 +105,22 @@ class MemorySettingsResponse(BaseModel):
     memory_enabled: bool
 
 
+class VoiceOptionResponse(BaseModel):
+    id: TtsVoice
+    name: str
+    description: str
+
+
+class VoiceSettingsRequest(BaseModel):
+    selected_voice: TtsVoice
+
+
+class VoiceSettingsResponse(BaseModel):
+    selected_voice: TtsVoice
+    default_voice: TtsVoice
+    voices: list[VoiceOptionResponse]
+
+
 def telemetry_user_id(
     credentials: Annotated[
         HTTPAuthorizationCredentials | None,
@@ -214,6 +230,41 @@ def update_memory_settings(
     )
 
 
+@router.get("/v1/voice/settings", response_model=VoiceSettingsResponse)
+def get_voice_settings(user: CurrentUser) -> VoiceSettingsResponse:
+    return VoiceSettingsResponse(
+        selected_voice=auth_service.get_voice(user.id),
+        default_voice=config.tts.default_voice,
+        voices=[
+            VoiceOptionResponse(
+                id=voice.id,
+                name=voice.name,
+                description=voice.description,
+            )
+            for voice in tts_service.list_voice_options()
+        ],
+    )
+
+
+@router.put("/v1/voice/settings", response_model=VoiceSettingsResponse)
+def update_voice_settings(
+    request: VoiceSettingsRequest,
+    user: CurrentUser,
+) -> VoiceSettingsResponse:
+    return VoiceSettingsResponse(
+        selected_voice=auth_service.set_voice(user.id, request.selected_voice),
+        default_voice=config.tts.default_voice,
+        voices=[
+            VoiceOptionResponse(
+                id=voice.id,
+                name=voice.name,
+                description=voice.description,
+            )
+            for voice in tts_service.list_voice_options()
+        ],
+    )
+
+
 @router.get("/v1/voice/assistant/telemetry/stream")
 def voice_assistant_telemetry_stream(
     user_id: Annotated[str | None, Depends(telemetry_user_id)],
@@ -316,11 +367,13 @@ async def voice_assistant(
     if not audio_bytes:
         raise HTTPException(status_code=400, detail="Uploaded file is empty.")
 
+    selected_voice = auth_service.get_voice(user.id)
     result = await asyncio.to_thread(
         assistant_service.respond,
         audio_bytes,
         language,
         user.id,
+        selected_voice,
     )
 
     return Response(
@@ -353,6 +406,7 @@ async def voice_assistant_stream(
     if not audio_bytes:
         raise HTTPException(status_code=400, detail="Uploaded file is empty.")
 
+    selected_voice = auth_service.get_voice(user.id)
     response_holder: dict[str, str] = {}
 
     def event_lines() -> Iterator[bytes]:
@@ -361,6 +415,7 @@ async def voice_assistant_stream(
             language,
             response_holder,
             user.id,
+            selected_voice,
         ):
             yield (json.dumps(event) + "\n").encode("utf-8")
 

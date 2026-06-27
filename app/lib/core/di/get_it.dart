@@ -17,8 +17,11 @@ import '../../features/memory/data/memory_api.dart';
 import '../../features/memory/data/memory_repository.dart';
 import '../../features/memory/presentation/memory_cubit.dart';
 import '../../features/voice/data/audio_recorder_service.dart';
+import '../../features/voice_settings/data/voice_settings_api.dart';
+import '../../features/voice_settings/data/voice_settings_repository.dart';
 import '../../features/voice/data/transcription_api.dart';
 import '../../features/voice/presentation/voice_capture_cubit.dart';
+import '../../features/voice_settings/presentation/voice_settings_cubit.dart';
 import 'get_it.config.dart';
 
 final getIt = GetIt.instance;
@@ -40,6 +43,21 @@ void configureDependencies() {
   if (!getIt.isRegistered<MemoryCubit>()) {
     getIt.registerFactory<MemoryCubit>(
       () => MemoryCubit(getIt<MemoryRepository>()),
+    );
+  }
+  if (!getIt.isRegistered<VoiceSettingsApi>()) {
+    getIt.registerLazySingleton<VoiceSettingsApi>(
+      () => VoiceSettingsApi(getIt<Dio>(instanceName: 'AuthDio')),
+    );
+  }
+  if (!getIt.isRegistered<VoiceSettingsRepository>()) {
+    getIt.registerLazySingleton<VoiceSettingsRepository>(
+      () => VoiceSettingsRepository(getIt<VoiceSettingsApi>()),
+    );
+  }
+  if (!getIt.isRegistered<VoiceSettingsCubit>()) {
+    getIt.registerFactory<VoiceSettingsCubit>(
+      () => VoiceSettingsCubit(getIt<VoiceSettingsRepository>()),
     );
   }
 }

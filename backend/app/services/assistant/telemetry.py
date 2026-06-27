@@ -8,6 +8,7 @@ from threading import RLock
 from time import perf_counter
 from uuid import uuid4
 
+from app.core.config import TtsVoice
 from app.services.assistant.telemetry_types import (
     PipelineRun,
     PipelineStage,
@@ -25,7 +26,12 @@ class AssistantTelemetry:
         self._subscribers: set[Queue[dict[str, object]]] = set()
         self._lock = RLock()
 
-    def start_run(self, language: str | None = None, user_id: str | None = None) -> str:
+    def start_run(
+        self,
+        language: str | None = None,
+        user_id: str | None = None,
+        tts_voice: TtsVoice | None = None,
+    ) -> str:
         run_id = uuid4().hex[:12]
         now = perf_counter()
         stages = {
@@ -43,6 +49,8 @@ class AssistantTelemetry:
         metadata = {"language": language or "auto"}
         if user_id is not None:
             metadata["user_id"] = user_id
+        if tts_voice is not None:
+            metadata["tts_voice"] = tts_voice
 
         run = PipelineRun(
             run_id=run_id,

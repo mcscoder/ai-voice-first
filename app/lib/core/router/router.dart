@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../error_screen.dart';
@@ -7,6 +8,8 @@ import '../../features/memory/memory.dart';
 import '../../features/onboarding/onboarding.dart';
 import '../../features/profile/profile.dart';
 import '../../features/voice/voice.dart';
+import '../../features/voice_settings/voice_settings.dart';
+import '../di/get_it.dart';
 
 abstract class AppRoutes {
   AppRoutes._();
@@ -17,6 +20,7 @@ abstract class AppRoutes {
   static const talk = '/talk';
   static const memory = '/memory';
   static const profile = '/profile';
+  static const voiceSettings = '/profile/voice-settings';
 
   static String memoryCategory(String categoryKey) => '$memory/$categoryKey';
 }
@@ -58,6 +62,13 @@ abstract class AppRouter {
         GoRoute(
           path: AppRoutes.profile,
           builder: (_, _) => const ProfileScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.voiceSettings,
+          builder: (_, _) => BlocProvider(
+            create: (_) => getIt<VoiceSettingsCubit>()..load(),
+            child: const VoiceSettingsScreen(),
+          ),
         ),
       ],
       errorBuilder: (_, _) => const ErrorScreen(),

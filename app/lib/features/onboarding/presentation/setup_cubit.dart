@@ -1,36 +1,30 @@
 import 'package:equatable/equatable.dart';
 import 'package:hydrated_bloc/hydrated_bloc.dart';
 
-enum AssistantVoice { friendly, calm, professional, energetic }
-
 enum SpeakingStyle { shortAnswers, detailedAnswers, casual, professional }
 
 final class SetupState extends Equatable {
   const SetupState({
     this.isComplete = false,
     this.nickname = '',
-    this.voice = AssistantVoice.friendly,
     this.speakingStyle = SpeakingStyle.shortAnswers,
     this.memoryEnabled = true,
   });
 
   final bool isComplete;
   final String nickname;
-  final AssistantVoice voice;
   final SpeakingStyle speakingStyle;
   final bool memoryEnabled;
 
   SetupState copyWith({
     bool? isComplete,
     String? nickname,
-    AssistantVoice? voice,
     SpeakingStyle? speakingStyle,
     bool? memoryEnabled,
   }) {
     return SetupState(
       isComplete: isComplete ?? this.isComplete,
       nickname: nickname ?? this.nickname,
-      voice: voice ?? this.voice,
       speakingStyle: speakingStyle ?? this.speakingStyle,
       memoryEnabled: memoryEnabled ?? this.memoryEnabled,
     );
@@ -40,7 +34,6 @@ final class SetupState extends Equatable {
   List<Object?> get props => [
     isComplete,
     nickname,
-    voice,
     speakingStyle,
     memoryEnabled,
   ];
@@ -49,10 +42,6 @@ final class SetupState extends Equatable {
 final class SetupCubit extends HydratedCubit<SetupState> {
   SetupCubit({Storage? storage})
     : super(const SetupState(), storage: _resolveStorage(storage));
-
-  void selectVoice(AssistantVoice voice) {
-    emit(state.copyWith(voice: voice));
-  }
 
   void updatePersonalization({
     required String nickname,
@@ -80,7 +69,6 @@ final class SetupCubit extends HydratedCubit<SetupState> {
     return SetupState(
       isComplete: json['isComplete'] as bool? ?? false,
       nickname: json['nickname'] as String? ?? '',
-      voice: _voiceFromName(json['voice'] as String?),
       speakingStyle: _styleFromName(json['speakingStyle'] as String?),
       memoryEnabled: json['memoryEnabled'] as bool? ?? true,
     );
@@ -91,17 +79,9 @@ final class SetupCubit extends HydratedCubit<SetupState> {
     return {
       'isComplete': state.isComplete,
       'nickname': state.nickname,
-      'voice': state.voice.name,
       'speakingStyle': state.speakingStyle.name,
       'memoryEnabled': state.memoryEnabled,
     };
-  }
-
-  AssistantVoice _voiceFromName(String? name) {
-    return AssistantVoice.values.firstWhere(
-      (voice) => voice.name == name,
-      orElse: () => AssistantVoice.friendly,
-    );
   }
 
   SpeakingStyle _styleFromName(String? name) {

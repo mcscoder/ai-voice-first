@@ -505,7 +505,7 @@ def dashboard_component(base_url: str, access_token: str) -> str:
     ["ASR", "asr_model"],
     ["LLM", "llm_model"],
     ["Memory", "embedder_model"],
-    ["TTS voice", "tts_voice"],
+    ["TTS default voice", "tts_default_voice"],
   ];
 
     let abortController = null;

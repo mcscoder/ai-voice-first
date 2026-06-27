@@ -1,3 +1,5 @@
+import sqlite3
+
 from app.core.config import AuthConfig
 from app.services.auth import (
     AuthConfigError,
@@ -114,3 +116,42 @@ def test_memory_preference_persists_updates(tmp_path) -> None:
     assert service.is_memory_enabled(token_pair.user.id) is False
     assert service.set_memory_enabled(token_pair.user.id, True) is True
     assert service.is_memory_enabled(token_pair.user.id) is True
+
+
+def test_voice_preference_defaults_persists_and_migrates(tmp_path) -> None:
+    db_path = tmp_path / "auth.sqlite3"
+    with sqlite3.connect(db_path) as db:
+        db.execute(
+            """
+            CREATE TABLE user_preferences (
+                user_id TEXT PRIMARY KEY,
+                memory_enabled INTEGER NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+        db.commit()
+
+    service = AuthService(
+        AuthConfig(
+            secret_key="test-secret-key-with-at-least-32-bytes",
+            db_path=db_path,
+        )
+    )
+    token_pair = service.register("test@example.com", "Password1!")
+
+    assert service.get_voice(token_pair.user.id) == "Mỹ Duyên"
+    assert service.set_voice(token_pair.user.id, "Ngọc Linh") == "Ngọc Linh"
+    assert service.get_voice(token_pair.user.id) == "Ngọc Linh"
+
+    with sqlite3.connect(db_path) as db:
+        columns = {
+            row[1] for row in db.execute("PRAGMA table_info(user_preferences)")
+        }
+        row = db.execute(
+            "SELECT voice FROM user_preferences WHERE user_id = ?",
+            (token_pair.user.id,),
+        ).fetchone()
+
+    assert "voice" in columns
+    assert row == ("Ngọc Linh",)

@@ -29,12 +29,16 @@ final class VoxiaScaffold extends StatelessWidget {
     super.key,
     this.bottomNavigationBar,
     this.endDrawer,
+    this.floatingActionButton,
+    this.floatingActionButtonLocation,
     this.safeArea = true,
   });
 
   final Widget child;
   final Widget? bottomNavigationBar;
   final Widget? endDrawer;
+  final Widget? floatingActionButton;
+  final FloatingActionButtonLocation? floatingActionButtonLocation;
   final bool safeArea;
 
   @override
@@ -49,6 +53,8 @@ final class VoxiaScaffold extends StatelessWidget {
       body: content,
       bottomNavigationBar: bottomNavigationBar,
       endDrawer: endDrawer,
+      floatingActionButton: floatingActionButton,
+      floatingActionButtonLocation: floatingActionButtonLocation,
     );
   }
 }

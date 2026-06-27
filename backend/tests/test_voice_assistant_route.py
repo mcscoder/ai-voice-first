@@ -22,7 +22,7 @@ from app.services.memory import (
     MemorySearchResult,
     conversation_history,
 )
-from app.services.tts import TtsResult
+from app.services.tts import TtsResult, TtsVoiceOption
 
 
 @pytest.fixture(autouse=True)
@@ -63,6 +63,7 @@ def test_voice_assistant_returns_generated_audio(monkeypatch) -> None:
         calls["tts"] = {"text": text, "voice": voice}
         return TtsResult(audio=b"wav-bytes", media_type="audio/wav")
 
+    monkeypatch.setattr(routes.auth_service, "get_voice", lambda *_: "Ngọc Linh")
     monkeypatch.setattr(routes.assistant_service.asr, "transcribe", transcribe)
     monkeypatch.setattr(routes.assistant_service.memory, "respond", respond)
     monkeypatch.setattr(routes.assistant_service.tts, "synthesize", synthesize)
@@ -81,7 +82,10 @@ def test_voice_assistant_returns_generated_audio(monkeypatch) -> None:
         "text": "Hôm nay tôi nên làm gì?",
         "user_id": "test-user",
     }
-    assert calls["tts"] == {"text": "You should review your plan.", "voice": None}
+    assert calls["tts"] == {
+        "text": "You should review your plan.",
+        "voice": "Ngọc Linh",
+    }
 
 
 def test_voice_assistant_rejects_empty_upload() -> None:
@@ -155,6 +159,7 @@ def test_voice_assistant_stream_returns_ordered_events(monkeypatch) -> None:
         calls["tts"] = {"text": text, "voice": voice}
         return TtsResult(audio=b"wav-chunk", media_type="audio/wav")
 
+    monkeypatch.setattr(routes.auth_service, "get_voice", lambda *_: "Ngọc Linh")
     monkeypatch.setattr(routes.assistant_service.asr, "transcribe", transcribe)
     monkeypatch.setattr(
         routes.assistant_service.memory,
@@ -217,7 +222,7 @@ def test_voice_assistant_stream_returns_ordered_events(monkeypatch) -> None:
     assert "2026-06-25T04:08:26+00:00" in prompt
     assert "memory-id" not in prompt
     assert "0.91" not in prompt
-    assert calls["tts"] == {"text": "Hi there.", "voice": None}
+    assert calls["tts"] == {"text": "Hi there.", "voice": "Ngọc Linh"}
 
 
 def test_voice_assistant_stream_persists_after_done(monkeypatch) -> None:
@@ -304,6 +309,7 @@ def test_voice_assistant_stream_records_pipeline_telemetry(monkeypatch) -> None:
     def synthesize(text: str, voice: object | None) -> TtsResult:
         return TtsResult(audio=b"wav-chunk", media_type="audio/wav")
 
+    monkeypatch.setattr(routes.auth_service, "get_voice", lambda *_: "Ngọc Linh")
     monkeypatch.setattr(routes.assistant_service.asr, "transcribe", transcribe)
     monkeypatch.setattr(
         routes.assistant_service.memory,
@@ -343,6 +349,7 @@ def test_voice_assistant_stream_records_pipeline_telemetry(monkeypatch) -> None:
     run = snapshot["recent_runs"][0]
     stages = {stage["name"]: stage for stage in run["stages"]}
     assert run["status"] == "done"
+    assert run["metadata"]["tts_voice"] == "Ngọc Linh"
     assert stages["asr"]["metadata"]["transcript"] == "Nhớ việc này"
     assert stages["memory_search"]["metadata"]["memory_count"] == 1
     assert stages["memory_search"]["metadata"]["memories"] == [
@@ -376,6 +383,7 @@ def test_voice_assistant_stream_records_pipeline_telemetry(monkeypatch) -> None:
     assert "0.82" not in prompt
     assert stages["tts_synthesis"]["metadata"]["chunk_count"] == 1
     assert stages["tts_synthesis"]["metadata"]["current_chunk"] is None
+    assert stages["tts_synthesis"]["metadata"]["voice"] == "Ngọc Linh"
     tts_chunks = stages["tts_synthesis"]["metadata"]["chunks"]
     assert len(tts_chunks) == 1
     assert tts_chunks[0]["sequence"] == 0
@@ -421,6 +429,7 @@ def test_voice_assistant_stream_records_memory_persist_actions(monkeypatch) -> N
         raw_result=None,
     )
 
+    monkeypatch.setattr(routes.auth_service, "get_voice", lambda *_: "Ngọc Linh")
     monkeypatch.setattr(routes.assistant_service.asr, "transcribe", transcribe)
     monkeypatch.setattr(
         routes.assistant_service.memory,
@@ -455,10 +464,86 @@ def test_voice_assistant_stream_records_memory_persist_actions(monkeypatch) -> N
     ]
 
 
+def test_get_voice_settings_returns_selected_default_and_available_voices(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(routes.auth_service, "get_voice", lambda *_: "Ngọc Linh")
+    monkeypatch.setattr(
+        routes.tts_service,
+        "list_voice_options",
+        lambda: [
+            TtsVoiceOption(
+                id="Ngọc Linh",
+                name="Ngọc Linh",
+                description="nữ, giọng tươi sáng",
+            ),
+            TtsVoiceOption(
+                id="Mỹ Duyên",
+                name="Mỹ Duyên",
+                description="nữ, giọng nhẹ nhàng",
+            ),
+        ],
+    )
+
+    response = create_client().get("/v1/voice/settings")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "selected_voice": "Ngọc Linh",
+        "default_voice": routes.config.tts.default_voice,
+        "voices": [
+            {
+                "id": "Ngọc Linh",
+                "name": "Ngọc Linh",
+                "description": "nữ, giọng tươi sáng",
+            },
+            {
+                "id": "Mỹ Duyên",
+                "name": "Mỹ Duyên",
+                "description": "nữ, giọng nhẹ nhàng",
+            },
+        ],
+    }
+
+
+def test_put_voice_settings_persists_selected_voice(monkeypatch) -> None:
+    calls: dict[str, object] = {}
+
+    def set_voice(user_id: str, voice: str) -> str:
+        calls["set_voice"] = {"user_id": user_id, "voice": voice}
+        return voice
+
+    monkeypatch.setattr(routes.auth_service, "set_voice", set_voice)
+    monkeypatch.setattr(
+        routes.tts_service,
+        "list_voice_options",
+        lambda: [
+            TtsVoiceOption(
+                id="Ngọc Linh",
+                name="Ngọc Linh",
+                description="nữ, giọng tươi sáng",
+            )
+        ],
+    )
+
+    response = create_client().put(
+        "/v1/voice/settings",
+        json={"selected_voice": "Ngọc Linh"},
+    )
+
+    assert response.status_code == 200
+    assert calls["set_voice"] == {
+        "user_id": "test-user",
+        "voice": "Ngọc Linh",
+    }
+    assert response.json()["selected_voice"] == "Ngọc Linh"
+
+
 @pytest.mark.parametrize(
     ("method", "path", "kwargs"),
     [
         ("get", "/v1/memories", {}),
+        ("get", "/v1/voice/settings", {}),
         (
             "post",
             "/v1/memories",
@@ -474,6 +559,11 @@ def test_voice_assistant_stream_records_memory_persist_actions(monkeypatch) -> N
             "put",
             "/v1/memories/settings",
             {"json": {"memory_enabled": False}},
+        ),
+        (
+            "put",
+            "/v1/voice/settings",
+            {"json": {"selected_voice": "Ngọc Linh"}},
         ),
     ],
 )

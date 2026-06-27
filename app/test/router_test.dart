@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:ai_voice_first/core/analytics/analytics_service.dart';
 import 'package:ai_voice_first/core/error.dart';
@@ -13,6 +14,7 @@ import 'package:ai_voice_first/features/onboarding/onboarding.dart';
 import 'package:ai_voice_first/features/voice/data/audio_recorder_service.dart';
 import 'package:ai_voice_first/features/voice/data/transcription_api.dart';
 import 'package:ai_voice_first/features/voice/presentation/voice_capture_cubit.dart';
+import 'package:ai_voice_first/features/voice_settings/voice_settings.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -147,6 +149,14 @@ void main() {
         ),
         isNull,
       );
+      expect(
+        AppRouter.redirectFor(
+          authState: authState,
+          setupState: setupState,
+          location: AppRoutes.voiceSettings,
+        ),
+        isNull,
+      );
     });
   });
 
@@ -163,6 +173,14 @@ void main() {
           AudioRecorderService(),
           TranscriptionApi(Dio()),
           playAssistantSpeech: (_) async {},
+        ),
+      );
+      getIt.registerFactory<VoiceSettingsCubit>(
+        () => VoiceSettingsCubit(
+          _VoiceSettingsRepositoryStub(),
+          playVoicePreview: (_) async {},
+          stopVoicePreview: () async {},
+          loadVoicePreviewAsset: (_) async => Uint8List.fromList(const [1]),
         ),
       );
       getIt.registerLazySingleton<AnalyticsService>(() => _NoopAnalytics());
@@ -329,6 +347,30 @@ void main() {
       expect(find.byTooltip('Menu'), findsOneWidget);
       expect(find.text('Voice settings'), findsNothing);
     });
+
+    testWidgets('opens voice settings from profile', (tester) async {
+      final router = await _pumpRouterApp(
+        tester,
+        authCubit: authCubit,
+        memoryCubit: memoryCubit,
+        setupCubit: setupCubit,
+      );
+
+      router.push(AppRoutes.profile);
+      await _pumpForTransition(tester);
+
+      await tester.tap(find.text('Voice settings'));
+      await _pumpForTransition(tester);
+
+      expect(find.byType(VoiceSettingsScreen), findsOneWidget);
+      expect(find.byKey(const Key('voice_settings_save')), findsOneWidget);
+      expect(find.text('Ngọc Linh'), findsOneWidget);
+
+      await tester.binding.handlePopRoute();
+      await _pumpForTransition(tester);
+
+      expect(find.text('Profile'), findsOneWidget);
+    });
   });
 }
 
@@ -475,6 +517,49 @@ final class _MemoryRepositoryStub extends MemoryRepository {
     required bool memoryEnabled,
   }) async {
     return (error: null, memoryEnabled: memoryEnabled);
+  }
+}
+
+final class _VoiceSettingsRepositoryStub extends VoiceSettingsRepository {
+  _VoiceSettingsRepositoryStub() : super(VoiceSettingsApi(Dio()));
+
+  @override
+  Future<({NetworkError? error, VoiceSettingsModel? settings})>
+  loadSettings() async {
+    return (
+      error: null,
+      settings: const VoiceSettingsModel(
+        selectedVoice: 'Ngọc Linh',
+        defaultVoice: 'Mỹ Duyên',
+        voices: [
+          VoiceOption(
+            id: 'Ngọc Linh',
+            name: 'Ngọc Linh',
+            description: 'nữ, giọng tươi sáng',
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Future<({NetworkError? error, VoiceSettingsModel? settings})> saveSettings({
+    required String selectedVoice,
+  }) async {
+    return (
+      error: null,
+      settings: VoiceSettingsModel(
+        selectedVoice: selectedVoice,
+        defaultVoice: 'Mỹ Duyên',
+        voices: const [
+          VoiceOption(
+            id: 'Ngọc Linh',
+            name: 'Ngọc Linh',
+            description: 'nữ, giọng tươi sáng',
+          ),
+        ],
+      ),
+    );
   }
 }
 

@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import json
 import threading
 from dataclasses import dataclass
 from io import BytesIO
+from pathlib import Path
 
 import av
 import numpy as np
 from app.core.config import TtsDevice, TtsEmotion, TtsVoice, config
+import vieneu
 from vieneu import Vieneu
 from vieneu.base import BaseVieneuTTS
 
@@ -23,6 +26,13 @@ class EmptyTtsAudioError(TtsError):
 class TtsResult:
     audio: bytes
     media_type: str
+
+
+@dataclass(frozen=True)
+class TtsVoiceOption:
+    id: TtsVoice
+    name: str
+    description: str
 
 
 def encode_wav_audio(audio: np.ndarray, sample_rate: int) -> bytes:
@@ -109,6 +119,24 @@ class TtsService:
     def encode_audio(self, audio: np.ndarray) -> bytes:
         model = self._model or self.load_model()
         return encode_wav_audio(audio, model.sample_rate)
+
+    def list_voice_options(self) -> list[TtsVoiceOption]:
+        metadata_path = (
+            Path(vieneu.__file__).resolve().parent / "assets" / "voices_v3_turbo.json"
+        )
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+
+        voices: list[TtsVoiceOption] = []
+        for voice_name, voice_metadata in metadata.get("presets", {}).items():
+            description = str(voice_metadata.get("description", "")).strip()
+            voices.append(
+                TtsVoiceOption(
+                    id=voice_name,
+                    name=voice_name,
+                    description=description,
+                )
+            )
+        return voices
 
 
 tts_service = TtsService()

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/design_system/design_system.dart';
+import '../../core/router/router.dart';
 import '../auth/auth.dart';
 import '../onboarding/onboarding.dart';
 
@@ -70,7 +71,11 @@ final class ProfileScreen extends StatelessWidget {
             icon: Icons.person_outline,
             title: 'Personalization',
           ),
-          const _ProfileTile(icon: Icons.graphic_eq, title: 'Voice settings'),
+          _ProfileTile(
+            icon: Icons.graphic_eq,
+            title: 'Voice settings',
+            onTap: () => context.push(AppRoutes.voiceSettings),
+          ),
           const _ProfileTile(
             icon: Icons.verified_user_outlined,
             title: 'Privacy',
@@ -167,16 +172,18 @@ final class _SectionLabel extends StatelessWidget {
 }
 
 final class _ProfileTile extends StatelessWidget {
-  const _ProfileTile({required this.icon, required this.title});
+  const _ProfileTile({required this.icon, required this.title, this.onTap});
 
   final IconData icon;
   final String title;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: VoxiaGlassPanel(
+        onTap: onTap,
         child: Row(
           children: [
             Icon(icon, color: VoxiaColors.cyan, size: 28),

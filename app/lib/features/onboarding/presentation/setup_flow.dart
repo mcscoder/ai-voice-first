@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/design_system/design_system.dart';
+import '../../../core/di/get_it.dart';
+import '../../voice_settings/voice_settings.dart';
 import 'setup_cubit.dart';
 
 final class SetupFlow extends StatefulWidget {
@@ -34,7 +36,10 @@ final class _SetupFlowState extends State<SetupFlow> {
   Widget build(BuildContext context) {
     final pages = <Widget>[
       _PermissionsStep(onContinue: _next),
-      _VoiceSetupStep(onContinue: _next),
+      BlocProvider(
+        create: (_) => getIt<VoiceSettingsCubit>()..load(),
+        child: _VoiceSetupStep(onContinue: _next),
+      ),
       _PersonalizationStep(
         nicknameController: _nicknameController,
         selectedStyle: _selectedStyle,
@@ -146,43 +151,38 @@ final class _VoiceSetupStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<SetupCubit, SetupState>(
+    return BlocBuilder<VoiceSettingsCubit, VoiceSettingsState>(
       builder: (context, state) {
         return _SetupPage(
           header: const VoxiaScreenHeader(
             title: 'Choose your\nAI voice',
+            subtitle: 'Preview each VieNeu voice before you continue.',
             icon: VoxiaMark(size: 44),
           ),
           children: [
-            _VoiceChoiceTile(
-              voice: AssistantVoice.friendly,
-              icon: Icons.sentiment_satisfied_alt,
-              title: 'Friendly',
-              subtitle: 'Warm and approachable',
-              selectedVoice: state.voice,
+            VoiceSelectionPanel(
+              state: state,
+              onRetry: () => context.read<VoiceSettingsCubit>().load(),
+              onSelectVoice: (voiceId) =>
+                  context.read<VoiceSettingsCubit>().selectVoice(voiceId),
+              onPreviewVoice: (voiceId) =>
+                  context.read<VoiceSettingsCubit>().preview(voiceId),
             ),
-            _VoiceChoiceTile(
-              voice: AssistantVoice.calm,
-              icon: Icons.spa_outlined,
-              title: 'Calm',
-              subtitle: 'Relaxed and soothing',
-              selectedVoice: state.voice,
+            VoxiaGradientButton(
+              label: 'Continue',
+              isBusy: state.isSaving,
+              onPressed: state.selectedVoiceId.isEmpty
+                  ? null
+                  : () async {
+                      final saved = await context
+                          .read<VoiceSettingsCubit>()
+                          .save();
+                      if (saved && context.mounted) {
+                        await context.read<VoiceSettingsCubit>().stopPreview();
+                        onContinue();
+                      }
+                    },
             ),
-            _VoiceChoiceTile(
-              voice: AssistantVoice.professional,
-              icon: Icons.business_center_outlined,
-              title: 'Professional',
-              subtitle: 'Clear and confident',
-              selectedVoice: state.voice,
-            ),
-            _VoiceChoiceTile(
-              voice: AssistantVoice.energetic,
-              icon: Icons.bolt,
-              title: 'Energetic',
-              subtitle: 'Upbeat and lively',
-              selectedVoice: state.voice,
-            ),
-            VoxiaGradientButton(label: 'Continue', onPressed: onContinue),
           ],
         );
       },
@@ -376,48 +376,6 @@ final class _PermissionTile extends StatelessWidget {
             child: _TileText(title: title, subtitle: subtitle),
           ),
           _SelectionCircle(isSelected: isEnabled),
-        ],
-      ),
-    );
-  }
-}
-
-final class _VoiceChoiceTile extends StatelessWidget {
-  const _VoiceChoiceTile({
-    required this.voice,
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.selectedVoice,
-  });
-
-  final AssistantVoice voice;
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final AssistantVoice selectedVoice;
-
-  @override
-  Widget build(BuildContext context) {
-    final isSelected = voice == selectedVoice;
-    return VoxiaGlassPanel(
-      isSelected: isSelected,
-      onTap: () => context.read<SetupCubit>().selectVoice(voice),
-      child: Row(
-        children: [
-          _IconSquare(
-            icon: icon,
-            color: isSelected ? VoxiaColors.cyan : VoxiaColors.muted,
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: _TileText(title: title, subtitle: subtitle),
-          ),
-          Icon(
-            isSelected ? Icons.check_circle : Icons.play_circle_outline,
-            color: isSelected ? VoxiaColors.cyan : VoxiaColors.muted,
-            size: 28,
-          ),
         ],
       ),
     );

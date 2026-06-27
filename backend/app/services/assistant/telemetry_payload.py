@@ -16,7 +16,7 @@ def with_service_metadata(snapshot: dict[str, object]) -> dict[str, object]:
         "llm_thinking": config.memory.llm_thinking,
         "embedder_model": config.memory.embedder_model,
         "tts_device": config.tts.device,
-        "tts_voice": config.tts.default_voice,
+        "tts_default_voice": config.tts.default_voice,
     }
     return payload
 

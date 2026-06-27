@@ -7,6 +7,7 @@ abstract class ApiPath {
   static const authMe = '/auth/me';
   static const voiceAssistant = '/v1/voice/assistant';
   static const voiceAssistantStream = '/v1/voice/assistant/stream';
+  static const voiceSettings = '/v1/voice/settings';
   static const memories = '/v1/memories';
   static const memorySettings = '/v1/memories/settings';
 }

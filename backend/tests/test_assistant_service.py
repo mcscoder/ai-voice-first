@@ -23,7 +23,11 @@ class StubMemory:
 
 
 class StubTts:
+    def __init__(self) -> None:
+        self.calls: list[dict[str, object | None]] = []
+
     def synthesize(self, text: str, voice: object | None) -> TtsResult:
+        self.calls.append({"text": text, "voice": voice})
         return TtsResult(audio=b"assistant-audio", media_type="audio/wav")
 
 
@@ -123,16 +127,20 @@ def create_streamer(
 
 
 def test_assistant_responds_with_synthesized_memory_reply() -> None:
+    tts = StubTts()
     service = AssistantService(
         asr=StubAsr(),
         memory=StubMemory(),
-        tts=StubTts(),
+        tts=tts,
     )
 
-    result = service.respond(b"audio-bytes", "vi", "test-user")
+    result = service.respond(b"audio-bytes", "vi", "test-user", "Ngọc Linh")
 
     assert result.audio == b"assistant-audio"
     assert result.media_type == "audio/wav"
+    assert tts.calls == [
+        {"text": "Stored: Remember my meeting", "voice": "Ngọc Linh"}
+    ]
 
 
 def test_stream_response_keeps_synthesizing_after_audio_event_is_yielded() -> None:

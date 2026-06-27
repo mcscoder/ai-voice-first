@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from typing import TYPE_CHECKING
 
+from app.core.config import TtsVoice
 from app.services.asr import AsrError, AsrService, asr_service
 from app.services.assistant.persistence import StreamPersistence
 from app.services.assistant.streaming import AssistantResponseStreamer
@@ -52,10 +53,11 @@ class AssistantService:
         audio: bytes | AudioLike,
         language: str | None = None,
         user_id: str = "",
+        selected_voice: TtsVoice | None = None,
     ) -> AssistantResult:
         transcription = self.asr.transcribe(audio, language)
         assistant_reply = self.memory.respond(transcription.text, user_id)
-        speech = self.tts.synthesize(assistant_reply.text, None)
+        speech = self.tts.synthesize(assistant_reply.text, selected_voice)
 
         return AssistantResult(
             audio=speech.audio,
@@ -68,8 +70,9 @@ class AssistantService:
         language: str | None,
         response_holder: ResponseHolder,
         user_id: str,
+        selected_voice: TtsVoice | None = None,
     ) -> Iterator[StreamEvent]:
-        run_id = assistant_telemetry.start_run(language, user_id)
+        run_id = assistant_telemetry.start_run(language, user_id, selected_voice)
         response_holder["run_id"] = run_id
         response_holder["user_id"] = user_id
 
@@ -97,6 +100,7 @@ class AssistantService:
                 transcription.text,
                 response_holder,
                 user_id,
+                selected_voice,
             )
             assistant_telemetry.start_stage(run_id, "client_stream_done")
             assistant_telemetry.finish_stage(
