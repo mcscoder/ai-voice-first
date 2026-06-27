@@ -27,6 +27,13 @@ class AuthenticatedUser:
 
 
 @dataclass(frozen=True)
+class PersonalizationSettings:
+    nickname: str
+    speaking_style: str
+    setup_completed: bool
+
+
+@dataclass(frozen=True)
 class TokenPair:
     access_token: str
     refresh_token: str

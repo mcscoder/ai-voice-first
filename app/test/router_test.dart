@@ -73,10 +73,21 @@ void main() {
       expect(
         AppRouter.redirectFor(
           authState: const AuthState(status: AuthStatus.authenticated),
-          setupState: const SetupState(isComplete: false),
+          setupState: const SetupState(syncStatus: SetupSyncStatus.synced),
           location: AppRoutes.talk,
         ),
         AppRoutes.setup,
+      );
+    });
+
+    test('keeps authenticated users on loading until setup sync finishes', () {
+      expect(
+        AppRouter.redirectFor(
+          authState: const AuthState(status: AuthStatus.authenticated),
+          setupState: const SetupState(),
+          location: AppRoutes.talk,
+        ),
+        AppRoutes.loading,
       );
     });
 
@@ -84,7 +95,10 @@ void main() {
       'sends fully onboarded users from loading, auth, setup, and root to talk',
       () {
         const authState = AuthState(status: AuthStatus.authenticated);
-        const setupState = SetupState(isComplete: true);
+        const setupState = SetupState(
+          isComplete: true,
+          syncStatus: SetupSyncStatus.synced,
+        );
 
         expect(
           AppRouter.redirectFor(
@@ -123,7 +137,10 @@ void main() {
 
     test('keeps fully onboarded users on talk, memory, and profile routes', () {
       const authState = AuthState(status: AuthStatus.authenticated);
-      const setupState = SetupState(isComplete: true);
+      const setupState = SetupState(
+        isComplete: true,
+        syncStatus: SetupSyncStatus.synced,
+      );
 
       expect(
         AppRouter.redirectFor(

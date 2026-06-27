@@ -155,3 +155,58 @@ def test_voice_preference_defaults_persists_and_migrates(tmp_path) -> None:
 
     assert "voice" in columns
     assert row == ("Ngọc Linh",)
+
+
+def test_personalization_defaults_persists_and_migrates(tmp_path) -> None:
+    db_path = tmp_path / "auth.sqlite3"
+    with sqlite3.connect(db_path) as db:
+        db.execute(
+            """
+            CREATE TABLE user_preferences (
+                user_id TEXT PRIMARY KEY,
+                memory_enabled INTEGER NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+        db.commit()
+
+    service = AuthService(
+        AuthConfig(
+            secret_key="test-secret-key-with-at-least-32-bytes",
+            db_path=db_path,
+        )
+    )
+    token_pair = service.register("test@example.com", "Password1!")
+
+    defaults = service.get_personalization(token_pair.user.id)
+
+    assert defaults.nickname == ""
+    assert defaults.speaking_style == "shortAnswers"
+    assert defaults.setup_completed is False
+
+    updated = service.set_personalization(
+        token_pair.user.id,
+        nickname="Alex",
+        speaking_style="professional",
+    )
+    assert updated.nickname == "Alex"
+    assert updated.speaking_style == "professional"
+    assert service.set_setup_completed(token_pair.user.id, True) is True
+    assert service.is_setup_completed(token_pair.user.id) is True
+
+    with sqlite3.connect(db_path) as db:
+        columns = {
+            row[1] for row in db.execute("PRAGMA table_info(user_preferences)")
+        }
+        row = db.execute(
+            """
+            SELECT nickname, speaking_style, setup_completed
+            FROM user_preferences
+            WHERE user_id = ?
+            """,
+            (token_pair.user.id,),
+        ).fetchone()
+
+    assert {"nickname", "speaking_style", "setup_completed"} <= columns
+    assert row == ("Alex", "professional", 1)

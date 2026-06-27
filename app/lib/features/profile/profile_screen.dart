@@ -13,7 +13,11 @@ final class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final setup = context.watch<SetupCubit>().state;
-    final displayName = setup.nickname.isEmpty ? 'Alex Morgan' : setup.nickname;
+    final displayName = setup.nickname.isEmpty
+        ? 'Your profile'
+        : setup.nickname;
+    final speakingStyle = _labelForStyle(setup.speakingStyle);
+    final memorySummary = setup.memoryEnabled ? 'Enabled' : 'Disabled';
 
     return VoxiaScaffold(
       child: VoxiaScrollPage(
@@ -22,22 +26,32 @@ final class ProfileScreen extends StatelessWidget {
         slivers: [
           const SizedBox(height: AppSpacing.sm),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 88,
-                height: 88,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: VoxiaColors.accentGradient,
-                ),
-                padding: const EdgeInsets.all(4),
-                child: const CircleAvatar(
-                  backgroundColor: VoxiaColors.backgroundAlt,
-                  child: Icon(Icons.person, color: VoxiaColors.text, size: 40),
+              Flexible(
+                flex: 2,
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: VoxiaColors.accentGradient,
+                    ),
+                    padding: const EdgeInsets.all(4),
+                    child: const CircleAvatar(
+                      backgroundColor: VoxiaColors.backgroundAlt,
+                      child: Icon(
+                        Icons.person,
+                        color: VoxiaColors.text,
+                        size: 40,
+                      ),
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
+                flex: 5,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -51,15 +65,33 @@ final class ProfileScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.xs),
                     Text(
-                      'alex.morgan@email.com',
-                      overflow: TextOverflow.ellipsis,
+                      'Voice-first assistant profile',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: VoxiaColors.muted,
                         letterSpacing: 0,
                       ),
                     ),
                     const SizedBox(height: AppSpacing.xs),
-                    const _PlanBadge(),
+                    Wrap(
+                      spacing: AppSpacing.sm,
+                      runSpacing: AppSpacing.xs,
+                      children: [
+                        _StatusBadge(
+                          icon: Icons.tune_rounded,
+                          label: speakingStyle,
+                          color: VoxiaColors.cyan,
+                        ),
+                        _StatusBadge(
+                          icon: setup.memoryEnabled
+                              ? Icons.psychology_outlined
+                              : Icons.hide_source,
+                          label: 'Memory $memorySummary',
+                          color: setup.memoryEnabled
+                              ? VoxiaColors.violet
+                              : VoxiaColors.muted,
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -67,25 +99,27 @@ final class ProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.md),
           _SectionLabel('ACCOUNT'),
-          const _ProfileTile(
+          _ProfileTile(
             icon: Icons.person_outline,
             title: 'Personalization',
+            subtitle: speakingStyle,
+            onTap: () => context.push(AppRoutes.profilePersonalization),
           ),
           _ProfileTile(
             icon: Icons.graphic_eq,
             title: 'Voice settings',
+            subtitle: 'Choose how Voxia sounds',
             onTap: () => context.push(AppRoutes.voiceSettings),
           ),
-          const _ProfileTile(
-            icon: Icons.verified_user_outlined,
-            title: 'Privacy',
+          _ProfileTile(
+            icon: Icons.psychology_outlined,
+            title: 'Memory',
+            subtitle: memorySummary,
+            onTap: () => context.push(AppRoutes.memory),
           ),
-          const _ProfileTile(
-            icon: Icons.notifications_none,
-            title: 'Notifications',
-          ),
-          const _ProfileTile(icon: Icons.help_outline, title: 'Help & Support'),
-          const _ProfileTile(icon: Icons.info_outline, title: 'About Voxia'),
+          const SizedBox(height: AppSpacing.md),
+          _SectionLabel('APP'),
+          const _InfoPanel(),
           const SizedBox(height: AppSpacing.md),
           VoxiaOutlineButton(
             icon: Icons.logout,
@@ -124,8 +158,16 @@ final class _BackToTalkButton extends StatelessWidget {
   }
 }
 
-final class _PlanBadge extends StatelessWidget {
-  const _PlanBadge();
+final class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -136,14 +178,14 @@ final class _PlanBadge extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         borderRadius: AppRadius.borderSm,
-        border: Border.all(color: VoxiaColors.violet),
+        border: Border.all(color: color),
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.workspace_premium, color: VoxiaColors.violet, size: 18),
-          SizedBox(width: AppSpacing.xs),
-          Text('Pro Plan', style: TextStyle(color: VoxiaColors.violet)),
+          Icon(icon, color: color, size: 18),
+          const SizedBox(width: AppSpacing.xs),
+          Text(label, style: TextStyle(color: color)),
         ],
       ),
     );
@@ -172,10 +214,16 @@ final class _SectionLabel extends StatelessWidget {
 }
 
 final class _ProfileTile extends StatelessWidget {
-  const _ProfileTile({required this.icon, required this.title, this.onTap});
+  const _ProfileTile({
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    this.onTap,
+  });
 
   final IconData icon;
   final String title;
+  final String? subtitle;
   final VoidCallback? onTap;
 
   @override
@@ -189,13 +237,28 @@ final class _ProfileTile extends StatelessWidget {
             Icon(icon, color: VoxiaColors.cyan, size: 28),
             const SizedBox(width: AppSpacing.md),
             Expanded(
-              child: Text(
-                title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: VoxiaColors.text,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: VoxiaColors.text,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0,
+                    ),
+                  ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      subtitle!,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: VoxiaColors.muted,
+                        letterSpacing: 0,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
             const Icon(Icons.chevron_right, color: VoxiaColors.muted),
@@ -204,4 +267,44 @@ final class _ProfileTile extends StatelessWidget {
       ),
     );
   }
+}
+
+final class _InfoPanel extends StatelessWidget {
+  const _InfoPanel();
+
+  @override
+  Widget build(BuildContext context) {
+    return VoxiaGlassPanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'About Voxia',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: VoxiaColors.text,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            'A voice-first assistant focused on quick setup, memory-aware conversations, and customizable replies.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: VoxiaColors.muted,
+              letterSpacing: 0,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _labelForStyle(SpeakingStyle style) {
+  return switch (style) {
+    SpeakingStyle.shortAnswers => 'Short answers',
+    SpeakingStyle.detailedAnswers => 'Detailed answers',
+    SpeakingStyle.casual => 'Casual',
+    SpeakingStyle.professional => 'Professional',
+  };
 }

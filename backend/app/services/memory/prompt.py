@@ -23,6 +23,8 @@ def build_response_messages(
     query: str,
     memories: list[MemorySearchResult],
     recent_messages: list[dict[str, str]] | None = None,
+    nickname: str = "",
+    speaking_style: str = "shortAnswers",
 ) -> list[dict[str, str]]:
     local_now = datetime.now().astimezone().isoformat()
     utc_now = datetime.now(timezone.utc).isoformat()
@@ -34,6 +36,13 @@ def build_response_messages(
         {
             "role": "system",
             "content": VOICE_ASSISTANT_SYSTEM_PROMPT,
+        },
+        {
+            "role": "system",
+            "content": build_personalization_prompt(
+                nickname=nickname,
+                speaking_style=speaking_style,
+            ),
         },
         {
             "role": "system",
@@ -53,6 +62,36 @@ def build_response_messages(
         },
     )
     return messages
+
+
+def build_personalization_prompt(nickname: str, speaking_style: str) -> str:
+    instructions = [
+        "Personalization:",
+        (
+            "Use the user's nickname only when it feels natural or genuinely helpful. "
+            "Do not address them by name in every reply."
+            if nickname
+            else "The user has not set a nickname. Do not invent one."
+        ),
+    ]
+    if nickname:
+        instructions.append(f"User nickname: {nickname}")
+
+    style_instruction = {
+        "shortAnswers": (
+            "Prefer brief replies, usually one to three short sentences unless the user asks for more."
+        ),
+        "detailedAnswers": (
+            "Give fuller context and explanation while keeping the reply voice-friendly."
+        ),
+        "casual": "Use relaxed, conversational wording.",
+        "professional": "Use more formal, direct, polished wording.",
+    }.get(
+        speaking_style,
+        "Prefer brief replies, usually one to three short sentences unless the user asks for more.",
+    )
+    instructions.append(f"Speaking style: {style_instruction}")
+    return "\n".join(instructions)
 
 
 def build_memory_planner_messages(

@@ -22,6 +22,7 @@ import 'core/theme/theme.dart';
 import 'features/auth/auth.dart';
 import 'features/memory/memory.dart';
 import 'features/onboarding/onboarding.dart';
+import 'features/profile/data/personalization_repository.dart';
 import 'shared/i18n/generated/app_localizations.dart';
 
 Future<void> initializeFlutterApp() async {
@@ -86,7 +87,10 @@ final class App extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider(create: (_) => getIt<AuthCubit>()),
-        BlocProvider(create: (_) => SetupCubit()),
+        BlocProvider(
+          create: (_) =>
+              SetupCubit(repository: getIt<PersonalizationRepository>()),
+        ),
         BlocProvider(create: (_) => getIt<MemoryCubit>()),
         BlocProvider(
           // ConnectivityCubit is a lazySingleton — share the same instance.
@@ -125,7 +129,14 @@ final class AppViewState extends State<AppView> {
       authCubit: _authCubit,
       setupCubit: _setupCubit,
     );
-    _authSubscription = _authCubit.stream.listen((_) => _router.refresh());
+    _authSubscription = _authCubit.stream.listen((authState) {
+      if (authState.status == AuthStatus.authenticated) {
+        unawaited(_setupCubit.syncFromBackend());
+      } else if (authState.status == AuthStatus.unauthenticated) {
+        _setupCubit.clearLocalStateOnLogout();
+      }
+      _router.refresh();
+    });
     _setupSubscription = _setupCubit.stream.listen((_) => _router.refresh());
     _authCubit.restoreSession();
   }

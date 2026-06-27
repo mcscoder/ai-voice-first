@@ -7,6 +7,7 @@ from app.services.memory.conversation_history import ConversationHistory
 from app.services.memory.persistence import MEMORY_PLANNER_TOOL, MemoryAction
 from app.services.memory.prompt import (
     build_memory_planner_messages,
+    build_personalization_prompt,
     build_response_messages,
 )
 from app.services.memory.service import MemorySearchResult, MemoryService
@@ -150,6 +151,15 @@ class FakeMemoryService(MemoryService):
             {
                 "is_memory_enabled": lambda _self, _user_id: memory_enabled,
                 "set_memory_enabled": lambda _self, _user_id, enabled: enabled,
+                "get_personalization": lambda _self, _user_id: type(
+                    "Personalization",
+                    (),
+                    {
+                        "nickname": "",
+                        "speaking_style": "shortAnswers",
+                        "setup_completed": False,
+                    },
+                )(),
             },
         )()
 
@@ -226,6 +236,33 @@ def test_memory_prompt_requires_plain_spoken_text() -> None:
     assert "plain spoken text only" in system_prompt
     assert "Do not use Markdown" in system_prompt
     assert "real human assistant" in system_prompt
+
+
+def test_memory_prompt_includes_personalization_without_losing_context() -> None:
+    messages = build_response_messages(
+        "Xin chào",
+        [
+            MemorySearchResult(
+                memory="User likes coffee.",
+                score=None,
+                created_at="2026-06-25T04:08:26+00:00",
+            )
+        ],
+        [{"role": "assistant", "content": "Chào bạn."}],
+        nickname="Linh",
+        speaking_style="detailedAnswers",
+    )
+
+    assert messages[1]["content"] == build_personalization_prompt(
+        nickname="Linh",
+        speaking_style="detailedAnswers",
+    )
+    assert "User nickname: Linh" in messages[1]["content"]
+    assert "fuller context and explanation" in messages[1]["content"]
+    assert "Relevant memories CSV:" in messages[2]["content"]
+    assert "Current local time:" in messages[2]["content"]
+    assert messages[3] == {"role": "assistant", "content": "Chào bạn."}
+    assert messages[4] == {"role": "user", "content": "Xin chào"}
 
 
 def test_memory_respond_passes_deepseek_thinking_extra_body() -> None:
@@ -534,7 +571,7 @@ def test_memory_prompt_uses_compact_csv_context() -> None:
     service.respond("Hôm nay Nguyên trả chưa?", "test-user")
 
     assert memory.llm.all_messages
-    user_prompt = memory.llm.all_messages[0][1]["content"]
+    user_prompt = memory.llm.all_messages[0][2]["content"]
     assert "Current local time:" in user_prompt
     assert "Current UTC time:" in user_prompt
     assert "Relevant memories CSV:" in user_prompt
@@ -569,8 +606,9 @@ def test_memory_build_response_messages_quotes_csv_values() -> None:
 
     assert messages[0]["role"] == "system"
     assert messages[1]["role"] == "system"
-    assert messages[2] == {"role": "user", "content": "What changed?"}
-    context_prompt = messages[1]["content"]
+    assert messages[2]["role"] == "system"
+    assert messages[3] == {"role": "user", "content": "What changed?"}
+    context_prompt = messages[2]["content"]
     assert '"User discussed a debt, with comma.",,' in context_prompt
     assert "memory-id" not in context_prompt
     assert "test-user" not in context_prompt
@@ -589,15 +627,16 @@ def test_build_response_messages_injects_recent_conversation_before_current_quer
 
     assert messages[0]["role"] == "system"
     assert messages[1]["role"] == "system"
-    assert messages[2] == {
+    assert messages[2]["role"] == "system"
+    assert messages[3] == {
         "role": "user",
         "content": "I have a dentist appointment today.",
     }
-    assert messages[3] == {
+    assert messages[4] == {
         "role": "assistant",
         "content": "I will remember that.",
     }
-    assert messages[4] == {"role": "user", "content": "What about tomorrow?"}
+    assert messages[5] == {"role": "user", "content": "What about tomorrow?"}
 
 
 def test_build_memory_planner_messages_include_recent_context_and_candidates() -> None:

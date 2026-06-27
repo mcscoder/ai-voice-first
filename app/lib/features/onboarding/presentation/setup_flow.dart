@@ -3,7 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/design_system/design_system.dart';
 import '../../../core/di/get_it.dart';
+import '../../memory/memory.dart';
 import '../../voice_settings/voice_settings.dart';
+import 'speaking_style.dart';
 import 'setup_cubit.dart';
 
 final class SetupFlow extends StatefulWidget {
@@ -17,6 +19,8 @@ final class _SetupFlowState extends State<SetupFlow> {
   final _nicknameController = TextEditingController();
   var _step = 0;
   var _selectedStyle = SpeakingStyle.shortAnswers;
+  var _isSavingPersonalization = false;
+  var _isFinishingSetup = false;
 
   @override
   void initState() {
@@ -40,20 +44,22 @@ final class _SetupFlowState extends State<SetupFlow> {
       _PersonalizationStep(
         nicknameController: _nicknameController,
         selectedStyle: _selectedStyle,
+        isBusy: _isSavingPersonalization,
         onStyleChanged: (value) {
           setState(() {
             _selectedStyle = value;
           });
         },
         onContinue: () {
-          context.read<SetupCubit>().updatePersonalization(
-            nickname: _nicknameController.text,
-            speakingStyle: _selectedStyle,
-          );
-          _next();
+          _savePersonalization();
         },
       ),
-      _MemoryConsentStep(onFinish: () => context.read<SetupCubit>().complete()),
+      _MemoryConsentStep(
+        onFinish: () {
+          _finishSetup();
+        },
+        isBusy: _isFinishingSetup,
+      ),
     ];
 
     final page = VoxiaScaffold(
@@ -97,6 +103,66 @@ final class _SetupFlowState extends State<SetupFlow> {
     setState(() {
       _step = (_step - 1).clamp(0, 3);
     });
+  }
+
+  Future<void> _savePersonalization() async {
+    setState(() {
+      _isSavingPersonalization = true;
+    });
+    final saved = await context.read<SetupCubit>().savePersonalization(
+      nickname: _nicknameController.text,
+      speakingStyle: _selectedStyle,
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isSavingPersonalization = false;
+    });
+    if (!saved) {
+      _showError(context.read<SetupCubit>().state.errorMessage);
+      return;
+    }
+    _next();
+  }
+
+  Future<void> _finishSetup() async {
+    setState(() {
+      _isFinishingSetup = true;
+    });
+    final memorySaved = await context.read<MemoryCubit>().setMemoryEnabled(
+      context.read<SetupCubit>().state.memoryEnabled,
+    );
+    if (!mounted) {
+      return;
+    }
+    if (!memorySaved) {
+      setState(() {
+        _isFinishingSetup = false;
+      });
+      _showError(context.read<MemoryCubit>().state.errorMessage);
+      return;
+    }
+
+    final completed = await context.read<SetupCubit>().markSetupCompleted(true);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isFinishingSetup = false;
+    });
+    if (!completed) {
+      _showError(context.read<SetupCubit>().state.errorMessage);
+    }
+  }
+
+  void _showError(String? message) {
+    if (message == null) {
+      return;
+    }
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   String _titleForStep(int step) {
@@ -245,12 +311,14 @@ final class _PersonalizationStep extends StatelessWidget {
     required this.selectedStyle,
     required this.onStyleChanged,
     required this.onContinue,
+    this.isBusy = false,
   });
 
   final TextEditingController nicknameController;
   final SpeakingStyle selectedStyle;
   final ValueChanged<SpeakingStyle> onStyleChanged;
   final VoidCallback onContinue;
+  final bool isBusy;
 
   @override
   Widget build(BuildContext context) {
@@ -302,16 +370,21 @@ final class _PersonalizationStep extends StatelessWidget {
             ],
           ),
         ),
-        VoxiaGradientButton(label: 'Continue', onPressed: onContinue),
+        VoxiaGradientButton(
+          label: 'Continue',
+          onPressed: onContinue,
+          isBusy: isBusy,
+        ),
       ],
     );
   }
 }
 
 final class _MemoryConsentStep extends StatelessWidget {
-  const _MemoryConsentStep({required this.onFinish});
+  const _MemoryConsentStep({required this.onFinish, this.isBusy = false});
 
   final VoidCallback onFinish;
+  final bool isBusy;
 
   @override
   Widget build(BuildContext context) {
@@ -341,7 +414,11 @@ final class _MemoryConsentStep extends StatelessWidget {
               subtitle: 'Keep conversations\ntemporary',
               isSelected: !state.memoryEnabled,
             ),
-            VoxiaGradientButton(label: 'Finish setup', onPressed: onFinish),
+            VoxiaGradientButton(
+              label: 'Finish setup',
+              onPressed: onFinish,
+              isBusy: isBusy,
+            ),
             Text(
               'You can update this anytime in Settings.',
               textAlign: TextAlign.center,

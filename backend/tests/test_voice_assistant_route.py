@@ -22,6 +22,7 @@ from app.services.memory import (
     MemorySearchResult,
     conversation_history,
 )
+from app.services.memory.prompt import build_response_messages
 from app.services.tts import TtsResult, TtsVoiceOption
 
 
@@ -86,6 +87,109 @@ def test_voice_assistant_returns_generated_audio(monkeypatch) -> None:
         "text": "You should review your plan.",
         "voice": "Ngọc Linh",
     }
+
+
+def test_personalization_routes_return_defaults_and_persist_updates(monkeypatch) -> None:
+    monkeypatch.setattr(
+        routes.auth_service,
+        "get_personalization",
+        lambda *_: SimpleNamespace(
+            nickname="",
+            speaking_style="shortAnswers",
+            setup_completed=False,
+        ),
+    )
+
+    response = create_client().get("/v1/profile/personalization")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "nickname": "",
+        "speaking_style": "shortAnswers",
+        "setup_completed": False,
+    }
+
+    saved: dict[str, object] = {}
+
+    def set_personalization(
+        user_id: str,
+        *,
+        nickname: str,
+        speaking_style: str,
+    ) -> SimpleNamespace:
+        saved.update(
+            {
+                "user_id": user_id,
+                "nickname": nickname,
+                "speaking_style": speaking_style,
+            }
+        )
+        return SimpleNamespace(
+            nickname=nickname,
+            speaking_style=speaking_style,
+            setup_completed=False,
+        )
+
+    monkeypatch.setattr(routes.auth_service, "set_personalization", set_personalization)
+
+    update_response = create_client().put(
+        "/v1/profile/personalization",
+        json={"nickname": "  Alex  ", "speaking_style": "professional"},
+    )
+
+    assert update_response.status_code == 200
+    assert update_response.json() == {
+        "nickname": "Alex",
+        "speaking_style": "professional",
+        "setup_completed": False,
+    }
+    assert saved == {
+        "user_id": "test-user",
+        "nickname": "Alex",
+        "speaking_style": "professional",
+    }
+
+
+def test_personalization_route_rejects_invalid_speaking_style() -> None:
+    response = create_client().put(
+        "/v1/profile/personalization",
+        json={"nickname": "Alex", "speaking_style": "verbose"},
+    )
+
+    assert response.status_code == 422
+
+
+def test_profile_setup_route_persists_completion(monkeypatch) -> None:
+    saved: dict[str, object] = {}
+
+    def set_setup_completed(user_id: str, completed: bool) -> bool:
+        saved["user_id"] = user_id
+        saved["completed"] = completed
+        return completed
+
+    monkeypatch.setattr(routes.auth_service, "set_setup_completed", set_setup_completed)
+    monkeypatch.setattr(
+        routes.auth_service,
+        "get_personalization",
+        lambda *_: SimpleNamespace(
+            nickname="Alex",
+            speaking_style="casual",
+            setup_completed=True,
+        ),
+    )
+
+    response = create_client().put(
+        "/v1/profile/setup",
+        json={"setup_completed": True},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "nickname": "Alex",
+        "speaking_style": "casual",
+        "setup_completed": True,
+    }
+    assert saved == {"user_id": "test-user", "completed": True}
 
 
 def test_voice_assistant_rejects_empty_upload() -> None:
@@ -166,6 +270,17 @@ def test_voice_assistant_stream_returns_ordered_events(monkeypatch) -> None:
         "search_memory_results",
         search_memory_results,
     )
+    monkeypatch.setattr(
+        routes.assistant_service.memory,
+        "build_response_messages",
+        lambda query, user_id, *, memories, recent_messages=None: build_response_messages(
+            query,
+            memories,
+            recent_messages,
+            nickname="Alex",
+            speaking_style="casual",
+        ),
+    )
     monkeypatch.setattr(routes.assistant_service.memory, "stream_response", stream_response)
     monkeypatch.setattr(
         routes.assistant_service.memory,
@@ -214,8 +329,11 @@ def test_voice_assistant_stream_returns_ordered_events(monkeypatch) -> None:
     assert isinstance(messages, list)
     assert messages[0]["role"] == "system"
     assert messages[1]["role"] == "system"
-    assert messages[2] == {"role": "user", "content": "Xin chào"}
-    prompt = messages[1]["content"]
+    assert messages[2]["role"] == "system"
+    assert messages[3] == {"role": "user", "content": "Xin chào"}
+    assert "User nickname: Alex" in messages[1]["content"]
+    assert "relaxed, conversational wording" in messages[1]["content"]
+    prompt = messages[2]["content"]
     assert "Relevant memories CSV:" in prompt
     assert "memory,created_at,updated_at" in prompt
     assert "User likes short answers." in prompt
@@ -368,11 +486,12 @@ def test_voice_assistant_stream_records_pipeline_telemetry(monkeypatch) -> None:
     assert llm_metadata["reply_chunks"] == [{"index": 1, "text": "Saved."}]
     assert llm_metadata["prompt_messages"][0]["role"] == "system"
     assert llm_metadata["prompt_messages"][1]["role"] == "system"
-    assert llm_metadata["prompt_messages"][2] == {
+    assert llm_metadata["prompt_messages"][2]["role"] == "system"
+    assert llm_metadata["prompt_messages"][3] == {
         "role": "user",
         "content": "Nhớ việc này",
     }
-    prompt = llm_metadata["prompt_messages"][1]["content"]
+    prompt = llm_metadata["prompt_messages"][2]["content"]
     assert "Relevant memories CSV:" in prompt
     assert "memory,created_at,updated_at" in prompt
     assert "User likes concise answers." in prompt

@@ -16,6 +16,8 @@ import '../router/deep_link_handler.dart';
 import '../../features/memory/data/memory_api.dart';
 import '../../features/memory/data/memory_repository.dart';
 import '../../features/memory/presentation/memory_cubit.dart';
+import '../../features/profile/data/personalization_api.dart';
+import '../../features/profile/data/personalization_repository.dart';
 import '../../features/voice/data/audio_recorder_service.dart';
 import '../../features/voice_settings/data/voice_settings_api.dart';
 import '../../features/voice_settings/data/voice_settings_repository.dart';
@@ -48,6 +50,16 @@ void configureDependencies() {
   if (!getIt.isRegistered<VoiceSettingsApi>()) {
     getIt.registerLazySingleton<VoiceSettingsApi>(
       () => VoiceSettingsApi(getIt<Dio>(instanceName: 'AuthDio')),
+    );
+  }
+  if (!getIt.isRegistered<PersonalizationApi>()) {
+    getIt.registerLazySingleton<PersonalizationApi>(
+      () => PersonalizationApi(getIt<Dio>(instanceName: 'AuthDio')),
+    );
+  }
+  if (!getIt.isRegistered<PersonalizationRepository>()) {
+    getIt.registerLazySingleton<PersonalizationRepository>(
+      () => PersonalizationRepository(getIt<PersonalizationApi>()),
     );
   }
   if (!getIt.isRegistered<VoiceSettingsRepository>()) {

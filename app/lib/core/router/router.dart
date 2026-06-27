@@ -20,6 +20,7 @@ abstract class AppRoutes {
   static const talk = '/talk';
   static const memory = '/memory';
   static const profile = '/profile';
+  static const profilePersonalization = '/profile/personalization';
   static const voiceSettings = '/profile/voice-settings';
 
   static String memoryCategory(String categoryKey) => '$memory/$categoryKey';
@@ -64,6 +65,10 @@ abstract class AppRouter {
           builder: (_, _) => const ProfileScreen(),
         ),
         GoRoute(
+          path: AppRoutes.profilePersonalization,
+          builder: (_, _) => const ProfilePersonalizationScreen(),
+        ),
+        GoRoute(
           path: AppRoutes.voiceSettings,
           builder: (_, _) => BlocProvider(
             create: (_) => getIt<VoiceSettingsCubit>()..load(),
@@ -87,6 +92,11 @@ abstract class AppRouter {
     final isAuthenticated = authState.status == AuthStatus.authenticated;
     if (!isAuthenticated) {
       return location == AppRoutes.auth ? null : AppRoutes.auth;
+    }
+
+    if (setupState.syncStatus == SetupSyncStatus.initial ||
+        setupState.syncStatus == SetupSyncStatus.syncing) {
+      return location == AppRoutes.loading ? null : AppRoutes.loading;
     }
 
     if (!setupState.isComplete) {

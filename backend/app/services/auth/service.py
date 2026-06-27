@@ -19,11 +19,14 @@ from app.services.auth.types import (
     AuthenticatedUser,
     DuplicateUserError,
     InvalidCredentialsError,
+    PersonalizationSettings,
     TokenPair,
 )
 
 
 class AuthService:
+    DEFAULT_SPEAKING_STYLE = "shortAnswers"
+
     def __init__(self, auth_config: AuthConfig = config.auth) -> None:
         self.auth_config = auth_config
         self._password_hasher = PasswordHasher()
@@ -151,15 +154,122 @@ class AuthService:
         with self._connect() as db:
             db.execute(
                 """
-                INSERT INTO user_preferences (user_id, memory_enabled, updated_at)
-                VALUES (?, ?, ?)
+                INSERT INTO user_preferences (
+                    user_id,
+                    memory_enabled,
+                    nickname,
+                    speaking_style,
+                    setup_completed,
+                    updated_at
+                )
+                VALUES (?, ?, '', ?, 0, ?)
                 ON CONFLICT(user_id) DO UPDATE SET
                     memory_enabled = excluded.memory_enabled,
                     updated_at = excluded.updated_at
                 """,
-                (user_id, int(enabled), self._now_iso()),
+                (
+                    user_id,
+                    int(enabled),
+                    self.DEFAULT_SPEAKING_STYLE,
+                    self._now_iso(),
+                ),
             )
         return enabled
+
+    def get_personalization(self, user_id: str) -> PersonalizationSettings:
+        with self._connect() as db:
+            row = db.execute(
+                """
+                SELECT nickname, speaking_style, setup_completed
+                FROM user_preferences
+                WHERE user_id = ?
+                """,
+                (user_id,),
+            ).fetchone()
+
+        if row is None:
+            return PersonalizationSettings(
+                nickname="",
+                speaking_style=self.DEFAULT_SPEAKING_STYLE,
+                setup_completed=False,
+            )
+        return PersonalizationSettings(
+            nickname=row["nickname"] or "",
+            speaking_style=row["speaking_style"] or self.DEFAULT_SPEAKING_STYLE,
+            setup_completed=bool(row["setup_completed"]),
+        )
+
+    def set_personalization(
+        self,
+        user_id: str,
+        *,
+        nickname: str,
+        speaking_style: str,
+    ) -> PersonalizationSettings:
+        memory_enabled = self.is_memory_enabled(user_id)
+        setup_completed = self.is_setup_completed(user_id)
+        with self._connect() as db:
+            db.execute(
+                """
+                INSERT INTO user_preferences (
+                    user_id,
+                    memory_enabled,
+                    voice,
+                    nickname,
+                    speaking_style,
+                    setup_completed,
+                    updated_at
+                )
+                VALUES (?, ?, NULL, ?, ?, ?, ?)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    nickname = excluded.nickname,
+                    speaking_style = excluded.speaking_style,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    user_id,
+                    int(memory_enabled),
+                    nickname,
+                    speaking_style,
+                    int(setup_completed),
+                    self._now_iso(),
+                ),
+            )
+        return self.get_personalization(user_id)
+
+    def is_setup_completed(self, user_id: str) -> bool:
+        return self.get_personalization(user_id).setup_completed
+
+    def set_setup_completed(self, user_id: str, completed: bool) -> bool:
+        personalization = self.get_personalization(user_id)
+        memory_enabled = self.is_memory_enabled(user_id)
+        with self._connect() as db:
+            db.execute(
+                """
+                INSERT INTO user_preferences (
+                    user_id,
+                    memory_enabled,
+                    voice,
+                    nickname,
+                    speaking_style,
+                    setup_completed,
+                    updated_at
+                )
+                VALUES (?, ?, NULL, ?, ?, ?, ?)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    setup_completed = excluded.setup_completed,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    user_id,
+                    int(memory_enabled),
+                    personalization.nickname,
+                    personalization.speaking_style,
+                    int(completed),
+                    self._now_iso(),
+                ),
+            )
+        return completed
 
     def get_voice(self, user_id: str) -> TtsVoice:
         with self._connect() as db:
@@ -173,19 +283,34 @@ class AuthService:
         return cast(TtsVoice, row["voice"])
 
     def set_voice(self, user_id: str, voice: TtsVoice) -> TtsVoice:
+        personalization = self.get_personalization(user_id)
         memory_enabled = self.is_memory_enabled(user_id)
         with self._connect() as db:
             db.execute(
                 """
                 INSERT INTO user_preferences (
-                    user_id, memory_enabled, voice, updated_at
+                    user_id,
+                    memory_enabled,
+                    voice,
+                    nickname,
+                    speaking_style,
+                    setup_completed,
+                    updated_at
                 )
-                VALUES (?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(user_id) DO UPDATE SET
                     voice = excluded.voice,
                     updated_at = excluded.updated_at
                 """,
-                (user_id, int(memory_enabled), voice, self._now_iso()),
+                (
+                    user_id,
+                    int(memory_enabled),
+                    voice,
+                    personalization.nickname,
+                    personalization.speaking_style,
+                    int(personalization.setup_completed),
+                    self._now_iso(),
+                ),
             )
         return voice
 
@@ -269,6 +394,9 @@ class AuthService:
                         user_id TEXT PRIMARY KEY,
                         memory_enabled INTEGER NOT NULL,
                         voice TEXT,
+                        nickname TEXT NOT NULL DEFAULT '',
+                        speaking_style TEXT NOT NULL DEFAULT 'shortAnswers',
+                        setup_completed INTEGER NOT NULL DEFAULT 0,
                         updated_at TEXT NOT NULL,
                         FOREIGN KEY (user_id) REFERENCES users(id)
                     )
@@ -286,6 +414,18 @@ class AuthService:
         }
         if "voice" not in columns:
             db.execute("ALTER TABLE user_preferences ADD COLUMN voice TEXT")
+        if "nickname" not in columns:
+            db.execute(
+                "ALTER TABLE user_preferences ADD COLUMN nickname TEXT NOT NULL DEFAULT ''"
+            )
+        if "speaking_style" not in columns:
+            db.execute(
+                "ALTER TABLE user_preferences ADD COLUMN speaking_style TEXT NOT NULL DEFAULT 'shortAnswers'"
+            )
+        if "setup_completed" not in columns:
+            db.execute(
+                "ALTER TABLE user_preferences ADD COLUMN setup_completed INTEGER NOT NULL DEFAULT 0"
+            )
 
     def _secret_key(self) -> str:
         if not self.auth_config.secret_key:

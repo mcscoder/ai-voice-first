@@ -17,7 +17,6 @@ from app.services.assistant.types import (
 )
 from app.services.memory.conversation_history import ConversationHistory
 from app.services.memory import MemoryServiceError
-from app.services.memory.prompt import build_response_messages
 from app.services.memory.speech import clean_response_for_speech
 
 
@@ -121,10 +120,11 @@ class AssistantResponseStreamer:
         recent_messages = self.history.messages_for(user_id)
         response_holder["recent_messages"] = recent_messages
         response_holder["candidate_memories"] = memory_results
-        prompt_messages = build_response_messages(
+        prompt_messages = self.memory.build_response_messages(
             query,
-            memory_results,
-            recent_messages,
+            user_id,
+            memories=memory_results,
+            recent_messages=recent_messages,
         )
         self.telemetry.start_stage(run_id, "llm_response_stream")
         self.telemetry.update_stage(

@@ -72,7 +72,12 @@ class MemoryService:
         memories = self.search_memory_results(query, user_id) if memory_enabled else []
         recent_messages = self.history.messages_for(user_id)
         response = memory.llm.generate_response(
-            build_response_messages(query, memories, recent_messages),
+            self.build_response_messages(
+                query,
+                user_id,
+                memories=memories,
+                recent_messages=recent_messages,
+            ),
             extra_body=self.memory_config.to_deepseek_extra_body(),
         )
 
@@ -203,6 +208,23 @@ class MemoryService:
                     yield str(delta)
         except OpenAIError as error:
             raise MemoryServiceError(str(error)) from error
+
+    def build_response_messages(
+        self,
+        query: str,
+        user_id: str,
+        *,
+        memories: list[MemorySearchResult],
+        recent_messages: list[dict[str, str]] | None = None,
+    ) -> list[dict[str, str]]:
+        personalization = self.auth.get_personalization(user_id)
+        return build_response_messages(
+            query,
+            memories,
+            recent_messages,
+            nickname=personalization.nickname,
+            speaking_style=personalization.speaking_style,
+        )
 
     def persist_conversation(
         self,

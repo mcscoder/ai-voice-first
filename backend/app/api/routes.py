@@ -105,6 +105,41 @@ class MemorySettingsResponse(BaseModel):
     memory_enabled: bool
 
 
+_VALID_SPEAKING_STYLES = {
+    "shortAnswers",
+    "detailedAnswers",
+    "casual",
+    "professional",
+}
+
+
+class PersonalizationResponse(BaseModel):
+    nickname: str
+    speaking_style: str
+    setup_completed: bool
+
+
+class PersonalizationRequest(BaseModel):
+    nickname: str
+    speaking_style: str
+
+    @field_validator("nickname")
+    @classmethod
+    def validate_nickname(cls, value: str) -> str:
+        return value.strip()
+
+    @field_validator("speaking_style")
+    @classmethod
+    def validate_speaking_style(cls, value: str) -> str:
+        if value not in _VALID_SPEAKING_STYLES:
+            raise ValueError("Invalid speaking_style.")
+        return value
+
+
+class SetupCompletionRequest(BaseModel):
+    setup_completed: bool
+
+
 class VoiceOptionResponse(BaseModel):
     id: TtsVoice
     name: str
@@ -227,6 +262,47 @@ def update_memory_settings(
 ) -> MemorySettingsResponse:
     return MemorySettingsResponse(
         memory_enabled=memory_service.set_enabled(user.id, request.memory_enabled)
+    )
+
+
+@router.get("/v1/profile/personalization", response_model=PersonalizationResponse)
+def get_personalization(user: CurrentUser) -> PersonalizationResponse:
+    personalization = auth_service.get_personalization(user.id)
+    return PersonalizationResponse(
+        nickname=personalization.nickname,
+        speaking_style=personalization.speaking_style,
+        setup_completed=personalization.setup_completed,
+    )
+
+
+@router.put("/v1/profile/personalization", response_model=PersonalizationResponse)
+def update_personalization(
+    request: PersonalizationRequest,
+    user: CurrentUser,
+) -> PersonalizationResponse:
+    personalization = auth_service.set_personalization(
+        user.id,
+        nickname=request.nickname,
+        speaking_style=request.speaking_style,
+    )
+    return PersonalizationResponse(
+        nickname=personalization.nickname,
+        speaking_style=personalization.speaking_style,
+        setup_completed=personalization.setup_completed,
+    )
+
+
+@router.put("/v1/profile/setup", response_model=PersonalizationResponse)
+def update_profile_setup(
+    request: SetupCompletionRequest,
+    user: CurrentUser,
+) -> PersonalizationResponse:
+    auth_service.set_setup_completed(user.id, request.setup_completed)
+    personalization = auth_service.get_personalization(user.id)
+    return PersonalizationResponse(
+        nickname=personalization.nickname,
+        speaking_style=personalization.speaking_style,
+        setup_completed=personalization.setup_completed,
     )
 
 

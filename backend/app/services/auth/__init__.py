@@ -5,6 +5,7 @@ from app.services.auth.types import (
     AuthError,
     DuplicateUserError,
     InvalidCredentialsError,
+    PersonalizationSettings,
     TokenPair,
 )
 
@@ -15,6 +16,7 @@ __all__ = [
     "AuthService",
     "DuplicateUserError",
     "InvalidCredentialsError",
+    "PersonalizationSettings",
     "TokenPair",
     "auth_service",
 ]

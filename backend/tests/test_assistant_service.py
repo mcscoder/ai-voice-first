@@ -5,6 +5,7 @@ from app.services.assistant.service import AssistantService
 from app.services.assistant.streaming import AssistantResponseStreamer
 from app.services.assistant.telemetry import assistant_telemetry
 from app.services.memory import ConversationHistory, MemoryReply, MemorySearchResult
+from app.services.memory.prompt import build_response_messages
 from app.services.tts import TtsResult
 
 
@@ -43,6 +44,10 @@ class StreamingMemory:
         self.search_calls = 0
         self.persisted: list[dict[str, object]] = []
         self.stream_messages: list[dict[str, str]] | None = None
+        self.personalization = {
+            "nickname": "Alex",
+            "speaking_style": "casual",
+        }
 
     def is_enabled(self, user_id: str) -> bool:
         return self.memory_enabled
@@ -65,6 +70,22 @@ class StreamingMemory:
     ):
         self.stream_messages = messages
         yield from self.deltas
+
+    def build_response_messages(
+        self,
+        query: str,
+        user_id: str,
+        *,
+        memories: list[MemorySearchResult],
+        recent_messages: list[dict[str, str]] | None = None,
+    ) -> list[dict[str, str]]:
+        return build_response_messages(
+            query,
+            memories,
+            recent_messages,
+            nickname=self.personalization["nickname"],
+            speaking_style=self.personalization["speaking_style"],
+        )
 
     def persist_conversation(
         self,
@@ -158,6 +179,21 @@ def test_stream_response_keeps_synthesizing_after_audio_event_is_yielded() -> No
         assert tts.started == ["One.", "Two."]
     finally:
         events.close()
+
+
+def test_stream_response_builds_prompt_with_personalization() -> None:
+    memory = StreamingMemory(["One. "])
+    streamer = create_streamer(memory, RecordingTts())
+
+    events = streamer.stream_response_events("Hello", {"run_id": None}, "test-user")
+    try:
+        next(events)
+    finally:
+        events.close()
+
+    assert memory.stream_messages is not None
+    assert "User nickname: Alex" in memory.stream_messages[1]["content"]
+    assert "relaxed, conversational wording" in memory.stream_messages[1]["content"]
 
 
 def test_stream_response_records_current_tts_chunk_while_synthesizing() -> None:
