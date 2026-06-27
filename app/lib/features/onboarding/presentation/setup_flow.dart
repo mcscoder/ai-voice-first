@@ -36,10 +36,7 @@ final class _SetupFlowState extends State<SetupFlow> {
   Widget build(BuildContext context) {
     final pages = <Widget>[
       _PermissionsStep(onContinue: _next),
-      BlocProvider(
-        create: (_) => getIt<VoiceSettingsCubit>()..load(),
-        child: _VoiceSetupStep(onContinue: _next),
-      ),
+      const _VoiceSetupStep(),
       _PersonalizationStep(
         nicknameController: _nicknameController,
         selectedStyle: _selectedStyle,
@@ -59,7 +56,13 @@ final class _SetupFlowState extends State<SetupFlow> {
       _MemoryConsentStep(onFinish: () => context.read<SetupCubit>().complete()),
     ];
 
-    return VoxiaScaffold(
+    final page = VoxiaScaffold(
+      floatingActionButtonLocation: _step == 1
+          ? FloatingActionButtonLocation.centerFloat
+          : null,
+      floatingActionButton: _step == 1
+          ? _VoiceSetupContinueButton(onContinue: _next)
+          : null,
       child: VoxiaFixedPage(
         title: _titleForStep(_step),
         leading: IconButton(
@@ -72,6 +75,15 @@ final class _SetupFlowState extends State<SetupFlow> {
           child: KeyedSubtree(key: ValueKey<int>(_step), child: pages[_step]),
         ),
       ),
+    );
+
+    if (_step != 1) {
+      return page;
+    }
+
+    return BlocProvider(
+      create: (_) => getIt<VoiceSettingsCubit>()..load(),
+      child: page,
     );
   }
 
@@ -145,9 +157,7 @@ final class _PermissionsStep extends StatelessWidget {
 }
 
 final class _VoiceSetupStep extends StatelessWidget {
-  const _VoiceSetupStep({required this.onContinue});
-
-  final VoidCallback onContinue;
+  const _VoiceSetupStep();
 
   @override
   Widget build(BuildContext context) {
@@ -168,22 +178,61 @@ final class _VoiceSetupStep extends StatelessWidget {
               onPreviewVoice: (voiceId) =>
                   context.read<VoiceSettingsCubit>().preview(voiceId),
             ),
-            VoxiaGradientButton(
-              label: 'Continue',
-              isBusy: state.isSaving,
-              onPressed: state.selectedVoiceId.isEmpty
-                  ? null
-                  : () async {
-                      final saved = await context
-                          .read<VoiceSettingsCubit>()
-                          .save();
-                      if (saved && context.mounted) {
-                        await context.read<VoiceSettingsCubit>().stopPreview();
-                        onContinue();
-                      }
-                    },
+            const SafeArea(
+              top: false,
+              child: SizedBox(height: AppSpacing.xxxl),
             ),
           ],
+        );
+      },
+    );
+  }
+}
+
+final class _VoiceSetupContinueButton extends StatelessWidget {
+  const _VoiceSetupContinueButton({required this.onContinue});
+
+  final VoidCallback onContinue;
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+
+    return BlocBuilder<VoiceSettingsCubit, VoiceSettingsState>(
+      builder: (context, state) {
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            0,
+            AppSpacing.md,
+            AppSpacing.sm + bottomInset,
+          ),
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 430),
+              child: SizedBox(
+                width: double.infinity,
+                child: VoxiaGradientButton(
+                  label: 'Continue',
+                  isBusy: state.isSaving,
+                  onPressed: state.selectedVoiceId.isEmpty
+                      ? null
+                      : () async {
+                          final saved = await context
+                              .read<VoiceSettingsCubit>()
+                              .save();
+                          if (saved && context.mounted) {
+                            await context
+                                .read<VoiceSettingsCubit>()
+                                .stopPreview();
+                            onContinue();
+                          }
+                        },
+                ),
+              ),
+            ),
+          ),
         );
       },
     );
@@ -325,23 +374,18 @@ final class _SetupPage extends StatelessWidget {
             (child) => [child, const SizedBox(height: AppSpacing.xs)],
           ),
         ];
-        final needsScroll =
-            MediaQuery.viewInsetsOf(context).bottom > 0 ||
-            constraints.maxHeight < 420;
-
-        if (needsScroll) {
-          return ListView(
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-            children: pageChildren,
-          );
-        }
-
-        return Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: pageChildren,
+        return SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: pageChildren,
+              ),
+            ),
           ),
         );
       },
